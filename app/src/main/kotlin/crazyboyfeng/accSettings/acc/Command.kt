@@ -63,7 +63,8 @@ object Command {
     suspend fun setConfig(property: String, vararg values: String?) =
         execAcc("set \"$property=${values.joinToString(" ")}\"")
 
-    private fun getPropertyValue(property: String) = property.split('=', '\n')[1]
+    private fun getPropertyValue(property: String): String =
+        if (property.endsWith('=') || property.endsWith("\"\"")) "" else property.split('=', '\n')[1]
 
     suspend fun getConfig(property: String): String =
         getPropertyValue(execAcc("set", "print $property"))
