@@ -4,18 +4,14 @@ plugins {
 }
 
 android {
-    /**
-     * Personal opinion:
-     * compileSdk doesn't make sense,
-     * just generally be consistent with targetSdk.
-     */
-    compileSdk = 32
+    compileSdk = 33
+    namespace = "crazyboyfeng.accSettings"
     defaultConfig {
         applicationId = "crazyboyfeng.accSettings"
         minSdk = 14
-        targetSdk = 32
-        versionCode = 202206130
-        versionName = "2022.6.13-pre"
+        targetSdk = 36
+        versionCode = 202512070
+        versionName = "2025.12.7"
 //        testInstrumentationRunner = "android.support.test.runner.AndroidJUnitRunner"
         resValue("string", "version_name", versionName!!)
     }
@@ -37,6 +33,7 @@ dependencies {
 //    implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
     implementation("androidx.preference:preference-ktx:1.2.0")
     implementation("androidx.work:work-runtime:2.7.1")
+    implementation("androidx.activity:activity-ktx:1.6.0")
     implementation("com.github.topjohnwu.libsu:core:3.2.1")
     val axpeVersion = "0.9.0"
     implementation("com.github.CrazyBoyFeng.AndroidXPreferenceExtensions:edittext:$axpeVersion")

@@ -35,8 +35,8 @@ class SettingsFragment : PreferenceFragmentCompat() {
         val infoTemp = findPreference<EditTextPreferencePlus>(getString(R.string.info_temp))!!
         infoTemp.setSummaryProvider {
             val preference = it as EditTextPreferencePlus
-            val text = preference.text
-            if (text.isNullOrEmpty()) text else (text.toFloat() / 10).toString()
+            preference.text
+            //if (text.isNullOrEmpty()) text else (text.toFloat() / 10).toString()
         }
         updateInfo()
     }

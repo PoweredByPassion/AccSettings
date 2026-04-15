@@ -19,10 +19,10 @@
         <NumberPickerPreference
             app:key="@string/set_pause_capacity"
             app:title="@string/pause_above" />
-        <SwitchPreference
+        <!--<SwitchPreference
             app:key="@string/set_capacity_sync"
             app:summary="@string/hint_prevent_shutdown"
-            app:title="@string/read_from_kernel" />
+            app:title="@string/read_from_kernel" />-->
         <SwitchPreference
             app:key="@string/set_capacity_mask"
             app:summary="@string/hint_prevent_shutdown"
@@ -83,10 +83,10 @@
             app:key="@string/set_cooldown_current"
             app:summary="%s mA"
             app:title="@string/cooldown_current" />
-        <EditTextPreference
+        <!--<EditTextPreference
             app:key="@string/set_cooldown_custom"
             app:title="@string/custom"
-            app:useSimpleSummaryProvider="true" />
+            app:useSimpleSummaryProvider="true" />-->
     </PreferenceCategory>
     <PreferenceCategory
         app:iconSpaceReserved="false"
@@ -159,10 +159,10 @@
                 app:key="@string/set_run_cmd_on_pause"
                 app:title="@string/run_on_pause"
                 app:useSimpleSummaryProvider="true" />
-            <EditTextPreference
+            <!--<EditTextPreference
                 app:key="@string/set_loop_cmd"
                 app:title="@string/loop"
-                app:useSimpleSummaryProvider="true" />
+                app:useSimpleSummaryProvider="true" />-->
         </PreferenceCategory>
         <PreferenceCategory
             app:iconSpaceReserved="false"

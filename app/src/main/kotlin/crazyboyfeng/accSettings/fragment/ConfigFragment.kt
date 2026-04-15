@@ -27,7 +27,7 @@ class ConfigFragment : PreferenceFragmentCompat() {
     private lateinit var shutdownTemp: NumberPickerPreference
     private lateinit var cooldownCharge: EditTextPreferencePlus
     private lateinit var cooldownPause: EditTextPreferencePlus
-    private lateinit var cooldownCustom: EditTextPreference
+    //private lateinit var cooldownCustom: EditTextPreference
     private lateinit var maxChargingVoltage: EditTextPreferencePlus
     private lateinit var prioritizeBattIdleMode: SwitchPreference
     private lateinit var chargingSwitch: EditTextPreference
@@ -48,7 +48,7 @@ class ConfigFragment : PreferenceFragmentCompat() {
         shutdownTemp = findPreference(getString(R.string.set_shutdown_temp))!!
         cooldownCharge = findPreference(getString(R.string.set_cooldown_charge))!!
         cooldownPause = findPreference(getString(R.string.set_cooldown_pause))!!
-        cooldownCustom = findPreference(getString(R.string.set_cooldown_custom))!!
+        //cooldownCustom = findPreference(getString(R.string.set_cooldown_custom))!!
         maxChargingVoltage = findPreference(getString(R.string.set_max_charging_voltage))!!
         prioritizeBattIdleMode = findPreference(getString(R.string.set_prioritize_batt_idle_mode))!!
         chargingSwitch = findPreference(getString(R.string.set_charging_switch))!!
@@ -66,7 +66,7 @@ class ConfigFragment : PreferenceFragmentCompat() {
                 shutdownTemp.key -> onShutdownTempSet()
                 cooldownCharge.key -> onCooldownChargeSet()
                 cooldownPause.key -> onCooldownPauseSet()
-                cooldownCustom.key -> onCooldownCustomSet()
+                //cooldownCustom.key -> onCooldownCustomSet()
                 chargingSwitch.key -> onChargingSwitchChanged()
                 currentWorkaround.key -> onCurrentWorkaroundChanged()
             }
@@ -106,7 +106,7 @@ class ConfigFragment : PreferenceFragmentCompat() {
 
         onCooldownChargeSet()
         onCooldownPauseSet()
-        onCooldownCustomSet()
+        //onCooldownCustomSet()
 
         maxChargingVoltage.setOnBindEditTextListener {
             it.doOnTextChanged { text, _, _, _ ->
@@ -217,23 +217,25 @@ class ConfigFragment : PreferenceFragmentCompat() {
     private fun onCooldownChargeSet() {
         val isValueEmpty = cooldownCharge.text.isNullOrEmpty()
         val isCooldownPauseEmpty = cooldownPause.text.isNullOrEmpty()
-        cooldownCustom.isEnabled = isValueEmpty && isCooldownPauseEmpty
+        //cooldownCustom.isEnabled = isValueEmpty && isCooldownPauseEmpty
     }
 
     private fun onCooldownPauseSet() {
         val isCooldownChargeEmpty = cooldownCharge.text.isNullOrEmpty()
         val isValueEmpty = cooldownPause.text.isNullOrEmpty()
-        cooldownCustom.isEnabled = isCooldownChargeEmpty && isValueEmpty
+        //cooldownCustom.isEnabled = isCooldownChargeEmpty && isValueEmpty
     }
 
-    private fun onCooldownCustomSet() {
+    /*private fun onCooldownCustomSet() {
         val isValueEmpty = cooldownCustom.text.isNullOrEmpty()
         cooldownCharge.isEnabled = isValueEmpty
         cooldownPause.isEnabled = isValueEmpty
-    }
+    }*/
 
     private fun onChargingSwitchSet() {
-        prioritizeBattIdleMode.isEnabled = chargingSwitch.text.isNullOrEmpty()
+        activity?.runOnUiThread {
+            prioritizeBattIdleMode.isEnabled = chargingSwitch.text.isNullOrEmpty()
+        }
     }
 
     private fun onChargingSwitchChanged() {
