@@ -9,7 +9,7 @@ android {
     defaultConfig {
         applicationId = "crazyboyfeng.accSettings"
         minSdk = 14
-        targetSdk = 36
+        targetSdk = 33
         versionCode = 202512070
         versionName = "2025.12.7"
 //        testInstrumentationRunner = "android.support.test.runner.AndroidJUnitRunner"
@@ -33,7 +33,6 @@ dependencies {
 //    implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
     implementation("androidx.preference:preference-ktx:1.2.0")
     implementation("androidx.work:work-runtime:2.7.1")
-    implementation("androidx.activity:activity-ktx:1.6.0")
     implementation("com.github.topjohnwu.libsu:core:3.2.1")
     val axpeVersion = "0.9.0"
     implementation("com.github.CrazyBoyFeng.AndroidXPreferenceExtensions:edittext:$axpeVersion")
