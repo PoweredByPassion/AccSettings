@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.AccSettings" parent="Theme.Material3.Light.NoActionBar">
+        <item name="android:windowBackground">@color/app_background</item>
+        <item name="preferenceCategoryStyle">@style/CompactPreferenceCategory</item>
+        <item name="bottomSheetDialogTheme">@style/ThemeOverlay.AccSettings.BottomSheetDialog</item>
+    </style>
+
+    <style name="CompactPreferenceCategory" parent="Preference.Category">
+        <item name="android:layout">@layout/compact_preference_category</item>
+    </style>
+
+    <style name="Widget.AccSettings.Toolbar" parent="Widget.Material3.Toolbar">
+        <item name="android:background">@android:color/transparent</item>
+        <item name="titleTextColor">?attr/colorOnSurface</item>
+        <item name="subtitleTextColor">?attr/colorOnSurfaceVariant</item>
+    </style>
+
+    <style name="ThemeOverlay.AccSettings.BottomSheetDialog"
+        parent="ThemeOverlay.Material3.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/Widget.AccSettings.BottomSheet.Modal</item>
+    </style>
+
+    <style name="Widget.AccSettings.BottomSheet.Modal"
+        parent="Widget.Material3.BottomSheet.Modal">
+        <item name="android:background">@android:color/transparent</item>
+    </style>
+</resources>

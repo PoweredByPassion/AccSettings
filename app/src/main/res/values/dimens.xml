@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="preference_list_horizontal_padding">18dp</dimen>
+    <dimen name="preference_list_vertical_padding">12dp</dimen>
+    <dimen name="preference_list_compact_horizontal_padding">0dp</dimen>
+    <dimen name="preference_list_compact_vertical_padding">4dp</dimen>
+</resources>

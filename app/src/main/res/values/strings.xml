@@ -6,7 +6,9 @@
     <string name="command_failed">Command failed</string>
 
     <string name="daemon">Daemon</string>
+    <string name="daemon_summary">Keep ACC monitoring active in the background</string>
     <string name="configuration">Configuration</string>
+    <string name="configuration_summary">Adjust charging rules and limits</string>
 
     <string name="about">About</string>
 
@@ -52,7 +54,7 @@
     <string name="ampere_factor">Ampere factor</string>
     <string name="volt_factor">Volt factor</string>
 
-    <string name="hint_between">Between %d and %d!</string>
+    <string name="hint_between">Between %1$d and %2$d!</string>
     <string name="hint_capacity_shutdown">Only valid when discharging and running more than 15 minutes.</string>
     <string name="hint_cooldown">Periodically charge and pause.\nReduce damage from prolonged high temperature and voltage.</string>
     <string name="hint_prevent_shutdown">Also prevent shutdown.</string>
@@ -62,4 +64,22 @@
     <string name="hint_cooldown_current">Limit charging instead of pausing during cooldown period.</string>
     <string name="hint_idle_mode">Incompatible with some Samsung and other devices.</string>
     <string name="hint_strict_current_control">Only use control files match \"batt\".\nNeed if current limit affects both input and charging current.</string>
+
+    <!-- ACC management -->
+    <string name="install_acc_title">Install/Update ACC</string>
+    <string name="update_acc_title">ACC is up to date</string>
+    <string name="uninstall_acc_title">Uninstall ACC</string>
+    <string name="acc_version_info_title">ACC Version</string>
+    <string name="acc_not_installed">ACC is not installed</string>
+    <string name="acc_installed_version">Installed: %s</string>
+    <string name="acc_bundled_version">Available: %s</string>
+    <string name="acc_up_to_date">ACC is up to date</string>
+    <string name="acc_install_success">ACC installed successfully</string>
+    <string name="acc_uninstall_success">ACC uninstalled successfully</string>
+    <string name="acc_management">ACC Management</string>
+    <string name="acc_need_root">Root permission required</string>
+    <string name="more">More</string>
+    <string name="more_subtitle">Manage ACC tools and app information</string>
+    <string name="hide_non_critical">Hide non-critical content</string>
+    <string name="show_non_critical">Show non-critical content</string>
 </resources>

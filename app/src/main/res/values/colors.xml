@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="app_background">#F3F6F8</color>
+    <color name="sheet_background">#FCFEFF</color>
+    <color name="sheet_handle">#CCD6DD</color>
+</resources>

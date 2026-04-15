@@ -37,22 +37,22 @@ class ConfigFragment : PreferenceFragmentCompat() {
         preferenceManager.preferenceDataStore = configDataStore
 
         setPreferencesFromResource(R.xml.config_preferences, rootKey)
-        shutdownCapacity = findPreference(getString(R.string.set_shutdown_capacity))!!
-        cooldownCapacity = findPreference(getString(R.string.set_cooldown_capacity))!!
-        resumeCapacity = findPreference(getString(R.string.set_resume_capacity))!!
-        pauseCapacity = findPreference(getString(R.string.set_pause_capacity))!!
-        capacityMask = findPreference(getString(R.string.set_capacity_mask))!!
-        supportInVoltage = findPreference(getString(R.string.support_in_voltage))!!
-        cooldownTemp = findPreference(getString(R.string.set_cooldown_temp))!!
-        maxTemp = findPreference(getString(R.string.set_max_temp))!!
-        shutdownTemp = findPreference(getString(R.string.set_shutdown_temp))!!
-        cooldownCharge = findPreference(getString(R.string.set_cooldown_charge))!!
-        cooldownPause = findPreference(getString(R.string.set_cooldown_pause))!!
+        shutdownCapacity = findPreference(getString(R.string.set_shutdown_capacity)) ?: return
+        cooldownCapacity = findPreference(getString(R.string.set_cooldown_capacity)) ?: return
+        resumeCapacity = findPreference(getString(R.string.set_resume_capacity)) ?: return
+        pauseCapacity = findPreference(getString(R.string.set_pause_capacity)) ?: return
+        capacityMask = findPreference(getString(R.string.set_capacity_mask)) ?: return
+        supportInVoltage = findPreference(getString(R.string.support_in_voltage)) ?: return
+        cooldownTemp = findPreference(getString(R.string.set_cooldown_temp)) ?: return
+        maxTemp = findPreference(getString(R.string.set_max_temp)) ?: return
+        shutdownTemp = findPreference(getString(R.string.set_shutdown_temp)) ?: return
+        cooldownCharge = findPreference(getString(R.string.set_cooldown_charge)) ?: return
+        cooldownPause = findPreference(getString(R.string.set_cooldown_pause)) ?: return
         //cooldownCustom = findPreference(getString(R.string.set_cooldown_custom))!!
-        maxChargingVoltage = findPreference(getString(R.string.set_max_charging_voltage))!!
-        prioritizeBattIdleMode = findPreference(getString(R.string.set_prioritize_batt_idle_mode))!!
-        chargingSwitch = findPreference(getString(R.string.set_charging_switch))!!
-        currentWorkaround = findPreference(getString(R.string.set_current_workaround))!!
+        maxChargingVoltage = findPreference(getString(R.string.set_max_charging_voltage)) ?: return
+        prioritizeBattIdleMode = findPreference(getString(R.string.set_prioritize_batt_idle_mode)) ?: return
+        chargingSwitch = findPreference(getString(R.string.set_charging_switch)) ?: return
+        currentWorkaround = findPreference(getString(R.string.set_current_workaround)) ?: return
 
         configDataStore.onConfigChangeListener = ConfigDataStore.OnConfigChangeListener {
             when (it) {
@@ -247,7 +247,7 @@ class ConfigFragment : PreferenceFragmentCompat() {
         CoroutineScope(Dispatchers.Default).launch { Command.reinitialize() }
     }
 
-    private fun loadDefault() = lifecycleScope.launchWhenCreated {
+    private fun loadDefault() = lifecycleScope.launch {
         val properties = Command.getDefaultConfig()
         Log.d(TAG, "loadDefault ${properties.size}")
         for (property in properties) {

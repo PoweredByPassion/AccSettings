@@ -24,7 +24,6 @@ class WorkerReceiver : BroadcastReceiver() {
     }
 
     private fun run(context: Context, worker: Class<out Worker>) {
-        Shell.rootAccess()
         val request = OneTimeWorkRequest.Builder(worker).build()
         WorkManager.getInstance(context).enqueue(request)
     }
@@ -32,6 +31,7 @@ class WorkerReceiver : BroadcastReceiver() {
     class InitialWorker(private val context: Context, workerParams: WorkerParameters) :
         Worker(context, workerParams) {
         override fun doWork(): Result = runBlocking {
+            Shell.rootAccess()
             try {
                 AccHandler().initial(context)
                 Result.success()
@@ -44,6 +44,7 @@ class WorkerReceiver : BroadcastReceiver() {
     class ServeWorker(context: Context, workerParams: WorkerParameters) :
         Worker(context, workerParams) {
         override fun doWork(): Result = runBlocking {
+            Shell.rootAccess()
             try {
                 AccHandler().serve()
                 Result.success()

@@ -8,7 +8,7 @@ android {
     namespace = "crazyboyfeng.accSettings"
     defaultConfig {
         applicationId = "crazyboyfeng.accSettings"
-        minSdk = 14
+        minSdk = 21
         targetSdk = 36
         versionCode = 202604150
         versionName = "2026.04.15"
@@ -31,13 +31,14 @@ android {
 
 dependencies {
 //    implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
-    implementation("androidx.preference:preference-ktx:1.2.0")
-    implementation("androidx.work:work-runtime:2.7.1")
-    implementation("com.github.topjohnwu.libsu:core:3.2.1")
+    implementation("androidx.preference:preference-ktx:1.2.1")
+    implementation("androidx.work:work-runtime:2.9.0")
+    implementation("com.google.android.material:material:1.12.0")
+    implementation("com.github.topjohnwu.libsu:core:6.0.0")
     val axpeVersion = "0.9.0"
     implementation("com.github.CrazyBoyFeng.AndroidXPreferenceExtensions:edittext:$axpeVersion")
     implementation("com.github.CrazyBoyFeng.AndroidXPreferenceExtensions:numberpicker:$axpeVersion")
-//    testImplementation("junit:junit:4.13.2")
+    testImplementation("junit:junit:4.13.2")
 //    androidTestImplementation("androidx.test.ext:junit:1.1.3")
 //    androidTestImplementation("androidx.test.espresso:espresso-core:3.4.0")
 }

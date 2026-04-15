@@ -1,16 +1,31 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <PreferenceCategory
-        app:enabled="false"
         app:iconSpaceReserved="false"
         app:key="@string/acc"
         app:persistent="false"
         app:title="@string/acc">
+        <Preference
+            app:key="@string/acc_version_info"
+            app:persistent="false"
+            app:selectable="false"
+            app:title="@string/acc_version_info_title" />
+        <Preference
+            app:key="@string/install_acc"
+            app:persistent="false"
+            app:title="@string/install_acc_title" />
+        <Preference
+            app:key="@string/uninstall_acc"
+            app:persistent="false"
+            app:title="@string/uninstall_acc_title" />
         <SwitchPreference
             app:key="@string/acc_daemon"
+            app:summary="@string/daemon_summary"
             app:title="@string/daemon" />
         <Preference
             app:fragment="crazyboyfeng.accSettings.fragment.ConfigFragment"
+            app:key="@string/configuration"
+            app:summary="@string/configuration_summary"
             app:title="@string/configuration" />
     </PreferenceCategory>
     <PreferenceCategory
@@ -54,24 +69,5 @@
             app:selectable="false"
             app:summary="%s"
             app:title="@string/power" />
-    </PreferenceCategory>
-    <PreferenceCategory
-        app:iconSpaceReserved="false"
-        app:title="@string/about">
-        <Preference
-            app:summary="@string/version_name"
-            app:title="@string/acc_settings">
-            <intent
-                android:action="android.intent.action.VIEW"
-                android:data="https://github.com/CrazyBoyFeng/AccSettings" />
-        </Preference>
-        <Preference
-            app:summary="@string/acc_version_name"
-            app:title="@string/acc">
-            <intent
-                android:action="android.intent.action.VIEW"
-                android:data="https://github.com/VR-25/acc" />
-        </Preference>
-        <!--TODO auto upload logs switch? or manually?-->
     </PreferenceCategory>
 </PreferenceScreen>
