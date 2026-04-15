@@ -4,14 +4,14 @@ plugins {
 }
 
 android {
-    compileSdk = 33
+    compileSdk = 36
     namespace = "crazyboyfeng.accSettings"
     defaultConfig {
         applicationId = "crazyboyfeng.accSettings"
         minSdk = 14
-        targetSdk = 33
-        versionCode = 202512070
-        versionName = "2025.12.7"
+        targetSdk = 36
+        versionCode = 202604150
+        versionName = "2026.04.15"
 //        testInstrumentationRunner = "android.support.test.runner.AndroidJUnitRunner"
         resValue("string", "version_name", versionName!!)
     }

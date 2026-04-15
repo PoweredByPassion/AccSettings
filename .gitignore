@@ -7,3 +7,8 @@ captures/
 .cxx
 local.properties
 .idea/
+.learning/
+.learnings/
+docs/
+dist/
+tests/
