@@ -20,7 +20,6 @@ object AccStatusResolver {
         installedVersionCode: Int,
         installedVersionName: String?,
         bundledVersionCode: Int,
-        bundledVersionName: String,
         daemonRunning: Boolean
     ): AccStatus {
         val installState = when {
@@ -39,11 +38,4 @@ object AccStatusResolver {
             showUninstallAction = installState != AccInstallState.NOT_INSTALLED
         )
     }
-
-    fun buildHomeSummary(status: AccStatus, bundledVersionName: String): String =
-        when (status.installState) {
-            AccInstallState.NOT_INSTALLED -> "not_installed"
-            AccInstallState.UPDATE_AVAILABLE -> status.installedVersionName ?: bundledVersionName
-            AccInstallState.UP_TO_DATE -> status.installedVersionName ?: bundledVersionName
-        }
 }

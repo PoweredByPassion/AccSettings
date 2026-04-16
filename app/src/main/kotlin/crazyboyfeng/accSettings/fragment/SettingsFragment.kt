@@ -11,29 +11,29 @@ import androidx.lifecycle.lifecycleScope
 import androidx.preference.EditTextPreferencePlus
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
+import androidx.preference.SwitchPreference
 import com.topjohnwu.superuser.Shell
 import crazyboyfeng.accSettings.R
 import crazyboyfeng.accSettings.acc.AccHandler
+import crazyboyfeng.accSettings.acc.AccInstallState
+import crazyboyfeng.accSettings.acc.AccStatus
+import crazyboyfeng.accSettings.acc.AccStatusResolver
 import crazyboyfeng.accSettings.acc.Command
 import crazyboyfeng.accSettings.data.AccDataStore
 import crazyboyfeng.android.preference.PreferenceFragmentCompat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class SettingsFragment : PreferenceFragmentCompat() {
     private lateinit var accPreferenceCategory: PreferenceCategory
-    private lateinit var daemonPreference: Preference
+    private lateinit var daemonPreference: SwitchPreference
     private lateinit var configPreference: Preference
-
-    private enum class AccStatus {
-        NOT_INSTALLED,
-        INSTALLED,
-        NEEDS_UPDATE,
-        ERROR
-    }
+    private var infoJob: Job? = null
+    private var refreshJob: Job? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,6 +43,11 @@ class SettingsFragment : PreferenceFragmentCompat() {
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         reload()
         checkAcc()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        refreshAccState()
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -80,6 +85,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
 
     fun refreshAccState() {
         if (!isAdded) return
+        refreshJob?.cancel()
         disableAccControls()
         checkAcc()
     }
@@ -100,22 +106,21 @@ class SettingsFragment : PreferenceFragmentCompat() {
             return@launch
         }
 
-        var status: AccStatus = AccStatus.NOT_INSTALLED
-        var installedVersion: String? = null
         var retryCount = 0
 
         while (isActive && retryCount < 5) {
             try {
-                val versions = Command.getVersion()
-                installedVersion = versions.second
-                val installedVersionCode = versions.first
+                val (installedVersionCode, installedVersionName) = Command.getVersion()
                 val bundledVersionCode = resources.getInteger(R.integer.acc_version_code)
+                val daemonRunning = Command.isDaemonRunning()
 
-                status = when {
-                    installedVersionCode == 0 -> AccStatus.NOT_INSTALLED
-                    installedVersionCode < bundledVersionCode -> AccStatus.NEEDS_UPDATE
-                    else -> AccStatus.INSTALLED
-                }
+                val status = AccStatusResolver.resolve(
+                    installedVersionCode = installedVersionCode,
+                    installedVersionName = installedVersionName,
+                    bundledVersionCode = bundledVersionCode,
+                    daemonRunning = daemonRunning
+                )
+
                 if (installedVersionCode > 0) {
                     try {
                         AccHandler().serve()
@@ -123,50 +128,48 @@ class SettingsFragment : PreferenceFragmentCompat() {
                         Log.w(TAG, "Failed to prepare ACC service", e)
                     }
                 }
-                break
+
+                updateAccStatusUI(status)
+                return@launch
             } catch (e: Exception) {
                 if (retryCount < 4) {
                     delay(1000)
                     retryCount++
                     continue
                 } else {
-                    status = AccStatus.ERROR
                     accPreferenceCategory.summary = e.localizedMessage ?: getString(R.string.command_failed)
                     disableAccControls()
                     return@launch
                 }
             }
         }
-        updateAccStatusUI(status, installedVersion)
     }
 
-    private fun updateAccStatusUI(status: AccStatus, installedVersion: String?) {
-        val bundledVersionName = getString(R.string.acc_version_name)
-
-        when (status) {
-            AccStatus.NOT_INSTALLED -> {
+    private fun updateAccStatusUI(status: AccStatus) {
+        when (status.installState) {
+            AccInstallState.NOT_INSTALLED -> {
                 accPreferenceCategory.summary = getString(R.string.acc_not_installed)
                 disableAccControls()
+                scheduleFollowUpRefresh()
             }
-            AccStatus.NEEDS_UPDATE -> {
-                accPreferenceCategory.summary = getString(R.string.acc_installed_version, installedVersion)
-                enableAccControls()
+            AccInstallState.UPDATE_AVAILABLE -> {
+                accPreferenceCategory.summary = getString(R.string.acc_installed_version, status.installedVersionName)
+                enableAccControls(status.daemonRunning)
             }
-            AccStatus.INSTALLED -> {
-                if (installedVersion != null && installedVersion != bundledVersionName) {
-                    accPreferenceCategory.summary = getString(R.string.installed_possibly_incompatible, installedVersion)
-                } else {
-                    accPreferenceCategory.summary = getString(R.string.acc_up_to_date)
-                }
-                enableAccControls()
+            AccInstallState.UP_TO_DATE -> {
+                accPreferenceCategory.summary = getString(
+                    R.string.acc_up_to_date_with_version,
+                    status.installedVersionName
+                )
+                enableAccControls(status.daemonRunning)
             }
-            AccStatus.ERROR -> {}
         }
     }
 
-    private fun enableAccControls() {
+    private fun enableAccControls(daemonRunning: Boolean) {
         preferenceManager.preferenceDataStore = AccDataStore(requireContext())
         daemonPreference.isEnabled = true
+        daemonPreference.isChecked = daemonRunning
         configPreference.isEnabled = true
 
         val info = findPreference<PreferenceCategory>(getString(R.string.info_status))!!
@@ -176,14 +179,28 @@ class SettingsFragment : PreferenceFragmentCompat() {
             val preference = it as EditTextPreferencePlus
             preference.text
         }
-        updateInfo()
+        infoJob?.cancel()
+        infoJob = updateInfo()
     }
 
     private fun disableAccControls() {
+        infoJob?.cancel()
+        infoJob = null
         daemonPreference.isEnabled = false
+        daemonPreference.isChecked = false
         configPreference.isEnabled = false
         val info = findPreference<PreferenceCategory>(getString(R.string.info_status))
         info?.isVisible = false
+    }
+
+    private fun scheduleFollowUpRefresh() {
+        refreshJob?.cancel()
+        refreshJob = lifecycleScope.launch {
+            delay(2500)
+            if (isAdded) {
+                checkAcc()
+            }
+        }
     }
 
     private fun updateInfo() = lifecycleScope.launch {
@@ -199,6 +216,10 @@ class SettingsFragment : PreferenceFragmentCompat() {
                         else -> preference?.summary = value
                     }
                 }
+            } catch (e: Command.NotInstalledException) {
+                accPreferenceCategory.summary = getString(R.string.acc_not_installed)
+                disableAccControls()
+                return@launch
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to get battery info", e)
                 val message = e.localizedMessage
@@ -206,7 +227,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
                     accPreferenceCategory.summary = message
                 }
             }
-            delay(1000)
+            delay(3000)
         }
     }
 

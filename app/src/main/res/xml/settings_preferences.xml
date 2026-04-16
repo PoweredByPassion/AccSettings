@@ -5,19 +5,6 @@
         app:key="@string/acc"
         app:persistent="false"
         app:title="@string/acc">
-        <Preference
-            app:key="@string/acc_version_info"
-            app:persistent="false"
-            app:selectable="false"
-            app:title="@string/acc_version_info_title" />
-        <Preference
-            app:key="@string/install_acc"
-            app:persistent="false"
-            app:title="@string/install_acc_title" />
-        <Preference
-            app:key="@string/uninstall_acc"
-            app:persistent="false"
-            app:title="@string/uninstall_acc_title" />
         <SwitchPreference
             app:key="@string/acc_daemon"
             app:summary="@string/daemon_summary"

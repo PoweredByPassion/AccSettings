@@ -74,6 +74,7 @@
     <string name="acc_installed_version">Installed: %s</string>
     <string name="acc_bundled_version">Available: %s</string>
     <string name="acc_up_to_date">ACC is up to date</string>
+    <string name="acc_up_to_date_with_version">ACC is up to date (%s)</string>
     <string name="acc_install_success">ACC installed successfully</string>
     <string name="acc_uninstall_success">ACC uninstalled successfully</string>
     <string name="acc_management">ACC Management</string>

@@ -18,6 +18,10 @@ object Command {
         constructor()
         constructor(message: String) : super(message)
     }
+    class NotInstalledException : AccException {
+        constructor() : super("ACC is not installed")
+        constructor(message: String) : super(message)
+    }
     class IncorrectSyntaxException : AccException()
     class NoBusyboxException : AccException()
     class NotRootException : AccException()
@@ -59,6 +63,9 @@ object Command {
                 12 -> InitFailedException()
                 13 -> LockFailedException()
                 14 -> ModuleDisabledException()
+                127 -> NotInstalledException(
+                    if (details.isNotBlank()) details else "ACC is not installed"
+                )
                 else -> AccException(
                     buildString {
                         append("Exit code: ${result.code}")
@@ -74,7 +81,7 @@ object Command {
 
     private suspend fun execAcc(vararg options: String): String {
         val accPath = withContext(Dispatchers.IO) {
-            resolveAccExecutable { path -> execTest(path) }
+            requireAccExecutable { path -> execTest(path) }
         }
         val command = buildString {
             append(accPath)
@@ -99,6 +106,13 @@ object Command {
         val properties = Properties()
         @Suppress("BlockingMethodInNonBlockingContext")
         properties.load(execAcc("set", "print-default").reader())
+        return properties
+    }
+
+    suspend fun getCurrentConfig(): Properties {
+        val properties = Properties()
+        @Suppress("BlockingMethodInNonBlockingContext")
+        properties.load(execAcc("set", "print").reader())
         return properties
     }
 
@@ -137,6 +151,8 @@ object Command {
     suspend fun isDaemonRunning(): Boolean = try {
         execAcc("daemon")
         true
+    } catch (e: NotInstalledException) {
+        false
     } catch (e: DaemonNotExistsException) {
         false
     }
@@ -158,8 +174,8 @@ object Command {
     internal fun findAccExecutable(pathExists: (String) -> Boolean): String? =
         ACC_EXECUTABLE_CANDIDATES.firstOrNull(pathExists)
 
-    internal fun resolveAccExecutable(pathExists: (String) -> Boolean): String =
-        findAccExecutable(pathExists) ?: DEFAULT_ACC_EXECUTABLE
+    internal fun requireAccExecutable(pathExists: (String) -> Boolean): String =
+        findAccExecutable(pathExists) ?: throw NotInstalledException()
 
     internal fun buildReinitializeCommand(pathExists: (String) -> Boolean): String =
         when {
@@ -168,12 +184,13 @@ object Command {
             else -> "/data/adb/vr25/acc/service.sh --init"
         }
 
-    private const val DEFAULT_ACC_EXECUTABLE = "/data/adb/vr25/acc/acc.sh"
     private val ACC_EXECUTABLE_CANDIDATES = listOf(
         "/dev/acca",
         "/dev/.vr25/acc/acca",
-        "/data/adb/vr25/acc/acca.sh",
         "/data/adb/vr25/acc/acc.sh",
+        "/data/adb/vr25/acc/acca.sh",
         DEFAULT_ACC_EXECUTABLE
     )
+
+    private const val DEFAULT_ACC_EXECUTABLE = "/data/adb/vr25/acc/acc.sh"
 }

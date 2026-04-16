@@ -14,10 +14,10 @@ import java.io.IOException
 
 class AccHandler {
     suspend fun install(context: Context) {
-        suspend fun cacheAssetFile(fileName: String): File = withContext(Dispatchers.IO) {
-            val cachedFile = File(context.cacheDir, fileName)
+        suspend fun cacheAssetFile(assetName: String, cachedName: String = assetName): File = withContext(Dispatchers.IO) {
+            val cachedFile = File(context.cacheDir, cachedName)
             @Suppress("BlockingMethodInNonBlockingContext")
-            context.assets.open(fileName).use { input ->
+            context.assets.open(assetName).use { input ->
                 FileOutputStream(cachedFile).use { output ->
                     input.copyTo(output)
                 }
@@ -31,11 +31,13 @@ class AccHandler {
         val accVersionName = resources.getString(R.string.acc_version_name)
         try {
             Log.d(TAG, "Starting install...")
-            context.cacheDir.listFiles()?.forEach { it.delete() }
-            val officialArchiveFile = cacheAssetFile(buildBundledArchiveName(accVersionName, accVersionCode))
+            Command.exec(buildCacheCleanupCommand(context.cacheDir))
+            context.cacheDir.listFiles()?.forEach { it.deleteRecursively() }
             val installerArchiveName = buildInstallerArchiveName(accVersionName)
-            val installerArchiveFile = File(context.cacheDir, installerArchiveName)
-            officialArchiveFile.renameTo(installerArchiveFile)
+            val installerArchiveFile = cacheAssetFile(
+                assetName = buildBundledArchiveName(accVersionName, accVersionCode),
+                cachedName = installerArchiveName
+            )
             val installShFile = cacheAssetFile("install-tarball.sh")
 
             require(installerArchiveFile.exists()) { "Bundled ACC archive is missing" }
@@ -108,6 +110,7 @@ class AccHandler {
             Log.w(TAG, "Uninstall script not found, removing directories manually")
             Command.exec("rm -rf /data/adb/vr25/acc /dev/.vr25/acc")
         }
+        Command.exec(buildPostUninstallCleanupCommand())
         Log.d(TAG, "uninstall end")
     }
     companion object {
@@ -129,6 +132,12 @@ class AccHandler {
 
         internal fun buildServeCommand(): String =
             "test -f /dev/acca || /data/adb/vr25/acc/service.sh"
+
+        internal fun buildCacheCleanupCommand(cacheDir: File): String =
+            "find ${shellQuote(cacheDir.absolutePath)} -mindepth 1 -maxdepth 1 -exec rm -rf {} +"
+
+        internal fun buildPostUninstallCleanupCommand(): String =
+            "rm -rf /data/adb/vr25/acc /dev/acca /dev/accd /dev/.vr25/acc"
 
         internal fun buildBundledArchiveName(versionName: String, versionCode: Int): String =
             "acc_v${versionName}_$versionCode.tgz"
@@ -164,6 +173,8 @@ class AccHandler {
 
             val shellResult = Shell.cmd(
                 """
+                echo "==> cache listing <=="
+                ls -la ${shellQuote(context.cacheDir.absolutePath)} 2>&1
                 for f in \
                   /data/adb/vr25/acc-data/logs/install.log \
                   /data/adb/vr25/acc-data/logs/install-tarball.sh.log

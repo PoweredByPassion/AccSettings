@@ -10,7 +10,6 @@ class AccStatusTest {
             installedVersionCode = 0,
             installedVersionName = null,
             bundledVersionCode = 202505180,
-            bundledVersionName = "2025.5.18-dev",
             daemonRunning = false
         )
 
@@ -25,7 +24,6 @@ class AccStatusTest {
             installedVersionCode = 202505180,
             installedVersionName = "2025.5.18-dev",
             bundledVersionCode = 202505180,
-            bundledVersionName = "2025.5.18-dev",
             daemonRunning = true
         )
 
@@ -41,7 +39,6 @@ class AccStatusTest {
             installedVersionCode = 202206040,
             installedVersionName = "2022.6.4",
             bundledVersionCode = 202505180,
-            bundledVersionName = "2025.5.18-dev",
             daemonRunning = false
         )
 

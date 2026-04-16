@@ -5,10 +5,10 @@ import org.junit.Test
 
 class CommandTest {
     @Test
-    fun resolveAccExecutable_prefersOfficialFrontendBinary() {
+    fun requireAccExecutable_prefersOfficialFrontendBinary() {
         assertEquals(
             "/dev/acca",
-            Command.resolveAccExecutable { path ->
+            Command.requireAccExecutable { path ->
                 path == "/dev/acca" || path == "/data/adb/vr25/acc/acca.sh"
             }
         )
@@ -18,13 +18,23 @@ class CommandTest {
     fun resolveAccExecutable_fallsBackToInstalledAccaScript() {
         assertEquals(
             "/data/adb/vr25/acc/acca.sh",
-            Command.resolveAccExecutable { path -> path == "/data/adb/vr25/acc/acca.sh" }
+            Command.requireAccExecutable { path -> path == "/data/adb/vr25/acc/acca.sh" }
         )
     }
 
     @Test
     fun findAccExecutable_returnsNullWhenAccIsNotInstalled() {
         assertEquals(null, Command.findAccExecutable { false })
+    }
+
+    @Test
+    fun requireAccExecutable_throwsWhenAccIsNotInstalled() {
+        try {
+            Command.requireAccExecutable { false }
+            org.junit.Assert.fail("Expected missing ACC executable")
+        } catch (e: Command.NotInstalledException) {
+            assertEquals("ACC is not installed", e.message)
+        }
     }
 
     @Test

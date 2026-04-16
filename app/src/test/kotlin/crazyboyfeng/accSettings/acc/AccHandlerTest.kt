@@ -50,6 +50,22 @@ class AccHandlerTest {
     }
 
     @Test
+    fun buildCacheCleanupCommand_removesAllCacheEntries() {
+        assertEquals(
+            "find '/data/user/0/crazyboyfeng.accSettings/cache' -mindepth 1 -maxdepth 1 -exec rm -rf {} +",
+            AccHandler.buildCacheCleanupCommand(File("/data/user/0/crazyboyfeng.accSettings/cache"))
+        )
+    }
+
+    @Test
+    fun buildPostUninstallCleanupCommand_removesDanglingLinks() {
+        assertEquals(
+            "rm -rf /data/adb/vr25/acc /dev/acca /dev/accd /dev/.vr25/acc",
+            AccHandler.buildPostUninstallCleanupCommand()
+        )
+    }
+
+    @Test
     fun awaitInstalledVersion_acceptsVersionAfterRetry() = runBlocking {
         var attempt = 0
 
