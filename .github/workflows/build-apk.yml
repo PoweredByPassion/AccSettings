@@ -34,7 +34,7 @@ jobs:
       - name: Install Android SDK packages
         run: |
           yes | sdkmanager --licenses >/dev/null
-          sdkmanager "platforms;android-33" "build-tools;35.0.0"
+          sdkmanager "platforms;android-36" "build-tools;35.0.0"
 
       - name: Make release script executable
         run: chmod +x scripts/release-apk.sh

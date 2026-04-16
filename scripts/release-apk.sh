@@ -5,7 +5,7 @@ repo_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$repo_root"
 
 dist_dir="$repo_root/dist"
-apk_dir="$repo_root/app/build/outputs/apk/debug"
+apk_dir="$repo_root/app/build/outputs/apk/release"
 compile_sdk=$(sed -n 's/^[[:space:]]*compileSdk = \([0-9][0-9]*\)$/\1/p' "$repo_root/app/build.gradle.kts")
 build_tools_version="${ANDROID_BUILD_TOOLS_VERSION:-35.0.0}"
 
@@ -65,11 +65,11 @@ else
   exit 1
 fi
 
-echo "Building debug APK with: $gradle_cmd"
-"$gradle_cmd" assembleDebug
+echo "Building release APK with: $gradle_cmd"
+"$gradle_cmd" assembleRelease
 
 if [ ! -d "$apk_dir" ]; then
-  echo "Debug APK output directory not found: $apk_dir" >&2
+  echo "Release APK output directory not found: $apk_dir" >&2
   exit 1
 fi
 
@@ -83,5 +83,5 @@ if ! find "$dist_dir" -maxdepth 1 -type f -name '*.apk' | grep -q .; then
   exit 1
 fi
 
-echo "Debug APK ready:"
+echo "Release APK ready:"
 find "$dist_dir" -maxdepth 1 -type f -name '*.apk' -print
