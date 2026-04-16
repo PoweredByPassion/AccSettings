@@ -22,16 +22,12 @@ set -x
 #BB#
 bin_dir=/data/adb/vr25/bin
 busybox_dir=/dev/.vr25/busybox
-magisk_busybox=/data/adb/magisk/busybox
+magisk_busybox="$(ls /data/adb/*/bin/busybox /data/adb/magisk/busybox 2>/dev/null || :)"
 [ -x $busybox_dir/ls ] || {
   mkdir -p $busybox_dir
-  chmod 0700 $busybox_dir
+  chmod 0755 $busybox_dir $bin_dir/busybox 2>/dev/null || :
   for f in $bin_dir/busybox $magisk_busybox /system/*bin/busybox*; do
-    [ -f $f ] && {
-      [ -x $f ] || chmod 0755 $f 2>/dev/null
-      $f --install -s $busybox_dir/
-      break
-    }
+    [ -x $f ] && eval $f --install -s $busybox_dir/ && break || :
   done
   [ -x $busybox_dir/ls ] || {
     echo "Install busybox or simply place it in $bin_dir/"

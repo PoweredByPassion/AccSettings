@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="crazyboyfeng.accSettings">
+    >
 
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <application
         android:icon="@drawable/ic_launcher"
         android:label="@string/acc_settings"
         android:supportsRtl="true"
-        android:theme="@style/Theme.AppCompat"
+        android:theme="@style/Theme.AccSettings"
         tools:ignore="AllowBackup">
         <activity
             android:name=".SettingsActivity"

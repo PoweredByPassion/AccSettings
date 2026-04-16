@@ -1,33 +1,80 @@
 package crazyboyfeng.accSettings
 
 import android.os.Bundle
-import android.view.Gravity
-import android.widget.TextView
+import android.util.Log
+import androidx.core.graphics.Insets
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.ContentFrameLayout
+import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
+import com.google.android.material.appbar.MaterialToolbar
 import com.topjohnwu.superuser.Shell
 import crazyboyfeng.accSettings.fragment.SettingsFragment
 
-class SettingsActivity : AppCompatActivity() {
+class SettingsActivity : AppCompatActivity(),
+    PreferenceFragmentCompat.OnPreferenceStartFragmentCallback {
+    companion object {
+        private const val TAG = "SettingsActivity"
+        init {
+            // Set static configurations for libsu
+            Shell.setDefaultBuilder(Shell.Builder.create()
+                .setFlags(Shell.FLAG_REDIRECT_STDERR)
+                .setTimeout(120))
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (!Shell.rootAccess()) {
-            val textView = TextView(this)
-            textView.setText(R.string.need_root_permission)
-            textView.gravity = Gravity.CENTER
-            val contentFrameLayout = findViewById<ContentFrameLayout>(android.R.id.content)
-            contentFrameLayout.addView(textView)
-            return
+        Log.d(TAG, "onCreate")
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        setContentView(R.layout.activity_settings)
+        val toolbar = findViewById<MaterialToolbar>(R.id.toolbar)
+        val fragmentContainer = findViewById<android.view.View>(R.id.fragment_container)
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(android.R.id.content)) { _, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            toolbar.updatePadding(top = systemBars.top)
+            fragmentContainer.updatePadding(bottom = systemBars.bottom)
+            insets
         }
+        setSupportActionBar(toolbar)
+
         supportFragmentManager.addOnBackStackChangedListener {
-            val preferenceFragment =
-                supportFragmentManager.findFragmentById(android.R.id.content) as PreferenceFragmentCompat
-            supportActionBar?.subtitle = preferenceFragment.preferenceScreen.title
+            updateToolbarSubtitle()
         }
+
+        if (savedInstanceState == null) {
+            supportFragmentManager
+                .beginTransaction()
+                .replace(R.id.fragment_container, SettingsFragment())
+                .commit()
+        }
+        supportActionBar?.title = getString(R.string.acc_settings)
+        updateToolbarSubtitle()
+    }
+
+    override fun onPreferenceStartFragment(
+        caller: PreferenceFragmentCompat,
+        pref: Preference
+    ): Boolean {
+        val fragmentName = pref.fragment ?: return false
+        val fragment = supportFragmentManager.fragmentFactory.instantiate(classLoader, fragmentName)
+        fragment.arguments = pref.extras
         supportFragmentManager
             .beginTransaction()
-            .replace(android.R.id.content, SettingsFragment())
+            .replace(R.id.fragment_container, fragment)
+            .addToBackStack(pref.key)
             .commit()
+        return true
+    }
+
+    private fun updateToolbarSubtitle() {
+        val preferenceFragment =
+            supportFragmentManager.findFragmentById(R.id.fragment_container) as? PreferenceFragmentCompat
+        val subtitle = preferenceFragment?.preferenceScreen?.title?.takeIf { it.isNotBlank() }
+            ?: getString(R.string.acc)
+        supportActionBar?.subtitle = subtitle
     }
 }

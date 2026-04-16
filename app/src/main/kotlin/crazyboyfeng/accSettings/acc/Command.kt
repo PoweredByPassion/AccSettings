@@ -14,7 +14,14 @@ object Command {
         constructor(message: String) : super(message)
     }
 
-    class FailedException : AccException()
+    class FailedException : AccException {
+        constructor()
+        constructor(message: String) : super(message)
+    }
+    class NotInstalledException : AccException {
+        constructor() : super("ACC is not installed")
+        constructor(message: String) : super(message)
+    }
     class IncorrectSyntaxException : AccException()
     class NoBusyboxException : AccException()
     class NotRootException : AccException()
@@ -28,30 +35,56 @@ object Command {
     class ModuleDisabledException : AccException()
 
     suspend fun exec(command: String): String = withContext(Dispatchers.IO) {
-        Log.v(TAG, command)
-        val result = Shell.su(command).exec()
+        Log.v(TAG, "exec: $command")
+        val shell = Shell.getShell()
+        if (!shell.isRoot) {
+            throw NotRootException()
+        }
+        val stdout = mutableListOf<String>()
+        val stderr = mutableListOf<String>()
+        val result = shell.newJob().add(command).to(stdout, stderr).exec()
         if (result.isSuccess) {
-            return@withContext result.out.joinToString("\n").trim()
-        } else throw when (result.code) {
-            1 -> FailedException()
-            2 -> IncorrectSyntaxException()
-            3 -> NoBusyboxException()
-            4 -> NotRootException()
-            7 -> DisableChargingFailedException()
-            8 -> DaemonExistsException()
-            9 -> DaemonNotExistsException()
-            10 -> TestFailedException()
-            11 -> ECurrentOutOfRangeException()
-            12 -> InitFailedException()
-            13 -> LockFailedException()
-            14 -> ModuleDisabledException()
-            else -> AccException("Exit code: ${result.code}")
+            return@withContext stdout.joinToString("\n").trim()
+        } else {
+            val outputMsg = stdout.joinToString("\n").trim()
+            val errorMsg = stderr.joinToString("\n").trim()
+            val details = listOf(outputMsg, errorMsg).filter { it.isNotBlank() }.joinToString("\n")
+            Log.e(TAG, "Command failed: $command. Exit code: ${result.code}, Output: $details")
+            throw when (result.code) {
+                1 -> FailedException(details.ifBlank { "Exit code: 1" })
+                2 -> IncorrectSyntaxException()
+                3 -> NoBusyboxException()
+                4 -> NotRootException()
+                7 -> DisableChargingFailedException()
+                8 -> DaemonExistsException()
+                9 -> DaemonNotExistsException()
+                10 -> TestFailedException()
+                11 -> ECurrentOutOfRangeException()
+                12 -> InitFailedException()
+                13 -> LockFailedException()
+                14 -> ModuleDisabledException()
+                127 -> NotInstalledException(
+                    if (details.isNotBlank()) details else "ACC is not installed"
+                )
+                else -> AccException(
+                    buildString {
+                        append("Exit code: ${result.code}")
+                        if (details.isNotBlank()) {
+                            append('\n')
+                            append(details)
+                        }
+                    }
+                )
+            }
         }
     }
 
     private suspend fun execAcc(vararg options: String): String {
+        val accPath = withContext(Dispatchers.IO) {
+            requireAccExecutable { path -> execTest(path) }
+        }
         val command = buildString {
-            append("/dev/.vr25/acc/acca")
+            append(accPath)
             for (option in options) {
                 append(" --")
                 append(option)
@@ -63,7 +96,8 @@ object Command {
     suspend fun setConfig(property: String, vararg values: String?) =
         execAcc("set \"$property=${values.joinToString(" ")}\"")
 
-    private fun getPropertyValue(property: String) = property.split('=', '\n')[1]
+    private fun getPropertyValue(property: String): String =
+        if (property.endsWith('=') || property.endsWith("\"\"")) "" else property.split('=', '\n')[1]
 
     suspend fun getConfig(property: String): String =
         getPropertyValue(execAcc("set", "print $property"))
@@ -75,6 +109,13 @@ object Command {
         return properties
     }
 
+    suspend fun getCurrentConfig(): Properties {
+        val properties = Properties()
+        @Suppress("BlockingMethodInNonBlockingContext")
+        properties.load(execAcc("set", "print").reader())
+        return properties
+    }
+
     suspend fun getInfo(): Properties {
         val properties = Properties()
         @Suppress("BlockingMethodInNonBlockingContext")
@@ -82,18 +123,18 @@ object Command {
         return properties
     }
 
+    internal fun parseVersionOutput(version: String): Pair<Int, String?> {
+        val match = VERSION_REGEX.find(version.trim()) ?: return Pair(0, null)
+        val versionName = match.groupValues[1]
+        val versionCode = match.groupValues[2].toIntOrNull() ?: return Pair(0, null)
+        return Pair(versionCode, versionName)
+    }
+
     suspend fun getVersion(): Pair<Int, String?> {
-        val version = execAcc("version")
-        if (version.startsWith('v')) {
-            try {
-                val versionCode = version.substringAfter('(').substringBefore(')').toInt()
-                val versionName = version.substringAfter('v').substringBefore(' ')
-                return Pair(versionCode, versionName)
-            } catch (e: NumberFormatException) {
-                e.printStackTrace()//may be cause by upgraded acc
-            }
-        }
-        return Pair(0, null)
+        val accPath = withContext(Dispatchers.IO) {
+            findAccExecutable { path -> execTest(path) }
+        } ?: return Pair(0, null)
+        return parseVersionOutput(exec("$accPath --version"))
     }
 
     private suspend fun setDaemon(option: String) = try {
@@ -110,11 +151,46 @@ object Command {
     suspend fun isDaemonRunning(): Boolean = try {
         execAcc("daemon")
         true
+    } catch (e: NotInstalledException) {
+        false
     } catch (e: DaemonNotExistsException) {
         false
     }
 
     suspend fun restartDaemon() = setDaemon("restart")
 
-    suspend fun reinitialize() = exec("/dev/.vr25/acc/accd --init")
+    suspend fun reinitialize() = exec(withContext(Dispatchers.IO) {
+        buildReinitializeCommand { path -> execTest(path) }
+    })
+
+    private val VERSION_REGEX = Regex("""v([0-9][0-9A-Za-z.\-]*)\s*\((\d+)\)""")
+
+    private fun execTest(path: String): Boolean {
+        val shell = Shell.getShell()
+        if (!shell.isRoot) return false
+        return shell.newJob().add("test -f \"$path\"").to(mutableListOf(), mutableListOf()).exec().isSuccess
+    }
+
+    internal fun findAccExecutable(pathExists: (String) -> Boolean): String? =
+        ACC_EXECUTABLE_CANDIDATES.firstOrNull(pathExists)
+
+    internal fun requireAccExecutable(pathExists: (String) -> Boolean): String =
+        findAccExecutable(pathExists) ?: throw NotInstalledException()
+
+    internal fun buildReinitializeCommand(pathExists: (String) -> Boolean): String =
+        when {
+            pathExists("/dev/accd") -> "/dev/accd --init"
+            pathExists("/dev/.vr25/acc/accd") -> "/dev/.vr25/acc/accd --init"
+            else -> "/data/adb/vr25/acc/service.sh --init"
+        }
+
+    private val ACC_EXECUTABLE_CANDIDATES = listOf(
+        "/dev/acca",
+        "/dev/.vr25/acc/acca",
+        "/data/adb/vr25/acc/acc.sh",
+        "/data/adb/vr25/acc/acca.sh",
+        DEFAULT_ACC_EXECUTABLE
+    )
+
+    private const val DEFAULT_ACC_EXECUTABLE = "/data/adb/vr25/acc/acc.sh"
 }

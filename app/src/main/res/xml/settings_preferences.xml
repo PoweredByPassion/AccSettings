@@ -1,16 +1,18 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <PreferenceCategory
-        app:enabled="false"
         app:iconSpaceReserved="false"
         app:key="@string/acc"
         app:persistent="false"
         app:title="@string/acc">
         <SwitchPreference
             app:key="@string/acc_daemon"
+            app:summary="@string/daemon_summary"
             app:title="@string/daemon" />
         <Preference
             app:fragment="crazyboyfeng.accSettings.fragment.ConfigFragment"
+            app:key="@string/configuration"
+            app:summary="@string/configuration_summary"
             app:title="@string/configuration" />
     </PreferenceCategory>
     <PreferenceCategory
@@ -24,54 +26,35 @@
             app:key="@string/info_capacity"
             app:persistent="false"
             app:selectable="false"
-            app:summary="%s %%"
+            app:summary="%s"
             app:title="@string/capacity" />
         <EditTextPreferencePlus
             app:formatSummary="true"
             app:key="@string/info_temp"
             app:persistent="false"
             app:selectable="false"
-            app:summary="%s °C"
+            app:summary="%s"
             app:title="@string/temperature" />
         <EditTextPreferencePlus
             app:formatSummary="true"
             app:key="@string/info_current_now"
             app:persistent="false"
             app:selectable="false"
-            app:summary="%s A"
+            app:summary="%s"
             app:title="@string/current" />
         <EditTextPreferencePlus
             app:formatSummary="true"
             app:key="@string/info_voltage_now"
             app:persistent="false"
             app:selectable="false"
-            app:summary="%s V"
+            app:summary="%s"
             app:title="@string/voltage" />
         <EditTextPreferencePlus
             app:formatSummary="true"
             app:key="@string/info_power_now"
             app:persistent="false"
             app:selectable="false"
-            app:summary="%s W"
+            app:summary="%s"
             app:title="@string/power" />
-    </PreferenceCategory>
-    <PreferenceCategory
-        app:iconSpaceReserved="false"
-        app:title="@string/about">
-        <Preference
-            app:summary="@string/version_name"
-            app:title="@string/acc_settings">
-            <intent
-                android:action="android.intent.action.VIEW"
-                android:data="https://github.com/CrazyBoyFeng/AccSettings" />
-        </Preference>
-        <Preference
-            app:summary="@string/acc_version_name"
-            app:title="@string/acc">
-            <intent
-                android:action="android.intent.action.VIEW"
-                android:data="https://github.com/VR-25/acc" />
-        </Preference>
-        <!--TODO auto upload logs switch? or manually?-->
     </PreferenceCategory>
 </PreferenceScreen>

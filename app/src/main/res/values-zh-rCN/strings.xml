@@ -1,0 +1,86 @@
+<resources>
+    <string name="need_root_permission">需要root权限！</string>
+    <string name="initializing">正在初始化…</string>
+    <string name="installed_incompatible">已安装 %s\n不兼容</string>
+    <string name="installed_possibly_incompatible">已安装 %s\n可能不兼容</string>
+    <string name="command_failed">命令执行失败</string>
+
+    <string name="daemon">守护进程</string>
+    <string name="daemon_summary">让 ACC 在后台持续保持监控</string>
+    <string name="configuration">配置</string>
+    <string name="configuration_summary">调整充电规则和限制</string>
+
+    <string name="about">关于</string>
+
+    <string name="acc_settings">ACC 设置</string>
+    <string name="acc">ACC</string>
+
+    <string name="battery">电池</string>
+    <string name="capacity">电量</string>
+    <string name="temperature">温度</string>
+    <string name="current">电流</string>
+    <string name="voltage">电压</string>
+    <string name="power">功率</string>
+
+    <string name="shutdown_below">低于时关机</string>
+    <string name="cooldown_above">高于时冷却</string>
+    <string name="charge_below">低于时充电</string>
+    <string name="pause_above">高于时暂停</string>
+    <string name="read_from_kernel">从内核读取</string>
+    <string name="pause_as_full">暂停视为满电</string>
+    <string name="support_in_voltage">支持电压模式</string>
+    <string name="shutdown_above">高于时关机</string>
+    <string name="cooldown_cycle">冷却循环</string>
+    <string name="charge_period">充电周期</string>
+    <string name="cooldown_period">冷却周期</string>
+    <string name="cooldown_current">冷却电流</string>
+    <string name="custom">自定义</string>
+    <string name="max_charging_current">最大充电电流</string>
+    <string name="max_charging_voltage">最大充电电压</string>
+    <string name="charging_switch">充电开关</string>
+    <string name="idle_mode_first">优先空闲模式</string>
+    <string name="statistics">统计</string>
+    <string name="reset_on_pause">暂停时重置</string>
+    <string name="reset_on_unplug">拔出时重置</string>
+    <string name="miscellaneous">其他</string>
+    <string name="strict_current_control">严格电流控制</string>
+    <string name="properties">属性</string>
+    <string name="apply_on_boot">开机应用</string>
+    <string name="apply_on_plug">插入时应用</string>
+    <string name="commands">命令</string>
+    <string name="run_on_pause">暂停时运行</string>
+    <string name="loop">循环</string>
+    <string name="unit_multipliers">单位倍率</string>
+    <string name="ampere_factor">电流倍率</string>
+    <string name="volt_factor">电压倍率</string>
+
+    <string name="hint_between">介于 %1$d 和 %2$d 之间！</string>
+    <string name="hint_capacity_shutdown">仅在放电且运行超过15分钟时有效。</string>
+    <string name="hint_cooldown">周期性充电和暂停。\n减少持续高温和高压造成的损害。</string>
+    <string name="hint_prevent_shutdown">同时防止关机。</string>
+    <string name="hint_period">每个周期的秒数</string>
+    <string name="hint_charge_period">未设置时冷却功能关闭。\n建议设置为50。</string>
+    <string name="hint_cooldown_period">在每个周期中暂停（或限制，如设置了冷却电流）充电。\n未设置时冷却功能关闭。\n建议设置为10。\n如果充电太慢则调低。</string>
+    <string name="hint_cooldown_current">在冷却期间限制充电而非暂停。</string>
+    <string name="hint_idle_mode">与某些三星及其他设备不兼容。</string>
+    <string name="hint_strict_current_control">仅使用匹配\"batt\"的控制文件。\n当电流限制同时影响输入和充电电流时需要启用。</string>
+
+    <!-- ACC management -->
+    <string name="install_acc_title">安装/更新 ACC</string>
+    <string name="update_acc_title">ACC 已是最新版本</string>
+    <string name="uninstall_acc_title">卸载 ACC</string>
+    <string name="acc_version_info_title">ACC 版本</string>
+    <string name="acc_not_installed">ACC 未安装</string>
+    <string name="acc_installed_version">已安装：%s</string>
+    <string name="acc_bundled_version">可用版本：%s</string>
+    <string name="acc_up_to_date">ACC 已是最新版本</string>
+    <string name="acc_up_to_date_with_version">ACC 已是最新版本（%s）</string>
+    <string name="acc_install_success">ACC 安装成功</string>
+    <string name="acc_uninstall_success">ACC 卸载成功</string>
+    <string name="acc_management">ACC 管理</string>
+    <string name="acc_need_root">需要root权限</string>
+    <string name="more">更多</string>
+    <string name="more_subtitle">管理 ACC 工具和应用信息</string>
+    <string name="hide_non_critical">隐藏非关键内容</string>
+    <string name="show_non_critical">显示非关键内容</string>
+</resources>

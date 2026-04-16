@@ -27,7 +27,7 @@ class ConfigFragment : PreferenceFragmentCompat() {
     private lateinit var shutdownTemp: NumberPickerPreference
     private lateinit var cooldownCharge: EditTextPreferencePlus
     private lateinit var cooldownPause: EditTextPreferencePlus
-    private lateinit var cooldownCustom: EditTextPreference
+    //private lateinit var cooldownCustom: EditTextPreference
     private lateinit var maxChargingVoltage: EditTextPreferencePlus
     private lateinit var prioritizeBattIdleMode: SwitchPreference
     private lateinit var chargingSwitch: EditTextPreference
@@ -37,22 +37,22 @@ class ConfigFragment : PreferenceFragmentCompat() {
         preferenceManager.preferenceDataStore = configDataStore
 
         setPreferencesFromResource(R.xml.config_preferences, rootKey)
-        shutdownCapacity = findPreference(getString(R.string.set_shutdown_capacity))!!
-        cooldownCapacity = findPreference(getString(R.string.set_cooldown_capacity))!!
-        resumeCapacity = findPreference(getString(R.string.set_resume_capacity))!!
-        pauseCapacity = findPreference(getString(R.string.set_pause_capacity))!!
-        capacityMask = findPreference(getString(R.string.set_capacity_mask))!!
-        supportInVoltage = findPreference(getString(R.string.support_in_voltage))!!
-        cooldownTemp = findPreference(getString(R.string.set_cooldown_temp))!!
-        maxTemp = findPreference(getString(R.string.set_max_temp))!!
-        shutdownTemp = findPreference(getString(R.string.set_shutdown_temp))!!
-        cooldownCharge = findPreference(getString(R.string.set_cooldown_charge))!!
-        cooldownPause = findPreference(getString(R.string.set_cooldown_pause))!!
-        cooldownCustom = findPreference(getString(R.string.set_cooldown_custom))!!
-        maxChargingVoltage = findPreference(getString(R.string.set_max_charging_voltage))!!
-        prioritizeBattIdleMode = findPreference(getString(R.string.set_prioritize_batt_idle_mode))!!
-        chargingSwitch = findPreference(getString(R.string.set_charging_switch))!!
-        currentWorkaround = findPreference(getString(R.string.set_current_workaround))!!
+        shutdownCapacity = findPreference(getString(R.string.set_shutdown_capacity)) ?: return
+        cooldownCapacity = findPreference(getString(R.string.set_cooldown_capacity)) ?: return
+        resumeCapacity = findPreference(getString(R.string.set_resume_capacity)) ?: return
+        pauseCapacity = findPreference(getString(R.string.set_pause_capacity)) ?: return
+        capacityMask = findPreference(getString(R.string.set_capacity_mask)) ?: return
+        supportInVoltage = findPreference(getString(R.string.support_in_voltage)) ?: return
+        cooldownTemp = findPreference(getString(R.string.set_cooldown_temp)) ?: return
+        maxTemp = findPreference(getString(R.string.set_max_temp)) ?: return
+        shutdownTemp = findPreference(getString(R.string.set_shutdown_temp)) ?: return
+        cooldownCharge = findPreference(getString(R.string.set_cooldown_charge)) ?: return
+        cooldownPause = findPreference(getString(R.string.set_cooldown_pause)) ?: return
+        //cooldownCustom = findPreference(getString(R.string.set_cooldown_custom))!!
+        maxChargingVoltage = findPreference(getString(R.string.set_max_charging_voltage)) ?: return
+        prioritizeBattIdleMode = findPreference(getString(R.string.set_prioritize_batt_idle_mode)) ?: return
+        chargingSwitch = findPreference(getString(R.string.set_charging_switch)) ?: return
+        currentWorkaround = findPreference(getString(R.string.set_current_workaround)) ?: return
 
         configDataStore.onConfigChangeListener = ConfigDataStore.OnConfigChangeListener {
             when (it) {
@@ -66,7 +66,7 @@ class ConfigFragment : PreferenceFragmentCompat() {
                 shutdownTemp.key -> onShutdownTempSet()
                 cooldownCharge.key -> onCooldownChargeSet()
                 cooldownPause.key -> onCooldownPauseSet()
-                cooldownCustom.key -> onCooldownCustomSet()
+                //cooldownCustom.key -> onCooldownCustomSet()
                 chargingSwitch.key -> onChargingSwitchChanged()
                 currentWorkaround.key -> onCurrentWorkaroundChanged()
             }
@@ -106,7 +106,7 @@ class ConfigFragment : PreferenceFragmentCompat() {
 
         onCooldownChargeSet()
         onCooldownPauseSet()
-        onCooldownCustomSet()
+        //onCooldownCustomSet()
 
         maxChargingVoltage.setOnBindEditTextListener {
             it.doOnTextChanged { text, _, _, _ ->
@@ -217,23 +217,25 @@ class ConfigFragment : PreferenceFragmentCompat() {
     private fun onCooldownChargeSet() {
         val isValueEmpty = cooldownCharge.text.isNullOrEmpty()
         val isCooldownPauseEmpty = cooldownPause.text.isNullOrEmpty()
-        cooldownCustom.isEnabled = isValueEmpty && isCooldownPauseEmpty
+        //cooldownCustom.isEnabled = isValueEmpty && isCooldownPauseEmpty
     }
 
     private fun onCooldownPauseSet() {
         val isCooldownChargeEmpty = cooldownCharge.text.isNullOrEmpty()
         val isValueEmpty = cooldownPause.text.isNullOrEmpty()
-        cooldownCustom.isEnabled = isCooldownChargeEmpty && isValueEmpty
+        //cooldownCustom.isEnabled = isCooldownChargeEmpty && isValueEmpty
     }
 
-    private fun onCooldownCustomSet() {
+    /*private fun onCooldownCustomSet() {
         val isValueEmpty = cooldownCustom.text.isNullOrEmpty()
         cooldownCharge.isEnabled = isValueEmpty
         cooldownPause.isEnabled = isValueEmpty
-    }
+    }*/
 
     private fun onChargingSwitchSet() {
-        prioritizeBattIdleMode.isEnabled = chargingSwitch.text.isNullOrEmpty()
+        activity?.runOnUiThread {
+            prioritizeBattIdleMode.isEnabled = chargingSwitch.text.isNullOrEmpty()
+        }
     }
 
     private fun onChargingSwitchChanged() {
@@ -245,7 +247,7 @@ class ConfigFragment : PreferenceFragmentCompat() {
         CoroutineScope(Dispatchers.Default).launch { Command.reinitialize() }
     }
 
-    private fun loadDefault() = lifecycleScope.launchWhenCreated {
+    private fun loadDefault() = lifecycleScope.launch {
         val properties = Command.getDefaultConfig()
         Log.d(TAG, "loadDefault ${properties.size}")
         for (property in properties) {

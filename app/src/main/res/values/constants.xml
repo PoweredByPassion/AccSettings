@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources translatable="false">
-    <integer name="acc_version_code">202206120</integer>
-    <string name="acc_version_name">2022.6.12-dev</string>
+    <integer name="acc_version_code">202505180</integer>
+    <string name="acc_version_name">2025.5.18-dev</string>
     <string name="acc_daemon">acc_daemon</string>
     <!--battery info-->
-    <string name="info_status">STATUS</string>
-    <string name="info_capacity">CAPACITY</string>
-    <string name="info_temp">TEMP</string>
-    <string name="info_current_now">CURRENT_NOW</string>
-    <string name="info_voltage_now">VOLTAGE_NOW</string>
-    <string name="info_power_now">POWER_NOW</string>
+    <string name="info_status">status</string>
+    <string name="info_capacity">level</string>
+    <string name="info_temp">temp</string>
+    <string name="info_current_now">current_now</string>
+    <string name="info_voltage_now">voltage_now</string>
+    <string name="info_power_now">power_now</string>
     <!--config-->
     <!--capacity-->
     <string name="set_shutdown_capacity">shutdown_capacity</string>
     <string name="set_cooldown_capacity">cooldown_capacity</string>
     <string name="set_resume_capacity">resume_capacity</string>
     <string name="set_pause_capacity">pause_capacity</string>
-    <string name="set_capacity_sync">capacity_sync</string>
+<!--    <string name="set_capacity_sync">capacity_sync</string>-->
     <string name="set_capacity_mask">capacity_mask</string>
     <!--temperature-->
     <string name="set_cooldown_temp">cooldown_temp</string>
@@ -25,7 +25,7 @@
     <!--cooldownRatio-->
     <string name="set_cooldown_charge">cooldown_charge</string>
     <string name="set_cooldown_pause">cooldown_pause</string>
-    <string name="set_cooldown_custom">cooldown_custom</string>
+<!--    <string name="set_cooldown_custom">cooldown_custom</string>-->
     <string name="set_cooldown_current">cooldown_current</string>
     <!--power-->
     <string name="set_max_charging_current">max_charging_current</string>
@@ -43,11 +43,15 @@
     <string name="set_apply_on_plug">apply_on_plug</string>
     <!--commands-->
     <string name="set_run_cmd_on_pause">run_cmd_on_pause</string>
-    <string name="set_loop_cmd">loop_cmd</string>
+<!--    <string name="set_loop_cmd">loop_cmd</string>-->
     <!--unitMultipliers-->
     <string name="set_amp_factor">amp_factor</string>
     <string name="set_volt_factor">volt_factor</string>
     <!--unused-->
     <string name="set_max_temp_pause">max_temp_pause</string>
     <string name="set_lang">lang</string>
+    <!--acc management-->
+    <string name="install_acc">install_acc</string>
+    <string name="uninstall_acc">uninstall_acc</string>
+    <string name="acc_version_info">acc_version_info</string>
 </resources>
