@@ -169,8 +169,19 @@ class ConfigFragment : PreferenceFragmentCompat() {
         val resumeCapacityValue = resumeCapacity.value
         shutdownCapacity.maxValue =
             (if (cooldownCapacityValue < resumeCapacityValue) cooldownCapacityValue else resumeCapacityValue) - 1
-        pauseCapacity.minValue =
-            (if (cooldownCapacityValue > resumeCapacityValue) cooldownCapacityValue else resumeCapacityValue) + 1
+
+        // 计算 pauseCapacity 的最小值
+        val desiredMinValue = (if (cooldownCapacityValue > resumeCapacityValue) cooldownCapacityValue else resumeCapacityValue) + 1
+
+        // 在非电压模式下，范围限制在 0~100
+        if (!supportInVoltage.isChecked) {
+            // 确保 minValue 和 maxValue 都在合理范围内
+            pauseCapacity.maxValue = 100
+            // 如果计算出的 minValue 超过100，说明其他值设置不合理，保持最小值为一个合理的值
+            pauseCapacity.minValue = minOf(desiredMinValue, 100)
+        } else {
+            pauseCapacity.minValue = desiredMinValue
+        }
     }
 
     private fun onPauseCapacitySet() {
