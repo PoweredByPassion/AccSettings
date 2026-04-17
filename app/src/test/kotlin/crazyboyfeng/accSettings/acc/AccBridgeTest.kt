@@ -105,13 +105,10 @@ class AccBridgeTest {
             defaultConfigReader = { defaultConfig }
         )
 
-        assertEquals(
-            GroupedConfigRead(
-                current = currentConfig,
-                defaults = defaultConfig
-            ),
-            bridge.readGroupedConfig()
-        )
+        val groupedConfig = bridge.readGroupedConfig()
+
+        assertSame(currentConfig, groupedConfig.current)
+        assertSame(defaultConfig, groupedConfig.defaults)
     }
 
     private fun capabilityWithDefaults(): AccCapability = AccCapability.from(

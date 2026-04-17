@@ -33,6 +33,12 @@ class AccBridge(
     suspend fun readGroupedConfig(): GroupedConfigRead {
         val current = readCurrentConfig()
         val defaults = readDefaultConfig()
-        return groupedConfigReader(current, defaults)
+        val base = groupedConfigReader(current, defaults)
+        return base.copy(
+            currentCapacity = current.getProperty("capacity")?.let(CapacityConfig::parse),
+            defaultCapacity = defaults.getProperty("capacity")?.let(CapacityConfig::parse),
+            currentTemperature = current.getProperty("temperature")?.let(TemperatureConfig::parse),
+            defaultTemperature = defaults.getProperty("temperature")?.let(TemperatureConfig::parse)
+        )
     }
 }
