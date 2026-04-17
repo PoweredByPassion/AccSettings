@@ -16,6 +16,7 @@ import kotlinx.coroutines.launch
 
 @Suppress("unused")
 class ConfigFragment : PreferenceFragmentCompat() {
+    private lateinit var configDataStore: ConfigDataStore
     private lateinit var shutdownCapacity: NumberPickerPreference
     private lateinit var cooldownCapacity: NumberPickerPreference
     private lateinit var resumeCapacity: NumberPickerPreference
@@ -33,7 +34,7 @@ class ConfigFragment : PreferenceFragmentCompat() {
     private lateinit var chargingSwitch: EditTextPreference
     private lateinit var currentWorkaround: SwitchPreference
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
-        val configDataStore = ConfigDataStore(requireContext())
+        configDataStore = ConfigDataStore(requireContext())
         preferenceManager.preferenceDataStore = configDataStore
 
         setPreferencesFromResource(R.xml.config_preferences, rootKey)
@@ -135,6 +136,14 @@ class ConfigFragment : PreferenceFragmentCompat() {
 
         loadDefault()
 
+    }
+
+    fun applyDraftChanges() = lifecycleScope.launch {
+        configDataStore.applyDraft()
+    }
+
+    fun discardDraftChanges() {
+        configDataStore.discardDraft()
     }
 
     private fun inVoltage(preference: NumberPickerPreference) =
