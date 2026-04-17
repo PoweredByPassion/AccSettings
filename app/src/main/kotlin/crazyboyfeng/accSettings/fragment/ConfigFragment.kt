@@ -16,6 +16,7 @@ import kotlinx.coroutines.launch
 
 @Suppress("unused")
 class ConfigFragment : PreferenceFragmentCompat() {
+    private lateinit var configDataStore: ConfigDataStore
     private lateinit var shutdownCapacity: NumberPickerPreference
     private lateinit var cooldownCapacity: NumberPickerPreference
     private lateinit var resumeCapacity: NumberPickerPreference
@@ -33,7 +34,7 @@ class ConfigFragment : PreferenceFragmentCompat() {
     private lateinit var chargingSwitch: EditTextPreference
     private lateinit var currentWorkaround: SwitchPreference
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
-        val configDataStore = ConfigDataStore(requireContext())
+        configDataStore = ConfigDataStore(requireContext())
         preferenceManager.preferenceDataStore = configDataStore
 
         setPreferencesFromResource(R.xml.config_preferences, rootKey)
@@ -137,6 +138,14 @@ class ConfigFragment : PreferenceFragmentCompat() {
 
     }
 
+    fun applyDraftChanges() = lifecycleScope.launch {
+        configDataStore.applyDraft()
+    }
+
+    fun discardDraftChanges() {
+        configDataStore.discardDraft()
+    }
+
     private fun inVoltage(preference: NumberPickerPreference) =
         preference.value in VOLT_MIN..VOLT_MAX
 
@@ -176,13 +185,11 @@ class ConfigFragment : PreferenceFragmentCompat() {
         // 在非电压模式下，范围限制在 0~100
         if (!supportInVoltage.isChecked) {
             pauseCapacity.maxValue = 100
-            // 如果计算出的 minValue 超过100，说明cooldown或resume值太高
-            // 这种情况下，应该让用户能够滚动到其他值，而不是锁定在100
+            // 如果计算出的 minValue 超过100，说明 cooldown 或 resume 值太高
+            // 这种情况下允许用户重新调整到合理区间，而不是把选择锁死在 100
             pauseCapacity.minValue = if (desiredMinValue <= 100) {
                 desiredMinValue
             } else {
-                // 当配置不合理时，允许用户选择整个范围
-                // 用户可以调整到合理的值
                 0
             }
         } else {

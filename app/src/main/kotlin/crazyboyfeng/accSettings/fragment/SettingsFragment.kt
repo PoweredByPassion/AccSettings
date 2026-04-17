@@ -19,9 +19,9 @@ import com.topjohnwu.superuser.Shell
 import crazyboyfeng.accSettings.R
 import crazyboyfeng.accSettings.acc.AccHandler
 import crazyboyfeng.accSettings.acc.AccInstallState
+import crazyboyfeng.accSettings.acc.AccSettingsSummary
 import crazyboyfeng.accSettings.acc.AccStatus
 import crazyboyfeng.accSettings.acc.AccStateManager
-import crazyboyfeng.accSettings.acc.AccStatusResolver
 import crazyboyfeng.accSettings.acc.Command
 import crazyboyfeng.accSettings.data.AccDataStore
 import crazyboyfeng.android.preference.PreferenceFragmentCompat
@@ -159,72 +159,30 @@ class SettingsFragment : PreferenceFragmentCompat() {
     }
 
     private fun checkAcc() = lifecycleScope.launch {
-        // Check root permission first in background thread
-        var hasRoot = withContext(Dispatchers.IO) { Shell.rootAccess() }
-        if (!hasRoot) {
-            hasRoot = withContext(Dispatchers.IO) {
-                Shell.getShell()
-                Shell.rootAccess()
-            }
-        }
-
-        if (!hasRoot) {
-            accPreferenceCategory.summary = getString(R.string.acc_need_root)
+        try {
+            AccStateManager.refreshNow()
+        } catch (e: Exception) {
+            accPreferenceCategory.summary = e.localizedMessage ?: getString(R.string.command_failed)
             disableAccControls()
-            return@launch
-        }
-
-        var retryCount = 0
-
-        while (isActive && retryCount < 5) {
-            try {
-                val (installedVersionCode, installedVersionName) = Command.getVersion()
-                val bundledVersionCode = resources.getInteger(R.integer.acc_version_code)
-                val daemonRunning = Command.isDaemonRunning()
-
-                val status = AccStatusResolver.resolve(
-                    installedVersionCode = installedVersionCode,
-                    installedVersionName = installedVersionName,
-                    bundledVersionCode = bundledVersionCode,
-                    daemonRunning = daemonRunning
-                )
-
-                if (installedVersionCode > 0) {
-                    try {
-                        AccHandler().serve()
-                    } catch (e: Exception) {
-                        Log.w(TAG, "Failed to prepare ACC service", e)
-                    }
-                }
-
-                updateAccStatusUI(status)
-                return@launch
-            } catch (e: Exception) {
-                if (retryCount < 4) {
-                    delay(1000)
-                    retryCount++
-                    continue
-                } else {
-                    accPreferenceCategory.summary = e.localizedMessage ?: getString(R.string.command_failed)
-                    disableAccControls()
-                    return@launch
-                }
-            }
         }
     }
 
     private fun updateAccStatusUI(status: AccStatus) {
-        when (status.installState) {
-            AccInstallState.NOT_INSTALLED -> {
+        when (AccStateManager.toSettingsState(status).summary) {
+            AccSettingsSummary.NOT_INSTALLED -> {
                 accPreferenceCategory.summary = getString(R.string.acc_not_installed)
                 disableAccControls()
                 scheduleFollowUpRefresh()
             }
-            AccInstallState.UPDATE_AVAILABLE -> {
+            AccSettingsSummary.BROKEN_INSTALL -> {
+                accPreferenceCategory.summary = getString(R.string.command_failed)
+                disableAccControls()
+            }
+            AccSettingsSummary.UPDATE_AVAILABLE -> {
                 accPreferenceCategory.summary = getString(R.string.acc_installed_version, status.installedVersionName)
                 enableAccControls(status.daemonRunning)
             }
-            AccInstallState.UP_TO_DATE -> {
+            AccSettingsSummary.UP_TO_DATE -> {
                 accPreferenceCategory.summary = getString(
                     R.string.acc_up_to_date_with_version,
                     status.installedVersionName
@@ -266,7 +224,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
         refreshJob = lifecycleScope.launch {
             delay(2500)
             if (isAdded) {
-                checkAcc()
+                AccStateManager.refreshNow()
             }
         }
     }

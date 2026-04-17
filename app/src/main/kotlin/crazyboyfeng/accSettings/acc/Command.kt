@@ -174,6 +174,9 @@ object Command {
     internal fun findAccExecutable(pathExists: (String) -> Boolean): String? =
         ACC_EXECUTABLE_CANDIDATES.firstOrNull(pathExists)
 
+    internal fun listAccExecutables(pathExists: (String) -> Boolean): List<String> =
+        ACC_EXECUTABLE_CANDIDATES.filter(pathExists)
+
     internal fun requireAccExecutable(pathExists: (String) -> Boolean): String =
         findAccExecutable(pathExists) ?: throw NotInstalledException()
 
@@ -184,6 +187,9 @@ object Command {
             else -> "/data/adb/vr25/acc/service.sh --init"
         }
 
+    internal fun findAccDaemon(pathExists: (String) -> Boolean): String? =
+        ACC_DAEMON_CANDIDATES.firstOrNull(pathExists)
+
     private val ACC_EXECUTABLE_CANDIDATES = listOf(
         "/dev/acca",
         "/dev/.vr25/acc/acca",
@@ -193,4 +199,10 @@ object Command {
     )
 
     private const val DEFAULT_ACC_EXECUTABLE = "/data/adb/vr25/acc/acc.sh"
+
+    private val ACC_DAEMON_CANDIDATES = listOf(
+        "/dev/accd",
+        "/dev/.vr25/acc/accd",
+        "/data/adb/vr25/acc/service.sh"
+    )
 }

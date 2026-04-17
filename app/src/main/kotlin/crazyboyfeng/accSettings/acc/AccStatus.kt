@@ -2,6 +2,7 @@ package crazyboyfeng.accSettings.acc
 
 enum class AccInstallState {
     NOT_INSTALLED,
+    BROKEN_INSTALL,
     UPDATE_AVAILABLE,
     UP_TO_DATE
 }
