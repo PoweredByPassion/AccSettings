@@ -11,16 +11,11 @@ import androidx.lifecycle.lifecycleScope
 import androidx.preference.Preference
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
-import com.topjohnwu.superuser.Shell
 import crazyboyfeng.accSettings.R
-import crazyboyfeng.accSettings.acc.AccHandler
 import crazyboyfeng.accSettings.acc.AccInstallState
-import crazyboyfeng.accSettings.acc.Command
-import crazyboyfeng.accSettings.acc.AccStatusResolver
+import crazyboyfeng.accSettings.acc.AccStateManager
 import crazyboyfeng.android.preference.PreferenceFragmentCompat
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class MoreFragment : BottomSheetDialogFragment() {
     override fun onCreateView(
@@ -87,22 +82,17 @@ class MoreFragment : BottomSheetDialogFragment() {
 
         private fun performAccAction(action: Action) {
             lifecycleScope.launch {
-                if (!withContext(Dispatchers.IO) { Shell.rootAccess() }) {
-                    Toast.makeText(requireContext(), R.string.acc_need_root, Toast.LENGTH_LONG).show()
-                    return@launch
-                }
-
                 try {
                     installAccPreference.isEnabled = false
                     uninstallAccPreference.isEnabled = false
                     accVersionInfo.summary = getString(R.string.initializing)
                     when (action) {
                         Action.INSTALL -> {
-                            AccHandler().install(requireContext())
+                            AccStateManager.ensureInstalled()
                             Toast.makeText(requireContext(), R.string.acc_install_success, Toast.LENGTH_SHORT).show()
                         }
                         Action.UNINSTALL -> {
-                            AccHandler().uninstall()
+                            AccStateManager.uninstall()
                             Toast.makeText(requireContext(), R.string.acc_uninstall_success, Toast.LENGTH_SHORT).show()
                         }
                     }
@@ -121,17 +111,10 @@ class MoreFragment : BottomSheetDialogFragment() {
 
         private fun checkStatus() = lifecycleScope.launch {
             try {
-                val (installedVersionCode, installedVersionName) = Command.getVersion()
-                val bundledVersionCode = resources.getInteger(R.integer.acc_version_code)
                 val bundledVersionName = getString(R.string.acc_version_name)
-                val daemonRunning = Command.isDaemonRunning()
-
-                val status = crazyboyfeng.accSettings.acc.AccStatusResolver.resolve(
-                    installedVersionCode = installedVersionCode,
-                    installedVersionName = installedVersionName,
-                    bundledVersionCode = bundledVersionCode,
-                    daemonRunning = daemonRunning
-                )
+                AccStateManager.refreshNow()
+                val status = AccStateManager.getCurrentStatus()
+                    ?: throw IllegalStateException(getString(R.string.command_failed))
 
                 when (status.installState) {
                     AccInstallState.NOT_INSTALLED -> {
@@ -140,6 +123,13 @@ class MoreFragment : BottomSheetDialogFragment() {
                         installAccPreference.summary = getString(R.string.acc_bundled_version, bundledVersionName)
                         installAccPreference.isEnabled = true
                         uninstallAccPreference.isVisible = false
+                    }
+                    AccInstallState.BROKEN_INSTALL -> {
+                        accVersionInfo.summary = getString(R.string.command_failed)
+                        installAccPreference.title = getString(R.string.install_acc_title)
+                        installAccPreference.summary = getString(R.string.acc_bundled_version, bundledVersionName)
+                        installAccPreference.isEnabled = true
+                        uninstallAccPreference.isVisible = true
                     }
                     AccInstallState.UPDATE_AVAILABLE -> {
                         accVersionInfo.summary = getString(R.string.acc_installed_version, status.installedVersionName)

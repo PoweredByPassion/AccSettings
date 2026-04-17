@@ -3,18 +3,36 @@ package crazyboyfeng.accSettings.acc
 import android.content.Context
 import android.util.Log
 import com.topjohnwu.superuser.Shell
-import kotlinx.coroutines.*
+import crazyboyfeng.accSettings.R
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
-/**
- * ACC 状态管理器
- * 维护全局状态缓存，后台定期轮询更新状态
- */
+enum class AccSettingsSummary {
+    NOT_INSTALLED,
+    BROKEN_INSTALL,
+    UPDATE_AVAILABLE,
+    UP_TO_DATE
+}
+
+data class AccSettingsState(
+    val summary: AccSettingsSummary,
+    val daemonEnabled: Boolean,
+    val daemonRunning: Boolean,
+    val configEnabled: Boolean,
+    val shouldServe: Boolean,
+    val shouldScheduleFollowUpRefresh: Boolean
+)
+
 object AccStateManager {
     private const val TAG = "AccStateManager"
-    private const val POLLING_INTERVAL_MS = 5000L // 5秒轮询间隔
+    private const val POLLING_INTERVAL_MS = 5000L
 
     private val _accStatus = MutableStateFlow<AccStatus?>(null)
     val accStatus: StateFlow<AccStatus?> = _accStatus.asStateFlow()
@@ -22,136 +40,214 @@ object AccStateManager {
     private var monitoringJob: Job? = null
     private var isMonitoring = false
     private var appContext: Context? = null
+    private var bridgeFactoryOverride: (() -> AccBridge)? = null
 
-    /**
-     * 启动状态监控
-     * @param context Application context
-     */
     fun startMonitoring(context: Context) {
         if (isMonitoring) {
-            Log.d(TAG, "Monitoring already started")
+            logDebug("Monitoring already started")
             return
         }
 
         appContext = context.applicationContext
         isMonitoring = true
-
         monitoringJob = CoroutineScope(Dispatchers.Default).launch {
-            Log.i(TAG, "Starting ACC status monitoring")
-
-            // 立即获取一次状态
             refreshNow()
-
-            // 开始定期轮询
             while (isActive) {
                 delay(POLLING_INTERVAL_MS)
                 refreshNow()
             }
         }
-
-        Log.i(TAG, "ACC status monitoring started")
     }
 
-    /**
-     * 停止状态监控
-     */
     fun stopMonitoring() {
         if (!isMonitoring) {
             return
         }
-
         monitoringJob?.cancel()
         monitoringJob = null
         isMonitoring = false
-
-        Log.i(TAG, "ACC status monitoring stopped")
     }
 
-    /**
-     * 强制立即刷新状态
-     */
     suspend fun refreshNow() {
         try {
-            val status = fetchAccStatus()
+            val status = bridge().readStatus()
             _accStatus.value = status
-            Log.d(TAG, "ACC status updated: installState=${status.installState}, daemonRunning=${status.daemonRunning}")
+            logDebug("ACC status updated: installState=${status.installState}, daemonRunning=${status.daemonRunning}")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to fetch ACC status", e)
-            // 保持上一次的状态，或者设置为 null 表示未知状态
-            // _accStatus.value = null
+            logError("Failed to refresh ACC status", e)
         }
     }
 
-    /**
-     * 获取当前缓存的状态（同步方法，用于快速读取）
-     */
+    suspend fun setDaemonRunning(daemonRunning: Boolean): Boolean {
+        val result = bridge().setDaemonRunning(daemonRunning)
+        refreshNow()
+        return result.success
+    }
+
+    suspend fun ensureInstalled(): LifecycleActionResult {
+        val result = bridge().ensureInstalled()
+        refreshNow()
+        return result
+    }
+
+    suspend fun uninstall(): LifecycleActionResult {
+        val result = bridge().uninstall()
+        refreshNow()
+        return result
+    }
+
     fun getCurrentStatus(): AccStatus? = _accStatus.value
 
-    /**
-     * 检查 daemon 是否正在运行（从缓存读取，避免阻塞）
-     */
     fun isDaemonRunning(): Boolean = _accStatus.value?.daemonRunning ?: false
 
-    /**
-     * 从系统获取最新的 ACC 状态
-     */
-    private suspend fun fetchAccStatus(): AccStatus = withContext(Dispatchers.IO) {
-        // 检查 Root 权限
-        val hasRoot = try {
-            Shell.rootAccess()
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to check root access", e)
-            false
-        }
-
-        if (!hasRoot) {
-            // 返回一个默认状态表示无 root 权限
-            return@withContext AccStatus(
-                installState = AccInstallState.NOT_INSTALLED,
-                installedVersionName = null,
-                daemonRunning = false,
-                canManageDaemon = false,
-                showInstallAction = true,
-                showUninstallAction = false
-            )
-        }
-
-        // 获取版本信息
-        val (installedVersionCode, installedVersionName) = try {
-            Command.getVersion()
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to get ACC version", e)
-            Pair(0, null)
-        }
-
-        // 获取 daemon 运行状态
-        val daemonRunning = try {
-            Command.isDaemonRunning()
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to check daemon status", e)
-            false
-        }
-
-        // 获取 bundled 版本代码
-        val bundledVersionCode = appContext?.resources?.getInteger(
-            appContext!!.resources.getIdentifier("acc_version_code", "integer", appContext!!.packageName)
-        ) ?: 0
-
-        // 解析状态
-        AccStatusResolver.resolve(
-            installedVersionCode = installedVersionCode,
-            installedVersionName = installedVersionName,
-            bundledVersionCode = bundledVersionCode,
-            daemonRunning = daemonRunning
+    fun toSettingsState(status: AccStatus): AccSettingsState = when (status.installState) {
+        AccInstallState.NOT_INSTALLED -> AccSettingsState(
+            summary = AccSettingsSummary.NOT_INSTALLED,
+            daemonEnabled = false,
+            daemonRunning = false,
+            configEnabled = false,
+            shouldServe = false,
+            shouldScheduleFollowUpRefresh = true
+        )
+        AccInstallState.BROKEN_INSTALL -> AccSettingsState(
+            summary = AccSettingsSummary.BROKEN_INSTALL,
+            daemonEnabled = false,
+            daemonRunning = false,
+            configEnabled = false,
+            shouldServe = false,
+            shouldScheduleFollowUpRefresh = false
+        )
+        AccInstallState.UPDATE_AVAILABLE -> AccSettingsState(
+            summary = AccSettingsSummary.UPDATE_AVAILABLE,
+            daemonEnabled = status.canManageDaemon,
+            daemonRunning = status.daemonRunning,
+            configEnabled = true,
+            shouldServe = true,
+            shouldScheduleFollowUpRefresh = false
+        )
+        AccInstallState.UP_TO_DATE -> AccSettingsState(
+            summary = AccSettingsSummary.UP_TO_DATE,
+            daemonEnabled = status.canManageDaemon,
+            daemonRunning = status.daemonRunning,
+            configEnabled = true,
+            shouldServe = true,
+            shouldScheduleFollowUpRefresh = false
         )
     }
 
-    /**
-     * 清理资源
-     */
     fun cleanup() {
         stopMonitoring()
         _accStatus.value = null
         appContext = null
+        bridgeFactoryOverride = null
+    }
+
+    internal fun resetForTesting(bridgeFactory: (() -> AccBridge)? = null) {
+        cleanup()
+        bridgeFactoryOverride = bridgeFactory
+    }
+
+    private fun bridge(): AccBridge {
+        bridgeFactoryOverride?.let { return it() }
+        val context = requireNotNull(appContext) { "AccStateManager requires an application context" }
+        return buildBridge(context)
+    }
+
+    private fun buildBridge(context: Context): AccBridge {
+        val handler = AccHandler()
+        val capabilityProbe = AccCapabilityProbe {
+            collectProbeFacts()
+        }
+        return AccBridge(
+            capabilityProbe = { capabilityProbe.snapshot() },
+            versionReader = { Command.getVersion() },
+            daemonReader = { Command.isDaemonRunning() },
+            currentConfigReader = { Command.getCurrentConfig() },
+            defaultConfigReader = { Command.getDefaultConfig() },
+            installAction = { handler.install(context) },
+            upgradeAction = { handler.upgrade(context) },
+            repairAction = { handler.repair() },
+            uninstallAction = { handler.uninstall() },
+            daemonToggleAction = { enabled ->
+                handler.setDaemonRunning(enabled)
+                true
+            },
+            reinitializeAction = { handler.reinitialize() },
+            lifecycleCapabilityRefresh = { capabilityProbe.refresh(ProbeRefreshReason.RECHECK) },
+            bundledVersionCodeProvider = { context.resources.getInteger(R.integer.acc_version_code) }
+        )
+    }
+
+    private suspend fun collectProbeFacts(): AccProbeFacts {
+        val hasRoot = try {
+            Shell.rootAccess()
+        } catch (_: Exception) {
+            false
+        }
+        val availableEntrypoints = if (hasRoot) {
+            Command.listAccExecutables(::pathExists)
+        } else {
+            emptyList()
+        }
+        val selectedEntrypoint = availableEntrypoints.firstOrNull()
+        val (versionCode, versionName) = if (hasRoot) {
+            try {
+                Command.getVersion()
+            } catch (_: Exception) {
+                0 to null
+            }
+        } else {
+            0 to null
+        }
+        val daemonRunning = if (hasRoot) {
+            try {
+                Command.isDaemonRunning()
+            } catch (_: Exception) {
+                false
+            }
+        } else {
+            false
+        }
+
+        return AccProbeFacts(
+            hasRoot = hasRoot,
+            availableEntrypoints = availableEntrypoints,
+            selectedEntrypoint = selectedEntrypoint,
+            accVersionName = versionName,
+            accVersionCode = versionCode,
+            daemonRunning = daemonRunning,
+            canReadInfo = selectedEntrypoint != null,
+            canReadCurrentConfig = selectedEntrypoint != null,
+            canReadDefaultConfig = selectedEntrypoint != null,
+            canReadLogs = hasRoot,
+            canExportDiagnostics = hasRoot,
+            supportedChargingSwitches = emptyList(),
+            preferredChargingSwitch = null,
+            supportsCurrentControl = false,
+            supportsVoltageControl = false,
+            supportedCapacityModes = setOf(CapacityMode.PERCENT),
+            supportedTemperatureModes = setOf(TemperatureMode.CELSIUS)
+        )
+    }
+
+    private fun pathExists(path: String): Boolean {
+        val shell = Shell.getShell()
+        if (!shell.isRoot) {
+            return false
+        }
+        val escaped = path.replace("\"", "\\\"")
+        return shell.newJob()
+            .add("test -f \"$escaped\"")
+            .to(mutableListOf(), mutableListOf())
+            .exec()
+            .isSuccess
+    }
+
+    private fun logDebug(message: String) {
+        runCatching { Log.d(TAG, message) }
+    }
+
+    private fun logError(message: String, throwable: Throwable) {
+        runCatching { Log.e(TAG, message, throwable) }
     }
 }
