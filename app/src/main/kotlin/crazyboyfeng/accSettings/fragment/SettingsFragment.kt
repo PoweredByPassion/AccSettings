@@ -6,8 +6,11 @@ import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
+import androidx.appcompat.app.AlertDialog
 import androidx.core.view.updatePadding
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.preference.EditTextPreferencePlus
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
@@ -17,6 +20,7 @@ import crazyboyfeng.accSettings.R
 import crazyboyfeng.accSettings.acc.AccHandler
 import crazyboyfeng.accSettings.acc.AccInstallState
 import crazyboyfeng.accSettings.acc.AccStatus
+import crazyboyfeng.accSettings.acc.AccStateManager
 import crazyboyfeng.accSettings.acc.AccStatusResolver
 import crazyboyfeng.accSettings.acc.Command
 import crazyboyfeng.accSettings.data.AccDataStore
@@ -34,6 +38,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
     private lateinit var configPreference: Preference
     private var infoJob: Job? = null
     private var refreshJob: Job? = null
+    private var loadingDialog: AlertDialog? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -42,12 +47,43 @@ class SettingsFragment : PreferenceFragmentCompat() {
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         reload()
-        checkAcc()
+        // 显示 loading 状态，避免用户误以为 ACC 未启用
+        showLoadingState()
+        // 使用缓存状态立即更新 UI，并开始观察状态变化
+        observeAccStatus()
+    }
+
+    /**
+     * 显示加载中状态
+     */
+    private fun showLoadingState() {
+        accPreferenceCategory.summary = getString(R.string.acc_detecting)
+        disableAccControls()
+
+        // 如果缓存中没有状态，显示 loading 对话框
+        if (AccStateManager.getCurrentStatus() == null && loadingDialog == null) {
+            loadingDialog = AlertDialog.Builder(requireContext())
+                .setMessage(R.string.acc_detecting)
+                .setCancelable(false)
+                .create()
+            loadingDialog?.show()
+        }
+    }
+
+    /**
+     * 隐藏 loading 对话框
+     */
+    private fun hideLoadingState() {
+        loadingDialog?.dismiss()
+        loadingDialog = null
     }
 
     override fun onResume() {
         super.onResume()
-        refreshAccState()
+        // 触发一次强制刷新（可选，确保状态最新）
+        lifecycleScope.launch {
+            AccStateManager.refreshNow()
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -87,7 +123,39 @@ class SettingsFragment : PreferenceFragmentCompat() {
         if (!isAdded) return
         refreshJob?.cancel()
         disableAccControls()
-        checkAcc()
+        lifecycleScope.launch {
+            AccStateManager.refreshNow()
+        }
+    }
+
+    /**
+     * 观察 ACC 状态变化并更新 UI
+     */
+    private fun observeAccStatus() = lifecycleScope.launch {
+        // 使用 repeatOnLifecycle 确保在 RESUMED 状态下观察
+        repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            AccStateManager.accStatus.collect { status ->
+                if (status == null) {
+                    // 如果缓存为空，触发一次同步获取
+                    checkAcc()
+                } else {
+                    // 隐藏 loading 对话框
+                    hideLoadingState()
+
+                    // 使用缓存状态更新 UI
+                    updateAccStatusUI(status)
+
+                    // 如果 ACC 已安装，启动服务
+                    if (status.installState != AccInstallState.NOT_INSTALLED) {
+                        try {
+                            AccHandler().serve()
+                        } catch (e: Exception) {
+                            Log.w(TAG, "Failed to prepare ACC service", e)
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private fun checkAcc() = lifecycleScope.launch {

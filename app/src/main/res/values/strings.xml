@@ -71,6 +71,7 @@
     <string name="uninstall_acc_title">Uninstall ACC</string>
     <string name="acc_version_info_title">ACC Version</string>
     <string name="acc_not_installed">ACC is not installed</string>
+    <string name="acc_detecting">Detecting ACC status…</string>
     <string name="acc_installed_version">Installed: %s</string>
     <string name="acc_bundled_version">Available: %s</string>
     <string name="acc_up_to_date">ACC is up to date</string>
