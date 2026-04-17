@@ -113,6 +113,26 @@ class AccHandler {
         Command.exec(buildPostUninstallCleanupCommand())
         Log.d(TAG, "uninstall end")
     }
+
+    @Throws(Command.AccException::class)
+    suspend fun upgrade(context: Context) {
+        install(context)
+    }
+
+    @Throws(Command.AccException::class)
+    suspend fun repair() {
+        Command.reinitialize()
+    }
+
+    @Throws(Command.AccException::class)
+    suspend fun setDaemonRunning(daemonRunning: Boolean) {
+        Command.setDaemonRunning(daemonRunning)
+    }
+
+    @Throws(Command.AccException::class)
+    suspend fun reinitialize() {
+        Command.reinitialize()
+    }
     companion object {
         const val TAG = "AccHandler"
 
