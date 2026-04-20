@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 
@@ -12,7 +13,7 @@ fun OverviewRoute(
     onOpenConfiguration: () -> Unit,
     onOpenTools: () -> Unit,
     modifier: Modifier = Modifier,
-    overviewViewModel: OverviewViewModel = viewModel(factory = OverviewViewModel.factory())
+    overviewViewModel: OverviewViewModel = viewModel(factory = OverviewViewModel.factory(LocalContext.current))
 ) {
     val uiState by overviewViewModel.uiState.collectAsStateWithLifecycle()
 

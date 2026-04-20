@@ -1,13 +1,19 @@
 package app.owlow.accsetting.ui.tools
 
 import app.owlow.accsetting.MainDispatcherRule
+import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [33])
 class ToolsViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
@@ -15,6 +21,7 @@ class ToolsViewModelTest {
     @Test
     fun repairAction_exposesProgress_thenSuccessMessage() = runTest {
         val viewModel = ToolsViewModel(
+            context = ApplicationProvider.getApplicationContext(),
             toolsRepository = FakeToolsRepository(
                 actionMessage = "ACC repaired successfully"
             )
@@ -29,6 +36,7 @@ class ToolsViewModelTest {
     @Test
     fun refresh_exposesDetailedLogs() = runTest {
         val viewModel = ToolsViewModel(
+            context = ApplicationProvider.getApplicationContext(),
             toolsRepository = FakeToolsRepository(
                 actionMessage = "ok",
                 logContent = "daemon started\ncharging active"

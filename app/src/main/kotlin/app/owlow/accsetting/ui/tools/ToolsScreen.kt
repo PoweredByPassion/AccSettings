@@ -19,7 +19,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import app.owlow.accsetting.R
 
 @Composable
 fun ToolsScreen(
@@ -36,12 +38,12 @@ fun ToolsScreen(
             text = { Text(text = confirmationMessage(action)) },
             confirmButton = {
                 Button(onClick = onConfirmAction) {
-                    Text(text = "Continue")
+                    Text(text = stringResource(R.string.continue_action))
                 }
             },
             dismissButton = {
                 OutlinedButton(onClick = onDismissConfirmation) {
-                    Text(text = "Cancel")
+                    Text(text = stringResource(R.string.cancel))
                 }
             }
         )
@@ -61,11 +63,11 @@ fun ToolsScreen(
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        text = "Tools",
+                        text = stringResource(R.string.tools),
                         style = MaterialTheme.typography.headlineMedium
                     )
                     Text(
-                        text = "Run maintenance actions, service controls, and diagnostics from one place.",
+                        text = stringResource(R.string.tools_intro),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -162,18 +164,20 @@ private fun ToolLogCard(section: ToolLogSection) {
     }
 }
 
+@Composable
 private fun confirmationTitle(action: ToolAction): String = when (action) {
-    ToolAction.INSTALL_OR_UPDATE -> "Apply bundled ACC package?"
-    ToolAction.REPAIR -> "Repair ACC installation?"
-    ToolAction.RESTART_SERVICE -> "Restart ACC service?"
-    ToolAction.FORCE_REDETECT -> "Refresh ACC state?"
-    ToolAction.REFRESH -> "Refresh tools details?"
+    ToolAction.INSTALL_OR_UPDATE -> stringResource(R.string.tools_confirm_install_title)
+    ToolAction.REPAIR -> stringResource(R.string.tools_confirm_repair_title)
+    ToolAction.RESTART_SERVICE -> stringResource(R.string.tools_confirm_restart_title)
+    ToolAction.FORCE_REDETECT -> stringResource(R.string.tools_confirm_redetect_title)
+    ToolAction.REFRESH -> stringResource(R.string.tools_confirm_refresh_title)
 }
 
+@Composable
 private fun confirmationMessage(action: ToolAction): String = when (action) {
-    ToolAction.INSTALL_OR_UPDATE -> "This can change the ACC install on the device."
-    ToolAction.REPAIR -> "This can restart ACC internals and interrupt current runtime state."
-    ToolAction.RESTART_SERVICE -> "This can interrupt the current ACC daemon before it comes back."
-    ToolAction.FORCE_REDETECT -> "This will ask ACC to reinitialize its runtime state."
-    ToolAction.REFRESH -> "This reloads the latest tools state."
+    ToolAction.INSTALL_OR_UPDATE -> stringResource(R.string.tools_confirm_install_message)
+    ToolAction.REPAIR -> stringResource(R.string.tools_confirm_repair_message)
+    ToolAction.RESTART_SERVICE -> stringResource(R.string.tools_confirm_restart_message)
+    ToolAction.FORCE_REDETECT -> stringResource(R.string.tools_confirm_redetect_message)
+    ToolAction.REFRESH -> stringResource(R.string.tools_confirm_refresh_message)
 }

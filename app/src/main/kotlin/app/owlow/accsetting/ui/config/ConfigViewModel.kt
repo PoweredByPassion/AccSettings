@@ -7,8 +7,11 @@ import androidx.lifecycle.viewModelScope
 import app.owlow.accsetting.R
 import app.owlow.accsetting.acc.AccDraftState
 import app.owlow.accsetting.acc.ApplyGroupedPatchResult
+import app.owlow.accsetting.acc.CapacityConfig
+import app.owlow.accsetting.acc.ConfigGroupMode
 import app.owlow.accsetting.acc.DraftStatus
 import app.owlow.accsetting.acc.GroupedConfigRead
+import app.owlow.accsetting.acc.TemperatureConfig
 import app.owlow.accsetting.data.ConfigDataStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -22,6 +25,12 @@ import java.util.Properties
 private const val CHARGING_SWITCH_KEY = "charging_switch"
 private const val MAX_CHARGING_VOLTAGE_KEY = "max_charging_voltage"
 private const val CURRENT_WORKAROUND_KEY = "current_workaround"
+private const val CAPACITY_PERCENT_MIN = 0
+private const val CAPACITY_PERCENT_MAX = 100
+private const val TEMP_MIN = 0
+private const val TEMP_MAX = 100
+private const val VOLT_MIN = 3000
+private const val VOLT_MAX = 4200
 private val INT_FIELD_KEYS = setOf(
     "set_shutdown_capacity",
     "set_cooldown_capacity",
@@ -147,78 +156,12 @@ internal fun GroupedConfigRead.toConfigGroups(): List<ConfigGroupUiModel> = list
     ConfigGroupUiModel(
         titleRes = R.string.config_group_charge_thresholds_title,
         summaryRes = R.string.config_group_charge_thresholds_summary,
-        fields = listOf(
-            ConfigFieldUiModel(
-                key = "set_shutdown_capacity",
-                labelRes = R.string.shutdown_below,
-                value = currentCapacity?.shutdown?.toString().orEmpty(),
-                kind = ConfigFieldKind.NUMBER,
-                helperTextRes = R.string.hint_capacity_shutdown,
-                unitRes = R.string.config_unit_percent,
-                minValue = 0,
-                maxValue = 100
-            ),
-            ConfigFieldUiModel(
-                key = "set_cooldown_capacity",
-                labelRes = R.string.cooldown_above,
-                value = currentCapacity?.cooldown?.toString().orEmpty(),
-                kind = ConfigFieldKind.NUMBER,
-                unitRes = R.string.config_unit_percent,
-                minValue = 0,
-                maxValue = 100
-            ),
-            ConfigFieldUiModel(
-                key = "set_resume_capacity",
-                labelRes = R.string.charge_below,
-                value = currentCapacity?.resume?.toString().orEmpty(),
-                kind = ConfigFieldKind.NUMBER,
-                unitRes = R.string.config_unit_percent,
-                minValue = 0,
-                maxValue = 100
-            ),
-            ConfigFieldUiModel(
-                key = "set_pause_capacity",
-                labelRes = R.string.pause_above,
-                value = currentCapacity?.pause?.toString().orEmpty(),
-                kind = ConfigFieldKind.NUMBER,
-                unitRes = R.string.config_unit_percent,
-                minValue = 0,
-                maxValue = 100
-            )
-        )
+        fields = capacityFields()
     ),
     ConfigGroupUiModel(
         titleRes = R.string.config_group_temperature_title,
         summaryRes = R.string.config_group_temperature_summary,
-        fields = listOf(
-            ConfigFieldUiModel(
-                key = "set_cooldown_temp",
-                labelRes = R.string.cooldown_above,
-                value = currentTemperature?.cooldown?.toString().orEmpty(),
-                kind = ConfigFieldKind.NUMBER,
-                unitRes = R.string.config_unit_celsius,
-                minValue = 0,
-                maxValue = 100
-            ),
-            ConfigFieldUiModel(
-                key = "set_max_temp",
-                labelRes = R.string.pause_above,
-                value = currentTemperature?.pause?.toString().orEmpty(),
-                kind = ConfigFieldKind.NUMBER,
-                unitRes = R.string.config_unit_celsius,
-                minValue = 0,
-                maxValue = 100
-            ),
-            ConfigFieldUiModel(
-                key = "set_shutdown_temp",
-                labelRes = R.string.shutdown_above,
-                value = currentTemperature?.shutdown?.toString().orEmpty(),
-                kind = ConfigFieldKind.NUMBER,
-                unitRes = R.string.config_unit_celsius,
-                minValue = 0,
-                maxValue = 100
-            )
-        )
+        fields = temperatureFields()
     ),
     ConfigGroupUiModel(
         titleRes = R.string.config_group_current_voltage_title,
@@ -259,3 +202,173 @@ internal fun GroupedConfigRead.toConfigGroups(): List<ConfigGroupUiModel> = list
 
 private fun Properties.readTemplateValue(key: String, defaults: Properties): String =
     getProperty(key) ?: defaults.getProperty(key).orEmpty()
+
+private fun GroupedConfigRead.capacityFields(): List<ConfigFieldUiModel> {
+    val capacity = currentCapacity ?: defaultCapacity ?: CapacityConfig(
+        shutdown = 0,
+        cooldown = 70,
+        resume = 72,
+        pause = 80,
+        maskAsFull = false,
+        mode = ConfigGroupMode.NORMAL
+    )
+    val voltageMode = capacity.mode == ConfigGroupMode.VOLTAGE
+    val unitRes = if (voltageMode) R.string.config_unit_millivolt else R.string.config_unit_percent
+    return listOf(
+        pickerField(
+            key = "set_shutdown_capacity",
+            labelRes = R.string.shutdown_below,
+            selectedValue = capacity.shutdown,
+            options = capacityShutdownOptions(capacity),
+            unitRes = unitRes,
+            helperTextRes = R.string.hint_capacity_shutdown
+        ),
+        pickerField(
+            key = "set_cooldown_capacity",
+            labelRes = R.string.cooldown_above,
+            selectedValue = capacity.cooldown,
+            options = capacityCooldownOptions(capacity),
+            unitRes = unitRes
+        ),
+        pickerField(
+            key = "set_resume_capacity",
+            labelRes = R.string.charge_below,
+            selectedValue = capacity.resume,
+            options = capacityResumeOptions(capacity),
+            unitRes = unitRes
+        ),
+        pickerField(
+            key = "set_pause_capacity",
+            labelRes = R.string.pause_above,
+            selectedValue = capacity.pause,
+            options = capacityPauseOptions(capacity),
+            unitRes = unitRes
+        )
+    )
+}
+
+private fun GroupedConfigRead.temperatureFields(): List<ConfigFieldUiModel> {
+    val temperature = currentTemperature ?: defaultTemperature ?: TemperatureConfig(
+        cooldown = 42,
+        pause = 45,
+        resume = 43,
+        shutdown = 50,
+        mode = ConfigGroupMode.NORMAL
+    )
+    return listOf(
+        pickerField(
+            key = "set_cooldown_temp",
+            labelRes = R.string.cooldown_above,
+            selectedValue = temperature.cooldown,
+            options = temperatureCooldownOptions(temperature),
+            unitRes = R.string.config_unit_celsius
+        ),
+        pickerField(
+            key = "set_max_temp",
+            labelRes = R.string.pause_above,
+            selectedValue = temperature.pause,
+            options = temperaturePauseOptions(temperature),
+            unitRes = R.string.config_unit_celsius
+        ),
+        pickerField(
+            key = "set_shutdown_temp",
+            labelRes = R.string.shutdown_above,
+            selectedValue = temperature.shutdown,
+            options = temperatureShutdownOptions(temperature),
+            unitRes = R.string.config_unit_celsius
+        )
+    )
+}
+
+private fun pickerField(
+    key: String,
+    labelRes: Int,
+    selectedValue: Int,
+    options: List<Int>,
+    unitRes: Int,
+    helperTextRes: Int? = null
+): ConfigFieldUiModel {
+    val resolvedOptions = ensureOptionSet(options, selectedValue)
+    return ConfigFieldUiModel(
+        key = key,
+        labelRes = labelRes,
+        value = selectedValue.toString(),
+        kind = ConfigFieldKind.PICKER,
+        pickerState = ConfigPickerUiModel(
+            options = resolvedOptions,
+            selectedValue = selectedValue,
+            minValue = resolvedOptions.first(),
+            maxValue = resolvedOptions.last()
+        ),
+        helperTextRes = helperTextRes,
+        unitRes = unitRes,
+        minValue = resolvedOptions.first(),
+        maxValue = resolvedOptions.last()
+    )
+}
+
+private fun capacityShutdownOptions(capacity: CapacityConfig): List<Int> = when (capacity.mode) {
+    ConfigGroupMode.VOLTAGE -> voltageOptions()
+    else -> boundedOptions(
+        minValue = CAPACITY_PERCENT_MIN,
+        maxValue = minOf(capacity.cooldown, capacity.resume) - 1
+    )
+}
+
+private fun capacityCooldownOptions(capacity: CapacityConfig): List<Int> = when (capacity.mode) {
+    ConfigGroupMode.VOLTAGE -> voltageOptions()
+    else -> boundedOptions(
+        minValue = capacity.shutdown + 1,
+        maxValue = capacity.pause - 1
+    )
+}
+
+private fun capacityResumeOptions(capacity: CapacityConfig): List<Int> = when (capacity.mode) {
+    ConfigGroupMode.VOLTAGE -> voltageOptions()
+    else -> boundedOptions(
+        minValue = capacity.shutdown + 1,
+        maxValue = capacity.pause - 1
+    )
+}
+
+private fun capacityPauseOptions(capacity: CapacityConfig): List<Int> = when (capacity.mode) {
+    ConfigGroupMode.VOLTAGE -> voltageOptions()
+    else -> boundedOptions(
+        minValue = maxOf(capacity.cooldown, capacity.resume) + 1,
+        maxValue = CAPACITY_PERCENT_MAX
+    )
+}
+
+private fun temperatureCooldownOptions(temperature: TemperatureConfig): List<Int> = boundedOptions(
+    minValue = TEMP_MIN,
+    maxValue = minOf(temperature.pause, temperature.resume) - 1
+)
+
+private fun temperaturePauseOptions(temperature: TemperatureConfig): List<Int> = boundedOptions(
+    minValue = maxOf(temperature.cooldown + 1, temperature.resume + 1),
+    maxValue = temperature.shutdown - 1
+)
+
+private fun temperatureShutdownOptions(temperature: TemperatureConfig): List<Int> = boundedOptions(
+    minValue = temperature.pause + 1,
+    maxValue = TEMP_MAX
+)
+
+private fun boundedOptions(minValue: Int, maxValue: Int): List<Int> {
+    if (maxValue < minValue) {
+        return listOf(minValue)
+    }
+    return (minValue..maxValue).toList()
+}
+
+private fun voltageOptions(): List<Int> = listOf(0) + (VOLT_MIN..VOLT_MAX).toList()
+
+private fun ensureOptionSet(options: List<Int>, selectedValue: Int): List<Int> {
+    if (options.isEmpty()) {
+        return listOf(selectedValue)
+    }
+    if (selectedValue in options) {
+        return options
+    }
+    return (options + selectedValue).distinct().sorted()
+}

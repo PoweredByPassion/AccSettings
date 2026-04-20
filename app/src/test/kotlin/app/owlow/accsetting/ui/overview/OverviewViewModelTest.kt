@@ -3,12 +3,18 @@ package app.owlow.accsetting.ui.overview
 import app.owlow.accsetting.MainDispatcherRule
 import app.owlow.accsetting.acc.AccInstallState
 import app.owlow.accsetting.acc.AccStatus
+import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [33])
 class OverviewViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
@@ -16,6 +22,7 @@ class OverviewViewModelTest {
     @Test
     fun refresh_mapsAccStatusIntoOverviewSections() = runTest {
         val viewModel = OverviewViewModel(
+            context = ApplicationProvider.getApplicationContext(),
             overviewRepository = FakeOverviewRepository(
                 status = AccStatus(
                     installState = AccInstallState.UP_TO_DATE,
@@ -37,6 +44,7 @@ class OverviewViewModelTest {
     @Test
     fun refresh_exposesDistinctOverviewActions() = runTest {
         val viewModel = OverviewViewModel(
+            context = ApplicationProvider.getApplicationContext(),
             overviewRepository = FakeOverviewRepository(
                 status = AccStatus(
                     installState = AccInstallState.UP_TO_DATE,

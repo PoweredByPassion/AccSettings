@@ -16,7 +16,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import app.owlow.accsetting.R
 
 @Composable
 fun OverviewScreen(
@@ -45,7 +47,7 @@ fun OverviewScreen(
         item {
             Column(modifier = Modifier.padding(top = 24.dp)) {
                 Text(
-                    text = "Overview",
+                    text = stringResource(R.string.overview),
                     style = MaterialTheme.typography.headlineMedium
                 )
                 Text(

@@ -1,6 +1,10 @@
 package app.owlow.accsetting.ui.config
 
 import app.owlow.accsetting.R
+import app.owlow.accsetting.acc.CapacityConfig
+import app.owlow.accsetting.acc.ConfigGroupMode
+import app.owlow.accsetting.acc.GroupedConfigRead
+import app.owlow.accsetting.acc.TemperatureConfig
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -31,25 +35,67 @@ class ConfigMetadataTest {
         val fields = grouped.toConfigGroups().flatMap { it.fields }.associateBy { it.key }
 
         assertEquals(R.string.config_unit_percent, fields.getValue("set_pause_capacity").unitRes)
-        assertEquals(0, fields.getValue("set_pause_capacity").minValue)
-        assertEquals(100, fields.getValue("set_pause_capacity").maxValue)
+        assertEquals(ConfigFieldKind.PICKER, fields.getValue("set_pause_capacity").kind)
+        assertEquals(80, fields.getValue("set_pause_capacity").pickerState!!.selectedValue)
+        assertEquals(73, fields.getValue("set_pause_capacity").pickerState!!.minValue)
+        assertEquals(100, fields.getValue("set_pause_capacity").pickerState!!.maxValue)
         assertEquals(R.string.config_unit_celsius, fields.getValue("set_max_temp").unitRes)
-        assertEquals(0, fields.getValue("set_max_temp").minValue)
-        assertEquals(100, fields.getValue("set_max_temp").maxValue)
+        assertEquals(ConfigFieldKind.PICKER, fields.getValue("set_max_temp").kind)
+        assertEquals(44, fields.getValue("set_max_temp").pickerState!!.minValue)
+        assertEquals(49, fields.getValue("set_max_temp").pickerState!!.maxValue)
         assertEquals(R.string.config_unit_millivolt, fields.getValue("max_charging_voltage").unitRes)
         assertTrue(fields.getValue("charging_switch").helperTextRes != null)
     }
 
+    @Test
+    fun voltageCapacityFields_preserveVoltageModeRanges() {
+        val grouped = groupedConfig(
+            capacity = CapacityConfig(0, 3600, 3800, 4000, false, ConfigGroupMode.VOLTAGE)
+        )
+
+        val fields = grouped.toConfigGroups().flatMap { it.fields }.associateBy { it.key }
+
+        assertEquals(ConfigFieldKind.PICKER, fields.getValue("set_cooldown_capacity").kind)
+        assertEquals(3600, fields.getValue("set_cooldown_capacity").pickerState!!.selectedValue)
+        assertEquals(0, fields.getValue("set_shutdown_capacity").pickerState!!.minValue)
+        assertEquals(4200, fields.getValue("set_pause_capacity").pickerState!!.maxValue)
+    }
+
+    @Test
+    fun advancedFields_fallbackToDefaultTemplateValuesWhenCurrentMissing() {
+        val grouped = GroupedConfigRead(
+            current = Properties().apply {
+                setProperty("capacity", "(5 70 72 80 false)")
+                setProperty("temperature", "(42 45 43 50)")
+            },
+            defaults = Properties().apply {
+                setProperty("charging_switch", "battery/input_suspend")
+                setProperty("max_charging_voltage", "4400")
+                setProperty("current_workaround", "true")
+            },
+            currentCapacity = CapacityConfig.parse("(5 70 72 80 false)"),
+            currentTemperature = TemperatureConfig.parse("(42 45 43 50)")
+        )
+
+        val fields = grouped.toConfigGroups().flatMap { it.fields }.associateBy { it.key }
+
+        assertEquals("battery/input_suspend", fields.getValue("charging_switch").value)
+        assertEquals("4400", fields.getValue("max_charging_voltage").value)
+        assertEquals("true", fields.getValue("current_workaround").value)
+    }
+
     private fun groupedConfig(
-        properties: Map<String, String> = emptyMap()
-    ) = app.owlow.accsetting.acc.GroupedConfigRead(
+        properties: Map<String, String> = emptyMap(),
+        capacity: CapacityConfig = CapacityConfig.parse("(5 70 72 80 false)"),
+        temperature: TemperatureConfig = TemperatureConfig.parse("(42 45 43 50)")
+    ) = GroupedConfigRead(
         current = Properties().apply {
-            setProperty("capacity", "(5 70 72 80 false)")
-            setProperty("temperature", "(42 45 43 50)")
+            setProperty("capacity", capacity.serialize())
+            setProperty("temperature", temperature.serialize())
             properties.forEach { (key, value) -> setProperty(key, value) }
         },
         defaults = Properties(),
-        currentCapacity = app.owlow.accsetting.acc.CapacityConfig.parse("(5 70 72 80 false)"),
-        currentTemperature = app.owlow.accsetting.acc.TemperatureConfig.parse("(42 45 43 50)")
+        currentCapacity = capacity,
+        currentTemperature = temperature
     )
 }

@@ -3,6 +3,7 @@ package app.owlow.accsetting.ui.overview
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.test.core.app.ApplicationProvider
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -38,5 +39,23 @@ class OverviewScreenTest {
         composeRule.onNodeWithText("Open configuration").performClick()
 
         assertEquals(listOf("refresh", "configuration"), tappedActions)
+    }
+
+    @Test
+    @Config(sdk = [33], qualifiers = "zh-rCN")
+    fun chineseLocale_usesLocalizedOverviewTitle() {
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+
+        composeRule.setContent {
+            OverviewScreen(
+                uiState = OverviewUiState(
+                    isLoading = false,
+                    statusHeadline = "status"
+                ),
+                onAction = {}
+            )
+        }
+
+        composeRule.onNodeWithText(context.getString(app.owlow.accsetting.R.string.overview)).assertExists()
     }
 }

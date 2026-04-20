@@ -37,6 +37,7 @@ interface ToolsRepository {
 }
 
 class ToolsViewModel(
+    private val context: Context,
     private val toolsRepository: ToolsRepository
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ToolsUiState())
@@ -50,13 +51,14 @@ class ToolsViewModel(
         _uiState.value = _uiState.value.copy(isBusy = true)
         _uiState.value = runCatching {
             toolsRepository.loadSnapshot().toUiState(
+                context = context,
                 previousMessage = _uiState.value.lastMessage,
                 pendingConfirmation = _uiState.value.pendingConfirmation
             )
         }.getOrElse { error ->
             _uiState.value.copy(
                 isBusy = false,
-                lastMessage = error.localizedMessage ?: "Unable to refresh tools state"
+                lastMessage = error.localizedMessage ?: context.getString(R.string.tools_refresh_failed)
             )
         }
     }
@@ -99,17 +101,17 @@ class ToolsViewModel(
         }.getOrElse { error ->
             _uiState.value = _uiState.value.copy(
                 isBusy = false,
-                lastMessage = error.localizedMessage ?: "Action failed"
+                lastMessage = error.localizedMessage ?: context.getString(R.string.tools_action_failed)
             )
             return@launch
         }
 
         _uiState.value = runCatching {
-            toolsRepository.loadSnapshot().toUiState(previousMessage = actionMessage)
+            toolsRepository.loadSnapshot().toUiState(context = context, previousMessage = actionMessage)
         }.getOrElse { error ->
             _uiState.value.copy(
                 isBusy = false,
-                lastMessage = error.localizedMessage ?: actionMessage ?: "Unable to refresh tools state"
+                lastMessage = error.localizedMessage ?: actionMessage ?: context.getString(R.string.tools_refresh_failed)
             )
         }
     }
@@ -125,6 +127,7 @@ class ToolsViewModel(
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
                 return ToolsViewModel(
+                    context = context.applicationContext,
                     toolsRepository = LiveToolsRepository(context.applicationContext)
                 ) as T
             }
@@ -144,7 +147,7 @@ private class LiveToolsRepository(
             appVersion = context.packageManager
                 .getPackageInfo(context.packageName, 0)
                 .versionName
-                ?: "unknown",
+                ?: context.getString(R.string.tools_unknown),
             bundledAccVersion = context.getString(R.string.acc_version_name),
             runtimeLog = handler.readRuntimeLogs(),
             packageName = context.packageName
@@ -153,50 +156,55 @@ private class LiveToolsRepository(
 
     override suspend fun installOrUpdate(): String = withContext(Dispatchers.IO) {
         when (AccStateManager.ensureInstalled().decision) {
-            LifecycleDecision.INSTALL -> "ACC installed successfully"
-            LifecycleDecision.UPGRADE -> "ACC updated successfully"
-            LifecycleDecision.NO_OP -> "ACC is already up to date"
-            else -> "ACC install state refreshed"
+            LifecycleDecision.INSTALL -> context.getString(R.string.tools_install_success)
+            LifecycleDecision.UPGRADE -> context.getString(R.string.tools_update_success)
+            LifecycleDecision.NO_OP -> context.getString(R.string.tools_already_up_to_date)
+            else -> context.getString(R.string.tools_install_refreshed)
         }
     }
 
     override suspend fun repair(): String = withContext(Dispatchers.IO) {
         AccStateManager.repair()
-        "ACC repaired successfully"
+        context.getString(R.string.tools_repair_success)
     }
 
     override suspend fun restartService(): String = withContext(Dispatchers.IO) {
         val success = AccStateManager.setDaemonRunning(true)
         if (success) {
-            "Service restarted successfully"
+            context.getString(R.string.tools_service_restart_success)
         } else {
-            "Service restart did not complete"
+            context.getString(R.string.tools_service_restart_incomplete)
         }
     }
 
     override suspend fun forceRedetect(): String = withContext(Dispatchers.IO) {
         AccStateManager.reinitialize()
-        "ACC state re-detected"
+        context.getString(R.string.tools_redetect_success)
     }
 }
 
 private fun ToolsSnapshot.toUiState(
+    context: Context,
     previousMessage: String? = null,
     pendingConfirmation: ToolAction? = null
 ): ToolsUiState {
     val installSummary = when (status?.installState) {
-        AccInstallState.NOT_INSTALLED -> "Bundled ACC is available but not installed."
-        AccInstallState.BROKEN_INSTALL -> "ACC is present but needs repair."
-        AccInstallState.UPDATE_AVAILABLE -> "An installed ACC version can be updated from the bundled package."
-        AccInstallState.UP_TO_DATE -> "Installed ACC matches the bundled package."
-        null -> "ACC install state is unavailable."
+        AccInstallState.NOT_INSTALLED -> context.getString(R.string.tools_install_summary_not_installed)
+        AccInstallState.BROKEN_INSTALL -> context.getString(R.string.tools_install_summary_broken)
+        AccInstallState.UPDATE_AVAILABLE -> context.getString(R.string.tools_install_summary_update)
+        AccInstallState.UP_TO_DATE -> context.getString(R.string.tools_install_summary_ok)
+        null -> context.getString(R.string.tools_install_summary_unknown)
     }
     val installActions = buildList {
         add(
             ToolActionState(
                 action = ToolAction.INSTALL_OR_UPDATE,
-                label = if (status?.installState == AccInstallState.UPDATE_AVAILABLE) "Update ACC" else "Install ACC",
-                description = "Use the bundled ACC package for install or upgrade.",
+                label = if (status?.installState == AccInstallState.UPDATE_AVAILABLE) {
+                    context.getString(R.string.tools_action_update_acc)
+                } else {
+                    context.getString(R.string.tools_action_install_acc)
+                },
+                description = context.getString(R.string.tools_action_install_desc),
                 enabled = capability?.staticAvailability?.canInstallBundledAcc ?: true,
                 requiresConfirmation = true
             )
@@ -207,8 +215,8 @@ private fun ToolsSnapshot.toUiState(
             add(
                 ToolActionState(
                     action = ToolAction.REPAIR,
-                    label = "Repair install",
-                    description = "Recover a broken ACC setup and refresh runtime wiring.",
+                    label = context.getString(R.string.tools_action_repair),
+                    description = context.getString(R.string.tools_action_repair_desc),
                     enabled = true,
                     requiresConfirmation = true
                 )
@@ -219,8 +227,8 @@ private fun ToolsSnapshot.toUiState(
     val serviceActions = listOf(
         ToolActionState(
             action = ToolAction.RESTART_SERVICE,
-            label = if (serviceRunning) "Restart service" else "Start service",
-            description = "Bring the ACC daemon back online.",
+            label = if (serviceRunning) context.getString(R.string.tools_action_restart_service) else context.getString(R.string.tools_action_start_service),
+            description = context.getString(R.string.tools_action_service_desc),
             enabled = status?.canManageDaemon == true,
             requiresConfirmation = serviceRunning
         )
@@ -228,58 +236,58 @@ private fun ToolsSnapshot.toUiState(
     val diagnosticsActions = listOf(
         ToolActionState(
             action = ToolAction.FORCE_REDETECT,
-            label = "Force re-detect",
-            description = "Re-scan runtime state and refresh capability details."
+            label = context.getString(R.string.tools_action_redetect),
+            description = context.getString(R.string.tools_action_redetect_desc)
         ),
         ToolActionState(
             action = ToolAction.REFRESH,
-            label = "Refresh details",
-            description = "Reload the latest maintenance and diagnostics facts."
+            label = context.getString(R.string.tools_action_refresh),
+            description = context.getString(R.string.tools_action_refresh_desc)
         )
     )
 
     return ToolsUiState(
         installSection = ToolSection(
-            title = "Install and Repair",
+            title = context.getString(R.string.tools_section_install_title),
             summary = installSummary,
             details = listOf(
-                ToolDetail("Installed ACC", status?.installedVersionName ?: "Not installed"),
-                ToolDetail("Bundled ACC", bundledAccVersion)
+                ToolDetail(context.getString(R.string.tools_detail_installed_acc), status?.installedVersionName ?: context.getString(R.string.tools_value_not_installed)),
+                ToolDetail(context.getString(R.string.tools_detail_bundled_acc), bundledAccVersion)
             ),
             actions = installActions
         ),
         serviceSection = ToolSection(
-            title = "Service Control",
-            summary = if (serviceRunning) "The ACC daemon is currently running." else "The ACC daemon is currently stopped.",
+            title = context.getString(R.string.tools_section_service_title),
+            summary = if (serviceRunning) context.getString(R.string.tools_section_service_running) else context.getString(R.string.tools_section_service_stopped),
             details = listOf(
-                ToolDetail("Service status", if (serviceRunning) "Running" else "Stopped"),
-                ToolDetail("Manual control", if (status?.canManageDaemon == true) "Available" else "Unavailable")
+                ToolDetail(context.getString(R.string.tools_detail_service_status), if (serviceRunning) context.getString(R.string.tools_value_running) else context.getString(R.string.tools_value_stopped)),
+                ToolDetail(context.getString(R.string.tools_detail_manual_control), if (status?.canManageDaemon == true) context.getString(R.string.tools_value_available) else context.getString(R.string.tools_value_unavailable))
             ),
             actions = serviceActions
         ),
         diagnosticsSection = ToolSection(
-            title = "Diagnostics",
-            summary = "Inspect current ACC access and refresh device state when needed.",
+            title = context.getString(R.string.tools_section_diagnostics_title),
+            summary = context.getString(R.string.tools_section_diagnostics_summary),
             details = listOf(
-                ToolDetail("Root access", if (capability?.staticAvailability?.hasRoot == true) "Available" else "Unavailable"),
-                ToolDetail("Detected entrypoint", capability?.staticAvailability?.selectedEntrypoint ?: "Not detected"),
-                ToolDetail("Runtime info", if (capability?.runtimeCapability?.canReadInfo == true) "Readable" else "Unavailable")
+                ToolDetail(context.getString(R.string.tools_detail_root_access), if (capability?.staticAvailability?.hasRoot == true) context.getString(R.string.tools_value_available) else context.getString(R.string.tools_value_unavailable)),
+                ToolDetail(context.getString(R.string.tools_detail_entrypoint), capability?.staticAvailability?.selectedEntrypoint ?: context.getString(R.string.tools_value_not_detected)),
+                ToolDetail(context.getString(R.string.tools_detail_runtime_info), if (capability?.runtimeCapability?.canReadInfo == true) context.getString(R.string.tools_value_readable) else context.getString(R.string.tools_value_unavailable))
             ),
             actions = diagnosticsActions
         ),
         logsSection = ToolLogSection(
-            title = "Runtime Logs",
-            summary = "Recent ACC log output for troubleshooting.",
+            title = context.getString(R.string.tools_section_logs_title),
+            summary = context.getString(R.string.tools_section_logs_summary),
             content = runtimeLog
         ),
         appInfoSection = ToolSection(
-            title = "App and Version",
-            summary = "Version details for the app and bundled ACC package.",
+            title = context.getString(R.string.tools_section_app_title),
+            summary = context.getString(R.string.tools_section_app_summary),
             details = listOf(
-                ToolDetail("App version", appVersion),
-                ToolDetail("Bundled ACC", bundledAccVersion),
-                ToolDetail("Installed ACC", status?.installedVersionName ?: "Not installed"),
-                ToolDetail("Package", packageName)
+                ToolDetail(context.getString(R.string.tools_detail_app_version), appVersion),
+                ToolDetail(context.getString(R.string.tools_detail_bundled_acc), bundledAccVersion),
+                ToolDetail(context.getString(R.string.tools_detail_installed_acc), status?.installedVersionName ?: context.getString(R.string.tools_value_not_installed)),
+                ToolDetail(context.getString(R.string.tools_detail_package), packageName)
             )
         ),
         isBusy = false,
