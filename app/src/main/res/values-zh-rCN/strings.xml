@@ -6,9 +6,14 @@
     <string name="command_failed">命令执行失败</string>
 
     <string name="daemon">守护进程</string>
+    <string name="overview">概览</string>
     <string name="configuration">配置</string>
+    <string name="configuration_title">配置</string>
+    <string name="configuration_intro">在这里编辑 ACC 草稿配置，只有点“应用更改”后才会真正写入设备。</string>
+    <string name="tools">工具</string>
+    <string name="about">关于</string>
 
-    <string name="acc_settings">ACC 设置</string>
+    <string name="acc_settings">Acc Setting</string>
     <string name="acc">ACC</string>
 
     <string name="battery">电池</string>
@@ -76,4 +81,18 @@
     <string name="acc_need_root">需要root权限</string>
     <string name="hide_non_critical">隐藏非关键内容</string>
     <string name="show_non_critical">显示非关键内容</string>
+    <string name="draft_changes_ready">草稿更改已准备好</string>
+    <string name="discard">丢弃</string>
+    <string name="apply_changes">应用更改</string>
+    <string name="leave_with_draft_title">离开时保留草稿更改？</string>
+    <string name="leave_with_draft_message">你还有未应用的更改。可以保留草稿、丢弃草稿，或者继续停留在当前页面。</string>
+    <string name="keep_draft_and_leave">保留草稿</string>
+    <string name="stay_here">留在这里</string>
+    <string name="about_app_section_title">应用</string>
+    <string name="about_project_section_title">项目</string>
+    <string name="about_app_name">名称：%1$s</string>
+    <string name="about_app_version">版本：%1$s</string>
+    <string name="about_app_package">包名：%1$s</string>
+    <string name="about_project_repo">GitHub：%1$s</string>
+    <string name="about_project_description">用于管理 Advanced Charging Controller 的原生 Android 界面。</string>
 </resources>

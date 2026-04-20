@@ -5,12 +5,12 @@
 
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <application
-        android:name=".AccSettingsApplication"
+        android:name=".AccSettingApplication"
         android:enableOnBackInvokedCallback="true"
         android:icon="@drawable/ic_launcher"
         android:label="@string/acc_settings"
         android:supportsRtl="true"
-        android:theme="@style/Theme.AccSettings"
+        android:theme="@style/Theme.AccSetting"
         tools:ignore="AllowBackup">
         <activity
             android:name=".SettingsActivity"

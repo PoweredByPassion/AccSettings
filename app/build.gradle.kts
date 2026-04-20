@@ -6,14 +6,14 @@ plugins {
 
 android {
     compileSdk = 36
-    namespace = "crazyboyfeng.accSettings"
+    namespace = "app.owlow.accsetting"
     defaultConfig {
-        applicationId = "crazyboyfeng.accSettings"
+        applicationId = "app.owlow.accsetting"
         minSdk = 21
         targetSdk = 36
         versionCode = 202604170
         versionName = "2026.4.17"
-        testInstrumentationRunner = "crazyboyfeng.accSettings.test.AccSettingsTestRunner"
+        testInstrumentationRunner = "app.owlow.accsetting.test.AccSettingTestRunner"
         resValue("string", "version_name", versionName!!)
     }
     buildFeatures {
@@ -56,9 +56,6 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.9.4")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.4")
     implementation("com.github.topjohnwu.libsu:core:6.0.0")
-    val axpeVersion = "0.9.0"
-    implementation("com.github.CrazyBoyFeng.AndroidXPreferenceExtensions:edittext:$axpeVersion")
-    implementation("com.github.CrazyBoyFeng.AndroidXPreferenceExtensions:numberpicker:$axpeVersion")
     testImplementation("junit:junit:4.13.2")
     testImplementation("androidx.compose.ui:ui-test-junit4")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
