@@ -11,19 +11,12 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import com.google.android.material.appbar.MaterialToolbar
-import com.topjohnwu.superuser.Shell
 import crazyboyfeng.accSettings.fragment.SettingsFragment
 
 class SettingsActivity : AppCompatActivity(),
     PreferenceFragmentCompat.OnPreferenceStartFragmentCallback {
     companion object {
         private const val TAG = "SettingsActivity"
-        init {
-            // Set static configurations for libsu
-            Shell.setDefaultBuilder(Shell.Builder.create()
-                .setFlags(Shell.FLAG_REDIRECT_STDERR)
-                .setTimeout(120))
-        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

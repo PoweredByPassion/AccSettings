@@ -15,22 +15,19 @@ import androidx.preference.EditTextPreferencePlus
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.SwitchPreference
-import com.topjohnwu.superuser.Shell
 import crazyboyfeng.accSettings.R
+import crazyboyfeng.accSettings.ServeCoordinator
 import crazyboyfeng.accSettings.acc.AccHandler
-import crazyboyfeng.accSettings.acc.AccInstallState
 import crazyboyfeng.accSettings.acc.AccSettingsSummary
 import crazyboyfeng.accSettings.acc.AccStatus
 import crazyboyfeng.accSettings.acc.AccStateManager
 import crazyboyfeng.accSettings.acc.Command
 import crazyboyfeng.accSettings.data.AccDataStore
 import crazyboyfeng.android.preference.PreferenceFragmentCompat
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class SettingsFragment : PreferenceFragmentCompat() {
     private lateinit var accPreferenceCategory: PreferenceCategory
@@ -39,6 +36,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
     private var infoJob: Job? = null
     private var refreshJob: Job? = null
     private var loadingDialog: AlertDialog? = null
+    private val serveCoordinator = ServeCoordinator()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -145,12 +143,11 @@ class SettingsFragment : PreferenceFragmentCompat() {
                     // 使用缓存状态更新 UI
                     updateAccStatusUI(status)
 
-                    // 如果 ACC 已安装，启动服务
-                    if (status.installState != AccInstallState.NOT_INSTALLED) {
-                        try {
-                            AccHandler().serve()
-                        } catch (e: Exception) {
-                            Log.w(TAG, "Failed to prepare ACC service", e)
+                        if (serveCoordinator.shouldServe(status)) {
+                            try {
+                                AccHandler().serve()
+                            } catch (e: Exception) {
+                                Log.w(TAG, "Failed to prepare ACC service", e)
                         }
                     }
                 }

@@ -12,6 +12,7 @@ class AccSettingsApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         Log.d(TAG, "Application starting")
+        AppShell.configureDefaultShell()
 
         // 启动 ACC 状态监控
         AccStateManager.startMonitoring(applicationContext)

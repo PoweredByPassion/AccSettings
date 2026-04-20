@@ -10,9 +10,9 @@ import crazyboyfeng.accSettings.R
 import crazyboyfeng.accSettings.acc.Command
 import crazyboyfeng.accSettings.data.ConfigDataStore
 import crazyboyfeng.android.preference.PreferenceFragmentCompat
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Suppress("unused")
 class ConfigFragment : PreferenceFragmentCompat() {
@@ -33,11 +33,24 @@ class ConfigFragment : PreferenceFragmentCompat() {
     private lateinit var prioritizeBattIdleMode: SwitchPreference
     private lateinit var chargingSwitch: EditTextPreference
     private lateinit var currentWorkaround: SwitchPreference
-    override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
-        configDataStore = ConfigDataStore(requireContext())
-        preferenceManager.preferenceDataStore = configDataStore
 
-        setPreferencesFromResource(R.xml.config_preferences, rootKey)
+    override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
+        preferenceScreen = preferenceManager.createPreferenceScreen(requireContext())
+        lifecycleScope.launch {
+            val groupedConfig = withContext(Dispatchers.IO) {
+                ConfigDataStore.readGroupedConfigDirect()
+            }
+            if (!isAdded) {
+                return@launch
+            }
+            configDataStore = ConfigDataStore(requireContext(), initialGroupedConfig = groupedConfig)
+            preferenceManager.preferenceDataStore = configDataStore
+            setPreferencesFromResource(R.xml.config_preferences, rootKey)
+            bindPreferences()
+        }
+    }
+
+    private fun bindPreferences() {
         shutdownCapacity = findPreference(getString(R.string.set_shutdown_capacity)) ?: return
         cooldownCapacity = findPreference(getString(R.string.set_cooldown_capacity)) ?: return
         resumeCapacity = findPreference(getString(R.string.set_resume_capacity)) ?: return
@@ -67,9 +80,6 @@ class ConfigFragment : PreferenceFragmentCompat() {
                 shutdownTemp.key -> onShutdownTempSet()
                 cooldownCharge.key -> onCooldownChargeSet()
                 cooldownPause.key -> onCooldownPauseSet()
-                //cooldownCustom.key -> onCooldownCustomSet()
-                chargingSwitch.key -> onChargingSwitchChanged()
-                currentWorkaround.key -> onCurrentWorkaroundChanged()
             }
         }
 
@@ -135,7 +145,6 @@ class ConfigFragment : PreferenceFragmentCompat() {
         onChargingSwitchSet()
 
         loadDefault()
-
     }
 
     fun applyDraftChanges() = lifecycleScope.launch {
@@ -260,15 +269,6 @@ class ConfigFragment : PreferenceFragmentCompat() {
         activity?.runOnUiThread {
             prioritizeBattIdleMode.isEnabled = chargingSwitch.text.isNullOrEmpty()
         }
-    }
-
-    private fun onChargingSwitchChanged() {
-        onChargingSwitchSet()
-        CoroutineScope(Dispatchers.Default).launch { Command.restartDaemon() }
-    }
-
-    private fun onCurrentWorkaroundChanged() {
-        CoroutineScope(Dispatchers.Default).launch { Command.reinitialize() }
     }
 
     private fun loadDefault() = lifecycleScope.launch {

@@ -31,9 +31,10 @@ open class ConfigDataStore internal constructor(
     private val currentConfigLoader: suspend () -> GroupedConfigRead,
     private val patchApplier: suspend (ApplyGroupedPatchRequest) -> ApplyGroupedPatchResult,
     private val daemonRestartAction: suspend () -> Unit,
-    private val reinitializeAction: suspend () -> Unit
+    private val reinitializeAction: suspend () -> Unit,
+    initialGroupedConfig: GroupedConfigRead? = null
 ) : PreferenceDataStore() {
-    constructor(context: Context) : this(
+    constructor(context: Context, initialGroupedConfig: GroupedConfigRead? = null) : this(
         supportInVoltageKey = context.getString(R.string.support_in_voltage),
         currentConfigLoader = { readGroupedConfigDirect() },
         patchApplier = { request: ApplyGroupedPatchRequest -> buildBridge().applyGroupedPatch(request) },
@@ -44,13 +45,22 @@ open class ConfigDataStore internal constructor(
         reinitializeAction = {
             Command.reinitialize()
             Unit
-        }
+        },
+        initialGroupedConfig = initialGroupedConfig
     )
 
     private var supportInVoltage = false
     private var draftState: AccDraftState? = null
     private val configCache = mutableMapOf<String, String>()
     private val protectedGroupRebuilds = mutableSetOf<PatchGroup>()
+    private val pendingSideEffects = linkedSetOf<PendingSideEffect>()
+
+    init {
+        initialGroupedConfig?.let {
+            draftState = initializeDraftState(it)
+            rebuildCache()
+        }
+    }
 
     override fun putBoolean(key: String, value: Boolean) {
         logVerbose("putBoolean: $key=$value")
@@ -107,8 +117,8 @@ open class ConfigDataStore internal constructor(
         updateProperty(key, value.orEmpty())
         onConfigChangeListener?.onConfigChanged(key)
         when (key) {
-            chargingSwitchKey() -> CoroutineScope(Dispatchers.Default).launch { daemonRestartAction() }
-            currentWorkaroundKey() -> CoroutineScope(Dispatchers.Default).launch { reinitializeAction() }
+            chargingSwitchKey() -> pendingSideEffects += PendingSideEffect.RESTART_DAEMON
+            currentWorkaroundKey() -> pendingSideEffects += PendingSideEffect.REINITIALIZE
         }
     }
 
@@ -145,6 +155,9 @@ open class ConfigDataStore internal constructor(
             is ApplyGroupedPatchResult.ValidationFailed,
             ApplyGroupedPatchResult.StaleBaseConfig -> state.copy(status = DraftStatus.APPLY_FAILED)
         }
+        if (result is ApplyGroupedPatchResult.Success || result is ApplyGroupedPatchResult.Partial) {
+            triggerPendingSideEffects()
+        }
         protectedGroupRebuilds.clear()
         rebuildCache()
         return result
@@ -155,6 +168,7 @@ open class ConfigDataStore internal constructor(
         val state = requireNotNull(draftState)
         draftState = initializeDraftState(state.current)
         protectedGroupRebuilds.clear()
+        pendingSideEffects.clear()
         rebuildCache()
     }
 
@@ -282,6 +296,22 @@ open class ConfigDataStore internal constructor(
         rebuildCache()
     }
 
+    private fun triggerPendingSideEffects() {
+        if (pendingSideEffects.isEmpty()) {
+            return
+        }
+        val effects = pendingSideEffects.toList()
+        pendingSideEffects.clear()
+        CoroutineScope(Dispatchers.Default).launch {
+            effects.forEach { effect ->
+                when (effect) {
+                    PendingSideEffect.RESTART_DAEMON -> daemonRestartAction()
+                    PendingSideEffect.REINITIALIZE -> reinitializeAction()
+                }
+            }
+        }
+    }
+
     private fun diffGroups(current: GroupedConfigRead, draft: GroupedConfigRead): List<PatchGroup> {
         val groups = linkedSetOf<PatchGroup>()
         if (current.currentCapacity != draft.currentCapacity) {
@@ -315,7 +345,7 @@ open class ConfigDataStore internal constructor(
     private fun chargingSwitchKey(): String = "set_charging_switch"
     private fun currentWorkaroundKey(): String = "set_current_workaround"
 
-    private companion object {
+    companion object {
         const val TAG = "ConfigDataStore"
 
         suspend fun readGroupedConfigDirect(): GroupedConfigRead {
@@ -404,7 +434,11 @@ open class ConfigDataStore internal constructor(
     private fun logVerbose(message: String) {
         runCatching { Log.v(TAG, message) }
     }
-}
+
+    private enum class PendingSideEffect {
+        RESTART_DAEMON,
+        REINITIALIZE
+    }
 }
 
 private fun GroupedConfigRead.withProperty(key: String, value: String): GroupedConfigRead {

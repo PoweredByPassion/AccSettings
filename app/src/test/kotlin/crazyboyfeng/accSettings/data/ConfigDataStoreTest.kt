@@ -7,6 +7,7 @@ import crazyboyfeng.accSettings.acc.ConfigGroupMode
 import crazyboyfeng.accSettings.acc.GroupedConfigRead
 import crazyboyfeng.accSettings.acc.PatchGroup
 import crazyboyfeng.accSettings.acc.TemperatureConfig
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -60,6 +61,98 @@ class ConfigDataStoreTest {
         store.requestProtectedGroupRebuild(PatchGroup.CAPACITY)
         store.putInt("set_pause_capacity", 85)
         assertEquals(85, store.getInt("set_pause_capacity", 0))
+    }
+
+    @Test
+    fun preloaded_config_avoids_blocking_loader_during_reads() {
+        var loaderCalls = 0
+        val groupedConfig = groupedConfig()
+        val store = ConfigDataStore(
+            supportInVoltageKey = "support_in_voltage",
+            currentConfigLoader = {
+                loaderCalls++
+                groupedConfig
+            },
+            patchApplier = { request ->
+                ApplyGroupedPatchResult.Success(
+                    appliedGroups = request.groups.toList(),
+                    verifiedConfig = request.target
+                )
+            },
+            daemonRestartAction = {},
+            reinitializeAction = {},
+            initialGroupedConfig = groupedConfig
+        )
+
+        val pauseCapacity = store.getInt("set_pause_capacity", 0)
+
+        assertEquals(80, pauseCapacity)
+        assertEquals(0, loaderCalls)
+    }
+
+    @Test
+    fun string_edits_do_not_trigger_side_effects_before_apply() {
+        val effects = mutableListOf<String>()
+        val store = ConfigDataStore(
+            supportInVoltageKey = "support_in_voltage",
+            currentConfigLoader = { groupedConfig() },
+            patchApplier = { request ->
+                ApplyGroupedPatchResult.Success(
+                    appliedGroups = request.groups.toList(),
+                    verifiedConfig = request.target
+                )
+            },
+            daemonRestartAction = { effects += "restart" },
+            reinitializeAction = { effects += "reinitialize" }
+        )
+
+        store.putString("set_charging_switch", "1234")
+        store.putString("set_current_workaround", "true")
+
+        assertTrue(effects.isEmpty())
+    }
+
+    @Test
+    fun apply_triggers_each_required_side_effect_once() {
+        val effects = mutableListOf<String>()
+        val store = ConfigDataStore(
+            supportInVoltageKey = "support_in_voltage",
+            currentConfigLoader = { groupedConfig() },
+            patchApplier = { request ->
+                ApplyGroupedPatchResult.Success(
+                    appliedGroups = request.groups.toList(),
+                    verifiedConfig = request.target
+                )
+            },
+            daemonRestartAction = { effects += "restart" },
+            reinitializeAction = { effects += "reinitialize" }
+        )
+
+        store.putString("set_charging_switch", "1234")
+        store.putString("set_current_workaround", "true")
+        store.applyDraft()
+
+        assertEquals(listOf("restart", "reinitialize"), effects)
+    }
+
+    @Test
+    fun failed_apply_does_not_trigger_side_effects() {
+        val effects = mutableListOf<String>()
+        val store = ConfigDataStore(
+            supportInVoltageKey = "support_in_voltage",
+            currentConfigLoader = { groupedConfig() },
+            patchApplier = {
+                ApplyGroupedPatchResult.ValidationFailed(listOf("boom"))
+            },
+            daemonRestartAction = { effects += "restart" },
+            reinitializeAction = { effects += "reinitialize" }
+        )
+
+        store.putString("set_charging_switch", "1234")
+        val result = store.applyDraft()
+
+        assertTrue(result is ApplyGroupedPatchResult.ValidationFailed)
+        assertFalse("No side effects expected after failed apply", effects.isNotEmpty())
     }
 
     private fun testStore(groupedConfig: GroupedConfigRead = groupedConfig()): TestConfigDataStore {
