@@ -429,6 +429,7 @@ open class ConfigDataStore internal constructor(
                 .forEach { key ->
                     Command.setConfig(key, properties.getProperty(key))
                 }
+        }
     }
 
     private fun logVerbose(message: String) {
