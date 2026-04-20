@@ -6,11 +6,7 @@
     <string name="command_failed">命令执行失败</string>
 
     <string name="daemon">守护进程</string>
-    <string name="daemon_summary">让 ACC 在后台持续保持监控</string>
     <string name="configuration">配置</string>
-    <string name="configuration_summary">调整充电规则和限制</string>
-
-    <string name="about">关于</string>
 
     <string name="acc_settings">ACC 设置</string>
     <string name="acc">ACC</string>
@@ -77,10 +73,7 @@
     <string name="acc_up_to_date_with_version">ACC 已是最新版本（%s）</string>
     <string name="acc_install_success">ACC 安装成功</string>
     <string name="acc_uninstall_success">ACC 卸载成功</string>
-    <string name="acc_management">ACC 管理</string>
     <string name="acc_need_root">需要root权限</string>
-    <string name="more">更多</string>
-    <string name="more_subtitle">管理 ACC 工具和应用信息</string>
     <string name="hide_non_critical">隐藏非关键内容</string>
     <string name="show_non_critical">显示非关键内容</string>
 </resources>

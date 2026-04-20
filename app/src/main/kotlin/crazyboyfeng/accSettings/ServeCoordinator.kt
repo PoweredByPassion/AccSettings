@@ -14,6 +14,10 @@ class ServeCoordinator {
             return false
         }
 
+        if (status.daemonRunning) {
+            return false
+        }
+
         val currentKey = status.installState to status.installedVersionName
         if (lastServedKey == currentKey) {
             return false

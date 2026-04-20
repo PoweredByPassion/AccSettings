@@ -20,9 +20,6 @@ import crazyboyfeng.accSettings.acc.GroupedConfigRead
 import crazyboyfeng.accSettings.acc.PatchGroup
 import crazyboyfeng.accSettings.acc.TemperatureConfig
 import crazyboyfeng.accSettings.acc.TemperatureMode
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.util.Properties
 
@@ -181,6 +178,18 @@ open class ConfigDataStore internal constructor(
         return requireNotNull(draftState)
     }
 
+    fun currentDraftState(): AccDraftState {
+        ensureDraftLoaded()
+        return requireNotNull(draftState)
+    }
+
+    fun hasPendingChanges(): Boolean {
+        val state = currentDraftState()
+        return state.current != state.draft
+    }
+
+    fun isApplyingBlocked(): Boolean = currentDraftState().status == DraftStatus.ADVANCED_MODIFIED
+
     fun interface OnConfigChangeListener {
         fun onConfigChanged(key: String)
     }
@@ -302,7 +311,7 @@ open class ConfigDataStore internal constructor(
         }
         val effects = pendingSideEffects.toList()
         pendingSideEffects.clear()
-        CoroutineScope(Dispatchers.Default).launch {
+        runBlocking {
             effects.forEach { effect ->
                 when (effect) {
                     PendingSideEffect.RESTART_DAEMON -> daemonRestartAction()

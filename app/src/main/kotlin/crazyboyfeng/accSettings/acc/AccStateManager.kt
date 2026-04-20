@@ -78,6 +78,11 @@ object AccStateManager {
         }
     }
 
+    suspend fun refreshStatus(): AccStatus? {
+        refreshNow()
+        return _accStatus.value
+    }
+
     suspend fun setDaemonRunning(daemonRunning: Boolean): Boolean {
         val result = bridge().setDaemonRunning(daemonRunning)
         refreshNow()
@@ -90,11 +95,25 @@ object AccStateManager {
         return result
     }
 
+    suspend fun repair(): LifecycleActionResult {
+        val result = bridge().repair()
+        refreshNow()
+        return result
+    }
+
     suspend fun uninstall(): LifecycleActionResult {
         val result = bridge().uninstall()
         refreshNow()
         return result
     }
+
+    suspend fun reinitialize(): LifecycleActionResult {
+        val result = bridge().reinitialize()
+        refreshNow()
+        return result
+    }
+
+    suspend fun probeCapabilities(): AccCapability = bridge().probeCapabilities()
 
     fun getCurrentStatus(): AccStatus? = _accStatus.value
 

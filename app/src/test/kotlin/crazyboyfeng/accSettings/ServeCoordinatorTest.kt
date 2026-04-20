@@ -10,7 +10,7 @@ class ServeCoordinatorTest {
     @Test
     fun serves_only_once_for_same_installed_state() {
         val coordinator = ServeCoordinator()
-        val status = installedStatus(AccInstallState.UP_TO_DATE, "2026.4.17")
+        val status = installedStatus(AccInstallState.UP_TO_DATE, "2026.4.17", daemonRunning = false)
 
         assertTrue(coordinator.shouldServe(status))
         assertFalse(coordinator.shouldServe(status))
@@ -20,16 +20,27 @@ class ServeCoordinatorTest {
     fun reset_after_not_installed_allows_future_serve() {
         val coordinator = ServeCoordinator()
 
-        assertTrue(coordinator.shouldServe(installedStatus(AccInstallState.UP_TO_DATE, "2026.4.17")))
-        assertFalse(coordinator.shouldServe(installedStatus(AccInstallState.UP_TO_DATE, "2026.4.17")))
+        assertTrue(coordinator.shouldServe(installedStatus(AccInstallState.UP_TO_DATE, "2026.4.17", daemonRunning = false)))
+        assertFalse(coordinator.shouldServe(installedStatus(AccInstallState.UP_TO_DATE, "2026.4.17", daemonRunning = false)))
         assertFalse(coordinator.shouldServe(installedStatus(AccInstallState.NOT_INSTALLED, null)))
-        assertTrue(coordinator.shouldServe(installedStatus(AccInstallState.UPDATE_AVAILABLE, "2026.4.18")))
+        assertTrue(coordinator.shouldServe(installedStatus(AccInstallState.UPDATE_AVAILABLE, "2026.4.18", daemonRunning = false)))
     }
 
-    private fun installedStatus(state: AccInstallState, version: String?): AccStatus = AccStatus(
+    @Test
+    fun does_not_serve_when_daemon_is_already_running() {
+        val coordinator = ServeCoordinator()
+
+        assertFalse(coordinator.shouldServe(installedStatus(AccInstallState.UP_TO_DATE, "2026.4.17", daemonRunning = true)))
+    }
+
+    private fun installedStatus(
+        state: AccInstallState,
+        version: String?,
+        daemonRunning: Boolean = true
+    ): AccStatus = AccStatus(
         installState = state,
         installedVersionName = version,
-        daemonRunning = true,
+        daemonRunning = daemonRunning,
         canManageDaemon = true,
         showInstallAction = state != AccInstallState.UP_TO_DATE,
         showUninstallAction = state != AccInstallState.NOT_INSTALLED

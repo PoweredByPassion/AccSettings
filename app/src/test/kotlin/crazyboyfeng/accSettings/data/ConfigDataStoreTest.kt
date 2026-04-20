@@ -113,6 +113,28 @@ class ConfigDataStoreTest {
     }
 
     @Test
+    fun pending_changes_follow_draft_difference() {
+        val store = ConfigDataStore(
+            supportInVoltageKey = "support_in_voltage",
+            currentConfigLoader = { groupedConfig() },
+            patchApplier = { request ->
+                ApplyGroupedPatchResult.Success(
+                    appliedGroups = request.groups.toList(),
+                    verifiedConfig = request.target
+                )
+            },
+            daemonRestartAction = {},
+            reinitializeAction = {}
+        )
+
+        assertFalse(store.hasPendingChanges())
+        store.putString("set_charging_switch", "1234")
+        assertTrue(store.hasPendingChanges())
+        store.discardDraft()
+        assertFalse(store.hasPendingChanges())
+    }
+
+    @Test
     fun apply_triggers_each_required_side_effect_once() {
         val effects = mutableListOf<String>()
         val store = ConfigDataStore(
