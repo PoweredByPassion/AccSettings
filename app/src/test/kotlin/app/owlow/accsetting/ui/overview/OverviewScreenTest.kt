@@ -4,6 +4,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
+import app.owlow.accsetting.ui.theme.AccSettingTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -22,17 +23,19 @@ class OverviewScreenTest {
         val tappedActions = mutableListOf<String>()
 
         composeRule.setContent {
-            OverviewScreen(
-                uiState = OverviewUiState(
-                    isLoading = false,
-                    statusHeadline = "ACC is running",
-                    primaryActions = listOf(
-                        OverviewAction("refresh", "Refresh state"),
-                        OverviewAction("configuration", "Open configuration")
-                    )
-                ),
-                onAction = { tappedActions += it }
-            )
+            AccSettingTheme {
+                OverviewScreen(
+                    uiState = OverviewUiState(
+                        isLoading = false,
+                        statusHeadline = "ACC is running",
+                        primaryActions = listOf(
+                            OverviewAction("refresh", "Refresh state"),
+                            OverviewAction("configuration", "Open configuration")
+                        )
+                    ),
+                    onAction = { tappedActions += it }
+                )
+            }
         }
 
         composeRule.onNodeWithText("Refresh state").performClick()
@@ -47,13 +50,15 @@ class OverviewScreenTest {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
 
         composeRule.setContent {
-            OverviewScreen(
-                uiState = OverviewUiState(
-                    isLoading = false,
-                    statusHeadline = "status"
-                ),
-                onAction = {}
-            )
+            AccSettingTheme {
+                OverviewScreen(
+                    uiState = OverviewUiState(
+                        isLoading = false,
+                        statusHeadline = "status"
+                    ),
+                    onAction = {}
+                )
+            }
         }
 
         composeRule.onNodeWithText(context.getString(app.owlow.accsetting.R.string.overview)).assertExists()

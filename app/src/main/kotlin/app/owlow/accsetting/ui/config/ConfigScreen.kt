@@ -1,26 +1,20 @@
 package app.owlow.accsetting.ui.config
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import app.owlow.accsetting.R
 import app.owlow.accsetting.ui.config.components.ConfigGroupSection
 import app.owlow.accsetting.ui.config.components.DraftActionBar
 import app.owlow.accsetting.ui.config.components.LeaveWithDraftDialog
+import app.owlow.accsetting.ui.theme.*
 
 @Composable
 fun ConfigScreen(
@@ -42,6 +36,7 @@ fun ConfigScreen(
     }
 
     Scaffold(
+        containerColor = AccBackground,
         bottomBar = {
             if (state.hasPendingChanges) {
                 DraftActionBar(
@@ -55,12 +50,12 @@ fun ConfigScreen(
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
-                start = 20.dp,
-                top = innerPadding.calculateTopPadding() + 20.dp,
-                end = 20.dp,
-                bottom = innerPadding.calculateBottomPadding() + 20.dp
+                start = 24.dp,
+                top = innerPadding.calculateTopPadding() + 40.dp,
+                end = 24.dp,
+                bottom = innerPadding.calculateBottomPadding() + 40.dp
             ),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+            verticalArrangement = Arrangement.spacedBy(32.dp)
         ) {
             item {
                 Column(
@@ -69,19 +64,21 @@ fun ConfigScreen(
                 ) {
                     Text(
                         text = stringResource(R.string.configuration_title),
-                        style = MaterialTheme.typography.headlineMedium
+                        style = AccTypography.headlineMedium,
+                        color = Zinc950
                     )
                     Text(
                         text = stringResource(R.string.configuration_intro),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style = AccTypography.bodyLarge,
+                        color = Zinc600,
+                        lineHeight = 22.sp
                     )
                     state.applyError?.let { error ->
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = error,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.error,
+                            style = AccTypography.bodyMedium,
+                            color = AccError,
                             modifier = Modifier.padding(top = 4.dp)
                         )
                     }

@@ -1,20 +1,21 @@
 package app.owlow.accsetting.ui.about
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.Card
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import app.owlow.accsetting.R
+import app.owlow.accsetting.ui.theme.*
 
 @Composable
 fun AboutScreen(
@@ -23,21 +24,25 @@ fun AboutScreen(
     projectUrl: String,
     modifier: Modifier = Modifier
 ) {
-    Scaffold(modifier = modifier) { innerPadding ->
+    Scaffold(
+        modifier = modifier,
+        containerColor = AccBackground
+    ) { innerPadding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
-                start = 20.dp,
-                top = innerPadding.calculateTopPadding() + 20.dp,
-                end = 20.dp,
-                bottom = innerPadding.calculateBottomPadding() + 20.dp
+                start = 24.dp,
+                top = innerPadding.calculateTopPadding() + 40.dp,
+                end = 24.dp,
+                bottom = innerPadding.calculateBottomPadding() + 40.dp
             ),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+            verticalArrangement = Arrangement.spacedBy(32.dp)
         ) {
             item {
                 Text(
                     text = stringResource(R.string.about),
-                    style = MaterialTheme.typography.headlineMedium
+                    style = AccTypography.headlineMedium,
+                    color = Zinc950
                 )
             }
             item {
@@ -68,22 +73,35 @@ private fun AboutInfoCard(
     title: String,
     entries: List<String>
 ) {
-    Card {
-        androidx.compose.foundation.layout.Column(
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text(
+            text = title,
+            style = AccTypography.titleLarge,
+            color = Zinc900,
+            modifier = Modifier.padding(horizontal = 4.dp)
+        )
+
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+                .clip(RoundedCornerShape(24.dp))
+                .background(Color.White)
+                .border(1.dp, AccDivider, RoundedCornerShape(24.dp))
+                .padding(vertical = 8.dp)
         ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleLarge
-            )
-            entries.forEach { entry ->
+            entries.forEachIndexed { index, entry ->
                 Text(
                     text = entry,
-                    style = MaterialTheme.typography.bodyMedium
+                    style = AccTypography.bodyLarge,
+                    color = Zinc600,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
                 )
+                if (index < entries.size - 1) {
+                    HorizontalDivider(color = AccDivider, modifier = Modifier.padding(horizontal = 20.dp))
+                }
             }
         }
     }

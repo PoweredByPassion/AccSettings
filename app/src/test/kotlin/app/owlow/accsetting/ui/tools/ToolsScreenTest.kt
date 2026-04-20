@@ -3,6 +3,7 @@ package app.owlow.accsetting.ui.tools
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.core.app.ApplicationProvider
+import app.owlow.accsetting.ui.theme.AccSettingTheme
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -18,18 +19,20 @@ class ToolsScreenTest {
     @Test
     fun runtimeLogs_renderInsideToolsScreen() {
         composeRule.setContent {
-            ToolsScreen(
-                state = ToolsUiState(
-                    logsSection = ToolLogSection(
-                        title = "Runtime Logs",
-                        summary = "Recent ACC log output for troubleshooting.",
-                        content = List(100) { "log line $it" }.joinToString("\n")
-                    )
-                ),
-                onAction = {},
-                onConfirmAction = {},
-                onDismissConfirmation = {}
-            )
+            AccSettingTheme {
+                ToolsScreen(
+                    state = ToolsUiState(
+                        logsSection = ToolLogSection(
+                            title = "Runtime Logs",
+                            summary = "summary",
+                            content = "log content"
+                        )
+                    ),
+                    onAction = {},
+                    onConfirmAction = {},
+                    onDismissConfirmation = {}
+                )
+            }
         }
 
         composeRule.onNodeWithText("Runtime Logs").assertExists()
@@ -41,12 +44,14 @@ class ToolsScreenTest {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
 
         composeRule.setContent {
-            ToolsScreen(
-                state = ToolsUiState(),
-                onAction = {},
-                onConfirmAction = {},
-                onDismissConfirmation = {}
-            )
+            AccSettingTheme {
+                ToolsScreen(
+                    state = ToolsUiState(),
+                    onAction = {},
+                    onConfirmAction = {},
+                    onDismissConfirmation = {}
+                )
+            }
         }
 
         composeRule.onNodeWithText(context.getString(app.owlow.accsetting.R.string.tools)).assertExists()

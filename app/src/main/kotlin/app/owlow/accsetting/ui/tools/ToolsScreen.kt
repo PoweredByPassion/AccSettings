@@ -1,27 +1,24 @@
 package app.owlow.accsetting.ui.tools
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import app.owlow.accsetting.R
+import app.owlow.accsetting.ui.theme.*
 
 @Composable
 fun ToolsScreen(
@@ -34,48 +31,72 @@ fun ToolsScreen(
     state.pendingConfirmation?.let { action ->
         AlertDialog(
             onDismissRequest = onDismissConfirmation,
-            title = { Text(text = confirmationTitle(action)) },
-            text = { Text(text = confirmationMessage(action)) },
+            shape = RoundedCornerShape(28.dp),
+            containerColor = Color.White,
+            title = {
+                Text(
+                    text = confirmationTitle(action),
+                    style = AccTypography.titleLarge
+                )
+            },
+            text = {
+                Text(
+                    text = confirmationMessage(action),
+                    style = AccTypography.bodyLarge,
+                    color = Zinc600
+                )
+            },
             confirmButton = {
-                Button(onClick = onConfirmAction) {
+                Button(
+                    onClick = onConfirmAction,
+                    colors = ButtonDefaults.buttonColors(containerColor = AccPrimary),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
                     Text(text = stringResource(R.string.continue_action))
                 }
             },
             dismissButton = {
-                OutlinedButton(onClick = onDismissConfirmation) {
-                    Text(text = stringResource(R.string.cancel))
+                TextButton(onClick = onDismissConfirmation) {
+                    Text(text = stringResource(R.string.cancel), color = Zinc600)
                 }
             }
         )
     }
 
-    Scaffold(modifier = modifier) { innerPadding ->
+    Scaffold(
+        modifier = modifier,
+        containerColor = AccBackground
+    ) { innerPadding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
-                start = 20.dp,
-                top = innerPadding.calculateTopPadding() + 20.dp,
-                end = 20.dp,
-                bottom = innerPadding.calculateBottomPadding() + 20.dp
+                start = 24.dp,
+                top = innerPadding.calculateTopPadding() + 40.dp,
+                end = 24.dp,
+                bottom = innerPadding.calculateBottomPadding() + 40.dp
             ),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+            verticalArrangement = Arrangement.spacedBy(32.dp)
         ) {
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
                         text = stringResource(R.string.tools),
-                        style = MaterialTheme.typography.headlineMedium
+                        style = AccTypography.headlineMedium,
+                        color = Zinc950
                     )
                     Text(
                         text = stringResource(R.string.tools_intro),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style = AccTypography.bodyLarge,
+                        color = Zinc600,
+                        lineHeight = 22.sp
                     )
                     state.lastMessage?.let { message ->
+                        Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = message,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.primary
+                            style = AccTypography.bodyMedium,
+                            color = AccAccent,
+                            fontWeight = FontWeight.Medium
                         )
                     }
                 }
@@ -95,40 +116,84 @@ private fun ToolSectionCard(
     isBusy: Boolean,
     onAction: (ToolAction) -> Unit
 ) {
-    Card {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text(
+            text = section.title,
+            style = AccTypography.titleLarge,
+            color = Zinc900,
+            modifier = Modifier.padding(horizontal = 4.dp)
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .clip(RoundedCornerShape(24.dp))
+                .background(Color.White)
+                .border(1.dp, AccDivider, RoundedCornerShape(24.dp))
+                .padding(vertical = 8.dp)
         ) {
-            Text(
-                text = section.title,
-                style = MaterialTheme.typography.titleLarge
-            )
             if (section.summary.isNotBlank()) {
                 Text(
                     text = section.summary,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = AccTypography.bodyMedium,
+                    color = Zinc500,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
                 )
             }
+
             section.details.forEach { detail ->
-                Text(text = "${detail.label}: ${detail.value}")
-            }
-            section.actions.forEach { action ->
-                Button(
-                    onClick = { onAction(action.action) },
-                    enabled = action.enabled && !isBusy,
-                    modifier = Modifier.fillMaxWidth()
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(text = action.label)
+                    Text(
+                        text = detail.label,
+                        style = AccTypography.labelMedium,
+                        color = Zinc500
+                    )
+                    Text(
+                        text = detail.value,
+                        style = AccTypography.bodyLarge.copy(
+                            fontFamily = MonospaceNumbers.fontFamily,
+                            letterSpacing = MonospaceNumbers.letterSpacing
+                        ),
+                        color = Zinc900,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
-                Text(
-                    text = action.description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            }
+
+            if (section.actions.isNotEmpty()) {
+                HorizontalDivider(color = AccDivider, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
+                
+                section.actions.forEach { action ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = { onAction(action.action) },
+                            enabled = action.enabled && !isBusy,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = AccPrimary)
+                        ) {
+                            Text(text = action.label, style = AccTypography.titleSmall)
+                        }
+                        Text(
+                            text = action.description,
+                            style = AccTypography.labelMedium,
+                            color = Zinc500
+                        )
+                    }
+                }
             }
         }
     }
@@ -136,28 +201,40 @@ private fun ToolSectionCard(
 
 @Composable
 private fun ToolLogCard(section: ToolLogSection) {
-    Card {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text(
+            text = section.title,
+            style = AccTypography.titleLarge,
+            color = Zinc900,
+            modifier = Modifier.padding(horizontal = 4.dp)
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .clip(RoundedCornerShape(24.dp))
+                .background(Zinc950)
+                .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = section.title,
-                style = MaterialTheme.typography.titleLarge
-            )
-            Text(
                 text = section.summary,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = AccTypography.labelMedium,
+                color = Zinc400
             )
             Text(
                 text = section.content,
-                style = MaterialTheme.typography.bodySmall,
+                style = AccTypography.bodySmall.copy(
+                    fontFamily = MonospaceNumbers.fontFamily,
+                    color = Zinc100,
+                    lineHeight = 18.sp
+                ),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = 240.dp)
+                    .heightIn(max = 320.dp)
                     .verticalScroll(rememberScrollState())
             )
         }

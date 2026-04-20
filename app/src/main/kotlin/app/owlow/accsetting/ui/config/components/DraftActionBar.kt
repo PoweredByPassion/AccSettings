@@ -1,19 +1,19 @@
 package app.owlow.accsetting.ui.config.components
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import app.owlow.accsetting.R
+import app.owlow.accsetting.ui.theme.*
 
 @Composable
 fun DraftActionBar(
@@ -21,39 +21,68 @@ fun DraftActionBar(
     onDiscard: () -> Unit,
     onApply: () -> Unit
 ) {
-    Surface(
-        tonalElevation = 3.dp,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 24.dp),
+        contentAlignment = Alignment.BottomCenter
     ) {
-        Row(
+        Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
+                .height(80.dp)
+                .clip(RoundedCornerShape(24.dp))
+                .border(1.dp, Color.White.copy(alpha = 0.5f), RoundedCornerShape(24.dp)),
+            color = Color.White.copy(alpha = 0.9f),
+            shadowElevation = 12.dp,
+            tonalElevation = 8.dp
         ) {
-            Text(
-                text = stringResource(R.string.draft_changes_ready),
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(top = 10.dp)
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 TextButton(
                     onClick = onDiscard,
-                    enabled = !isApplying
-                ) {
-                    Text(text = stringResource(R.string.discard))
-                }
-                Button(
-                    onClick = onApply,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.textButtonColors(contentColor = Zinc600),
                     enabled = !isApplying
                 ) {
                     Text(
-                        text = if (isApplying) {
-                            stringResource(R.string.initializing)
-                        } else {
-                            stringResource(R.string.apply_changes)
-                        }
+                        text = stringResource(R.string.discard),
+                        style = AccTypography.titleSmall
                     )
+                }
+
+                Button(
+                    onClick = onApply,
+                    modifier = Modifier
+                        .weight(1.5f)
+                        .height(48.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = AccPrimary,
+                        contentColor = AccOnPrimary
+                    ),
+                    enabled = !isApplying
+                ) {
+                    if (isApplying) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            color = AccOnPrimary,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text(
+                            text = stringResource(R.string.apply_changes),
+                            style = AccTypography.titleSmall
+                        )
+                    }
                 }
             }
         }
