@@ -111,9 +111,10 @@ open class ConfigDataStore internal constructor(
     override fun putString(key: String, value: String?) {
         logVerbose("putString: $key=$value")
         ensureDraftLoaded()
-        updateProperty(key, value.orEmpty())
+        val canonicalKey = canonicalKey(key)
+        updateProperty(canonicalKey, value.orEmpty())
         onConfigChangeListener?.onConfigChanged(key)
-        when (key) {
+        when (canonicalKey) {
             chargingSwitchKey() -> pendingSideEffects += PendingSideEffect.RESTART_DAEMON
             currentWorkaroundKey() -> pendingSideEffects += PendingSideEffect.REINITIALIZE
         }
@@ -122,7 +123,7 @@ open class ConfigDataStore internal constructor(
     override fun getString(key: String, defValue: String?): String? {
         logVerbose("getString: $key=$defValue?")
         ensureDraftLoaded()
-        return configCache[key].orEmpty().ifEmpty { defValue }
+        return configCache[canonicalKey(key)].orEmpty().ifEmpty { defValue }
     }
 
     fun applyDraft(): ApplyGroupedPatchResult {
@@ -351,8 +352,15 @@ open class ConfigDataStore internal constructor(
     private fun cooldownTempKey(): String = "set_cooldown_temp"
     private fun maxTempKey(): String = "set_max_temp"
     private fun shutdownTempKey(): String = "set_shutdown_temp"
-    private fun chargingSwitchKey(): String = "set_charging_switch"
-    private fun currentWorkaroundKey(): String = "set_current_workaround"
+    private fun chargingSwitchKey(): String = "charging_switch"
+    private fun currentWorkaroundKey(): String = "current_workaround"
+
+    private fun canonicalKey(key: String): String = when (key) {
+        "set_charging_switch" -> chargingSwitchKey()
+        "set_current_workaround" -> currentWorkaroundKey()
+        "set_max_charging_voltage" -> "max_charging_voltage"
+        else -> key
+    }
 
     companion object {
         const val TAG = "ConfigDataStore"

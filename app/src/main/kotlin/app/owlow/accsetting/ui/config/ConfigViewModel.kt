@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import app.owlow.accsetting.R
 import app.owlow.accsetting.acc.AccDraftState
 import app.owlow.accsetting.acc.ApplyGroupedPatchResult
 import app.owlow.accsetting.acc.DraftStatus
@@ -16,8 +17,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.Properties
 
-private const val CHARGING_SWITCH_KEY = "set_charging_switch"
+private const val CHARGING_SWITCH_KEY = "charging_switch"
+private const val MAX_CHARGING_VOLTAGE_KEY = "max_charging_voltage"
+private const val CURRENT_WORKAROUND_KEY = "current_workaround"
 private val INT_FIELD_KEYS = setOf(
     "set_shutdown_capacity",
     "set_cooldown_capacity",
@@ -28,7 +32,7 @@ private val INT_FIELD_KEYS = setOf(
     "set_shutdown_temp"
 )
 private val TOGGLE_FIELD_KEYS = setOf(
-    "set_current_workaround"
+    CURRENT_WORKAROUND_KEY
 )
 
 data class ConfigDraftSnapshot(
@@ -139,90 +143,119 @@ private fun ConfigDraftSnapshot.toUiState(): ConfigUiState = ConfigUiState(
     applyError = applyError
 )
 
-private fun GroupedConfigRead.toConfigGroups(): List<ConfigGroupUiModel> = listOf(
+internal fun GroupedConfigRead.toConfigGroups(): List<ConfigGroupUiModel> = listOf(
     ConfigGroupUiModel(
-        title = "Charge Thresholds",
-        summary = "Pause and resume behavior for normal charging.",
+        titleRes = R.string.config_group_charge_thresholds_title,
+        summaryRes = R.string.config_group_charge_thresholds_summary,
         fields = listOf(
             ConfigFieldUiModel(
                 key = "set_shutdown_capacity",
-                label = "Shutdown below",
+                labelRes = R.string.shutdown_below,
                 value = currentCapacity?.shutdown?.toString().orEmpty(),
                 kind = ConfigFieldKind.NUMBER,
-                helperText = "Current shutdown threshold."
+                helperTextRes = R.string.hint_capacity_shutdown,
+                unitRes = R.string.config_unit_percent,
+                minValue = 0,
+                maxValue = 100
             ),
             ConfigFieldUiModel(
                 key = "set_cooldown_capacity",
-                label = "Cooldown above",
+                labelRes = R.string.cooldown_above,
                 value = currentCapacity?.cooldown?.toString().orEmpty(),
-                kind = ConfigFieldKind.NUMBER
+                kind = ConfigFieldKind.NUMBER,
+                unitRes = R.string.config_unit_percent,
+                minValue = 0,
+                maxValue = 100
             ),
             ConfigFieldUiModel(
                 key = "set_resume_capacity",
-                label = "Charge below",
+                labelRes = R.string.charge_below,
                 value = currentCapacity?.resume?.toString().orEmpty(),
-                kind = ConfigFieldKind.NUMBER
+                kind = ConfigFieldKind.NUMBER,
+                unitRes = R.string.config_unit_percent,
+                minValue = 0,
+                maxValue = 100
             ),
             ConfigFieldUiModel(
                 key = "set_pause_capacity",
-                label = "Pause above",
+                labelRes = R.string.pause_above,
                 value = currentCapacity?.pause?.toString().orEmpty(),
-                kind = ConfigFieldKind.NUMBER
+                kind = ConfigFieldKind.NUMBER,
+                unitRes = R.string.config_unit_percent,
+                minValue = 0,
+                maxValue = 100
             )
         )
     ),
     ConfigGroupUiModel(
-        title = "Temperature Protection",
-        summary = "Heat guardrails that limit or stop charging.",
+        titleRes = R.string.config_group_temperature_title,
+        summaryRes = R.string.config_group_temperature_summary,
         fields = listOf(
             ConfigFieldUiModel(
                 key = "set_cooldown_temp",
-                label = "Cooldown above",
+                labelRes = R.string.cooldown_above,
                 value = currentTemperature?.cooldown?.toString().orEmpty(),
-                kind = ConfigFieldKind.NUMBER
+                kind = ConfigFieldKind.NUMBER,
+                unitRes = R.string.config_unit_celsius,
+                minValue = 0,
+                maxValue = 100
             ),
             ConfigFieldUiModel(
                 key = "set_max_temp",
-                label = "Pause above",
+                labelRes = R.string.pause_above,
                 value = currentTemperature?.pause?.toString().orEmpty(),
-                kind = ConfigFieldKind.NUMBER
+                kind = ConfigFieldKind.NUMBER,
+                unitRes = R.string.config_unit_celsius,
+                minValue = 0,
+                maxValue = 100
             ),
             ConfigFieldUiModel(
                 key = "set_shutdown_temp",
-                label = "Shutdown above",
+                labelRes = R.string.shutdown_above,
                 value = currentTemperature?.shutdown?.toString().orEmpty(),
-                kind = ConfigFieldKind.NUMBER
+                kind = ConfigFieldKind.NUMBER,
+                unitRes = R.string.config_unit_celsius,
+                minValue = 0,
+                maxValue = 100
             )
         )
     ),
     ConfigGroupUiModel(
-        title = "Current and Voltage Behavior",
-        summary = "Charging switch and related live control overrides.",
+        titleRes = R.string.config_group_current_voltage_title,
+        summaryRes = R.string.config_group_current_voltage_summary,
         fields = listOf(
             ConfigFieldUiModel(
                 key = CHARGING_SWITCH_KEY,
-                label = "Charging switch",
-                value = current.getProperty(CHARGING_SWITCH_KEY).orEmpty(),
-                kind = ConfigFieldKind.TEXT
+                labelRes = R.string.charging_switch,
+                value = current.readTemplateValue(CHARGING_SWITCH_KEY, defaults),
+                kind = ConfigFieldKind.TEXT,
+                helperTextRes = R.string.config_helper_charging_switch
             ),
             ConfigFieldUiModel(
-                key = "set_max_charging_voltage",
-                label = "Max charging voltage",
-                value = current.getProperty("set_max_charging_voltage").orEmpty(),
-                kind = ConfigFieldKind.TEXT
+                key = MAX_CHARGING_VOLTAGE_KEY,
+                labelRes = R.string.max_charging_voltage,
+                value = current.readTemplateValue(MAX_CHARGING_VOLTAGE_KEY, defaults),
+                kind = ConfigFieldKind.NUMBER,
+                unitRes = R.string.config_unit_millivolt,
+                minValue = 3000,
+                maxValue = 5000
             )
         )
     ),
     ConfigGroupUiModel(
-        title = "Advanced Options",
-        summary = "Compatibility toggles that should be changed deliberately.",
+        titleRes = R.string.config_group_advanced_title,
+        summaryRes = R.string.config_group_advanced_summary,
         fields = listOf(
             ConfigFieldUiModel(
-                key = "set_current_workaround",
-                label = "Strict current control",
-                value = current.getProperty("set_current_workaround").orEmpty(),
-                kind = ConfigFieldKind.TOGGLE
+                key = CURRENT_WORKAROUND_KEY,
+                labelRes = R.string.strict_current_control,
+                value = current.readTemplateValue(CURRENT_WORKAROUND_KEY, defaults),
+                kind = ConfigFieldKind.TOGGLE,
+                helperTextRes = R.string.hint_strict_current_control
             )
         )
     )
 )
+
+private fun Properties.readTemplateValue(key: String, defaults: Properties): String =
+    getProperty(key) ?: defaults.getProperty(key).orEmpty()

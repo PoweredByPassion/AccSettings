@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
@@ -11,7 +12,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import app.owlow.accsetting.R
 import app.owlow.accsetting.ui.config.ConfigFieldKind
 import app.owlow.accsetting.ui.config.ConfigFieldUiModel
 import app.owlow.accsetting.ui.config.ConfigGroupUiModel
@@ -33,11 +37,11 @@ fun ConfigGroupSection(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = group.title,
+                text = stringResource(group.titleRes),
                 style = MaterialTheme.typography.titleMedium
             )
             Text(
-                text = group.summary,
+                text = stringResource(group.summaryRes),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -56,6 +60,14 @@ private fun ConfigFieldRow(
     field: ConfigFieldUiModel,
     onFieldChanged: (String, String) -> Unit
 ) {
+    val supportingLines = buildList {
+        field.helperTextRes?.let { add(stringResource(it)) }
+        field.unitRes?.let { add(stringResource(R.string.config_unit_format, stringResource(it))) }
+        if (field.minValue != null && field.maxValue != null) {
+            add(stringResource(R.string.config_range_format, field.minValue, field.maxValue))
+        }
+    }
+
     when (field.kind) {
         ConfigFieldKind.TOGGLE -> {
             Column(
@@ -63,16 +75,16 @@ private fun ConfigFieldRow(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
-                    text = field.label,
+                    text = stringResource(field.labelRes),
                     style = MaterialTheme.typography.bodyLarge
                 )
                 Switch(
                     checked = field.value.equals("true", ignoreCase = true),
                     onCheckedChange = { checked -> onFieldChanged(field.key, checked.toString()) }
                 )
-                field.helperText?.let { helper ->
+                if (supportingLines.isNotEmpty()) {
                     Text(
-                        text = helper,
+                        text = supportingLines.joinToString("\n"),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -87,9 +99,16 @@ private fun ConfigFieldRow(
                 onValueChange = { onFieldChanged(field.key, it) },
                 enabled = field.enabled,
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text(text = field.label) },
-                supportingText = field.helperText?.let { helper ->
-                    { Text(text = helper) }
+                label = { Text(text = stringResource(field.labelRes)) },
+                supportingText = if (supportingLines.isNotEmpty()) {
+                    { Text(text = supportingLines.joinToString("\n")) }
+                } else {
+                    null
+                },
+                keyboardOptions = if (field.kind == ConfigFieldKind.NUMBER) {
+                    KeyboardOptions(keyboardType = KeyboardType.Number)
+                } else {
+                    KeyboardOptions.Default
                 }
             )
         }

@@ -1,5 +1,7 @@
 package app.owlow.accsetting.ui.config
 
+import androidx.annotation.StringRes
+
 enum class ConfigFieldKind {
     NUMBER,
     TEXT,
@@ -8,15 +10,18 @@ enum class ConfigFieldKind {
 
 data class ConfigFieldUiModel(
     val key: String,
-    val label: String,
+    @StringRes val labelRes: Int,
     val value: String,
     val kind: ConfigFieldKind,
-    val helperText: String? = null,
+    @StringRes val helperTextRes: Int? = null,
+    @StringRes val unitRes: Int? = null,
+    val minValue: Int? = null,
+    val maxValue: Int? = null,
     val enabled: Boolean = true
 )
 
 data class ConfigGroupUiModel(
-    val title: String,
-    val summary: String,
+    @StringRes val titleRes: Int,
+    @StringRes val summaryRes: Int,
     val fields: List<ConfigFieldUiModel>
 )

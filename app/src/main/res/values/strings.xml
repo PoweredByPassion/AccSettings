@@ -10,6 +10,20 @@
     <string name="configuration">Configuration</string>
     <string name="configuration_title">Configuration</string>
     <string name="configuration_intro">Edit your ACC draft here. Nothing applies until you choose Apply Changes.</string>
+    <string name="config_group_charge_thresholds_title">Charge Thresholds</string>
+    <string name="config_group_charge_thresholds_summary">Use the device’s current ACC values as the editing template for charge start and stop thresholds.</string>
+    <string name="config_group_temperature_title">Temperature Protection</string>
+    <string name="config_group_temperature_summary">Review and adjust the live ACC temperature limits before applying them.</string>
+    <string name="config_group_current_voltage_title">Current and Voltage Behavior</string>
+    <string name="config_group_current_voltage_summary">These values come from the current ACC config and are written back directly when you apply.</string>
+    <string name="config_group_advanced_title">Advanced Options</string>
+    <string name="config_group_advanced_summary">Compatibility switches that should only be changed when your device needs them.</string>
+    <string name="config_helper_charging_switch">Path or switch name from the current ACC config.</string>
+    <string name="config_unit_format">Unit: %1$s</string>
+    <string name="config_range_format">Range: %1$d-%2$d</string>
+    <string name="config_unit_percent">%</string>
+    <string name="config_unit_celsius">C</string>
+    <string name="config_unit_millivolt">mV</string>
     <string name="tools">Tools</string>
     <string name="about">About</string>
 

@@ -10,6 +10,20 @@
     <string name="configuration">配置</string>
     <string name="configuration_title">配置</string>
     <string name="configuration_intro">在这里编辑 ACC 草稿配置，只有点“应用更改”后才会真正写入设备。</string>
+    <string name="config_group_charge_thresholds_title">充电阈值</string>
+    <string name="config_group_charge_thresholds_summary">以设备当前 ACC 配置为编辑模板，调整开始和停止充电的阈值。</string>
+    <string name="config_group_temperature_title">温度保护</string>
+    <string name="config_group_temperature_summary">查看并调整当前 ACC 正在使用的温度限制，再决定是否应用。</string>
+    <string name="config_group_current_voltage_title">电流与电压行为</string>
+    <string name="config_group_current_voltage_summary">这些值直接来自当前 ACC 配置，点击应用后会原样写回设备。</string>
+    <string name="config_group_advanced_title">高级选项</string>
+    <string name="config_group_advanced_summary">只在设备确实需要兼容处理时再修改这些开关。</string>
+    <string name="config_helper_charging_switch">来自当前 ACC 配置的路径或开关名称。</string>
+    <string name="config_unit_format">单位：%1$s</string>
+    <string name="config_range_format">范围：%1$d-%2$d</string>
+    <string name="config_unit_percent">%</string>
+    <string name="config_unit_celsius">C</string>
+    <string name="config_unit_millivolt">mV</string>
     <string name="tools">工具</string>
     <string name="about">关于</string>
 

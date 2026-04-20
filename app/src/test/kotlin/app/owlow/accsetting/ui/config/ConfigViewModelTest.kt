@@ -22,7 +22,7 @@ class ConfigViewModelTest {
         val store = FakeConfigRepository()
         val viewModel = ConfigViewModel(store)
 
-        viewModel.onFieldChanged("set_charging_switch", "0").join()
+        viewModel.onFieldChanged("charging_switch", "0").join()
 
         assertTrue(viewModel.uiState.value.hasPendingChanges)
         assertEquals(0, store.applyCalls)
@@ -35,8 +35,8 @@ class ConfigViewModelTest {
             initialValues = mapOf(
                 "set_shutdown_capacity" to "20",
                 "set_pause_capacity" to "80",
-                "set_charging_switch" to "main",
-                "set_current_workaround" to "true"
+                "charging_switch" to "main",
+                "current_workaround" to "true"
             )
         )
         val viewModel = ConfigViewModel(store)
@@ -46,8 +46,8 @@ class ConfigViewModelTest {
         val fields = viewModel.uiState.value.groups.flatMap { it.fields }.associateBy { it.key }
         assertEquals("20", fields.getValue("set_shutdown_capacity").value)
         assertEquals("80", fields.getValue("set_pause_capacity").value)
-        assertEquals("main", fields.getValue("set_charging_switch").value)
-        assertEquals("true", fields.getValue("set_current_workaround").value)
+        assertEquals("main", fields.getValue("charging_switch").value)
+        assertEquals("true", fields.getValue("current_workaround").value)
     }
 
     @Test
