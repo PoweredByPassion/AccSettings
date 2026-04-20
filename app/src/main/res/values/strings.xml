@@ -6,11 +6,11 @@
     <string name="command_failed">Command failed</string>
 
     <string name="daemon">Daemon</string>
-    <string name="daemon_summary">Keep ACC monitoring active in the background</string>
+    <string name="overview">Overview</string>
     <string name="configuration">Configuration</string>
-    <string name="configuration_summary">Adjust charging rules and limits</string>
-
-    <string name="about">About</string>
+    <string name="configuration_title">Configuration</string>
+    <string name="configuration_intro">Edit your ACC draft here. Nothing applies until you choose Apply Changes.</string>
+    <string name="tools">Tools</string>
 
     <string name="acc_settings">ACC Settings</string>
     <string name="acc">ACC</string>
@@ -71,16 +71,21 @@
     <string name="uninstall_acc_title">Uninstall ACC</string>
     <string name="acc_version_info_title">ACC Version</string>
     <string name="acc_not_installed">ACC is not installed</string>
+    <string name="acc_detecting">Detecting ACC status…</string>
     <string name="acc_installed_version">Installed: %s</string>
     <string name="acc_bundled_version">Available: %s</string>
     <string name="acc_up_to_date">ACC is up to date</string>
     <string name="acc_up_to_date_with_version">ACC is up to date (%s)</string>
     <string name="acc_install_success">ACC installed successfully</string>
     <string name="acc_uninstall_success">ACC uninstalled successfully</string>
-    <string name="acc_management">ACC Management</string>
     <string name="acc_need_root">Root permission required</string>
-    <string name="more">More</string>
-    <string name="more_subtitle">Manage ACC tools and app information</string>
     <string name="hide_non_critical">Hide non-critical content</string>
     <string name="show_non_critical">Show non-critical content</string>
+    <string name="draft_changes_ready">Draft changes ready</string>
+    <string name="discard">Discard</string>
+    <string name="apply_changes">Apply Changes</string>
+    <string name="leave_with_draft_title">Leave with draft changes?</string>
+    <string name="leave_with_draft_message">You still have unapplied changes. Keep the draft, discard it, or stay on this screen.</string>
+    <string name="keep_draft_and_leave">Keep Draft</string>
+    <string name="stay_here">Stay Here</string>
 </resources>

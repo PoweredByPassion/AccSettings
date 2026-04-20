@@ -4,21 +4,19 @@ import android.content.Context
 import android.util.Log
 import androidx.preference.PreferenceDataStore
 import crazyboyfeng.accSettings.R
-import crazyboyfeng.accSettings.acc.Command
+import crazyboyfeng.accSettings.acc.AccStateManager
 import kotlinx.coroutines.*
 
 class AccDataStore(private val context: Context) : PreferenceDataStore() {
     override fun getBoolean(key: String, defValue: Boolean): Boolean {
         Log.v(TAG, "getBoolean: $key=$defValue?")
-        return runBlocking {
-            when (key) {
-                context.getString(R.string.acc_daemon) -> try {
-                    Command.isDaemonRunning()
-                } catch (_: Command.AccException) {
-                    false
-                }
-                else -> super.getBoolean(key, defValue)
+        return when (key) {
+            context.getString(R.string.acc_daemon) -> {
+                // 从缓存读取状态，避免阻塞 UI 线程
+                val cachedStatus = AccStateManager.getCurrentStatus()
+                cachedStatus?.daemonRunning ?: defValue
             }
+            else -> super.getBoolean(key, defValue)
         }
     }
 
@@ -27,8 +25,8 @@ class AccDataStore(private val context: Context) : PreferenceDataStore() {
         CoroutineScope(Dispatchers.Default).launch {
             when (key) {
                 context.getString(R.string.acc_daemon) -> try {
-                    Command.setDaemonRunning(value)
-                } catch (_: Command.AccException) {
+                    AccStateManager.setDaemonRunning(value)
+                } catch (_: Exception) {
                     Log.w(TAG, "Ignoring daemon toggle update because ACC is unavailable")
                 }
                 else -> super.putBoolean(key, value)

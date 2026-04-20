@@ -46,6 +46,14 @@ class CommandTest {
     }
 
     @Test
+    fun buildReinitializeCommand_fallsBackToLegacyAccdWhenNeeded() {
+        assertEquals(
+            "/dev/.vr25/acc/accd --init",
+            Command.buildReinitializeCommand { path -> path == "/dev/.vr25/acc/accd" }
+        )
+    }
+
+    @Test
     fun buildReinitializeCommand_fallsBackToServiceScript() {
         assertEquals(
             "/data/adb/vr25/acc/service.sh --init",
@@ -72,5 +80,15 @@ class CommandTest {
     @Test
     fun parseVersionOutput_returnsZeroForUnknownOutput() {
         assertEquals(Pair(0, null), Command.parseVersionOutput("not installed"))
+    }
+
+    @Test
+    fun findAccExecutable_prefersFrontendOverLegacyEntrypointsInPriorityOrder() {
+        assertEquals(
+            "/dev/.vr25/acc/acca",
+            Command.findAccExecutable { path ->
+                path == "/dev/.vr25/acc/acca" || path == "/data/adb/vr25/acc/acc.sh"
+            }
+        )
     }
 }
