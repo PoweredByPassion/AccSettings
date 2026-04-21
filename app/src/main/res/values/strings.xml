@@ -16,10 +16,14 @@
     <string name="config_group_charge_thresholds_summary">Use the device’s current ACC values as the editing template for charge start and stop thresholds.</string>
     <string name="config_group_temperature_title">Temperature Protection</string>
     <string name="config_group_temperature_summary">Review and adjust the live ACC temperature limits before applying them.</string>
+    <string name="config_group_charging_behavior_title">Charging Behavior</string>
+    <string name="config_group_charging_behavior_summary">Core charge-control switches that affect idle mode, restart behavior, and device compatibility.</string>
     <string name="config_group_current_voltage_title">Current and Voltage Behavior</string>
-    <string name="config_group_current_voltage_summary">These values come from the current ACC config and are written back directly when you apply.</string>
+    <string name="config_group_current_voltage_summary">Current and voltage limits plus cooldown tuning. Some entries also accept advanced ACC syntax from the official docs.</string>
+    <string name="config_group_automation_title">Automation and Hooks</string>
+    <string name="config_group_automation_summary">Optional ACC hooks and app-triggered behavior. Leave these empty unless you already know the command or package pattern you need.</string>
     <string name="config_group_advanced_title">Advanced Options</string>
-    <string name="config_group_advanced_summary">Compatibility switches that should only be changed when your device needs them.</string>
+    <string name="config_group_advanced_summary">Low-level compatibility and unit conversion options. Change these only to fix reporting or control issues.</string>
     <string name="config_helper_charging_switch">Path or switch name from the current ACC config.</string>
     <string name="config_unit_format">Unit: %1$s</string>
     <string name="config_range_format">Range: %1$d-%2$d</string>
@@ -55,7 +59,15 @@
     <string name="max_charging_current">Max charging current</string>
     <string name="max_charging_voltage">Max charging voltage</string>
     <string name="charging_switch">Charging switch</string>
+    <string name="allow_idle_above_pause_capacity">Allow idle above pause level</string>
     <string name="idle_mode_first">Idle mode first</string>
+    <string name="turn_off_charging_after_restart">Turn charging off after restart</string>
+    <string name="reboot_to_resume_charging">Reboot to resume charging</string>
+    <string name="battery_status_workaround">Battery status workaround</string>
+    <string name="force_charging_off">Force charging off</string>
+    <string name="temperature_level">Temperature level</string>
+    <string name="idle_apps">Idle apps</string>
+    <string name="battery_status_override">Battery status override</string>
     <string name="statistics">Statistics</string>
     <string name="reset_on_pause">Reset on pause</string>
     <string name="reset_on_unplug">Reset on unplug</string>
@@ -81,6 +93,23 @@
     <string name="hint_cooldown_current">Limit charging instead of pausing during cooldown period.</string>
     <string name="hint_idle_mode">Incompatible with some Samsung and other devices.</string>
     <string name="hint_strict_current_control">Only use control files match \"batt\".\nNeed if current limit affects both input and charging current.</string>
+    <string name="hint_capacity_mask">Make Android show a normal 0-100 style battery scale instead of the restricted ACC pause range.</string>
+    <string name="hint_allow_idle_above_pause_capacity">Turn this off for always-plugged setups when keeping a high charge for long periods is a concern.</string>
+    <string name="hint_prioritize_batt_idle_mode">Only affects automatic switch detection. Prefer idle-mode capable switches when available.</string>
+    <string name="hint_off_mid">After reboot or daemon restart, stop charging again if the battery is still between resume and pause thresholds.</string>
+    <string name="hint_reboot_resume">Only use this on devices that cannot re-enable charging without a reboot.</string>
+    <string name="hint_batt_status_workaround">Improves compatibility by inferring Idle and Discharging states instead of trusting battery status alone.</string>
+    <string name="hint_force_off">Last-resort option when the system keeps turning charging back on.</string>
+    <string name="hint_max_charging_current">Supports plain values and ACC advanced syntax. Use text mode here so arrays and special forms still fit.</string>
+    <string name="hint_max_charging_voltage">Best for straightforward voltage caps. Complex ACC array syntax may still require direct config editing.</string>
+    <string name="hint_temp_level">Alternate current-limiting back end used by some kernels and Samsung-style controls.</string>
+    <string name="hint_apply_on_boot">Raw ACC apply-on-boot syntax. Settings are applied when the daemon starts or restarts.</string>
+    <string name="hint_apply_on_plug">Raw ACC apply-on-plug syntax. These values are re-applied while charging.</string>
+    <string name="hint_idle_apps">Comma- or space-separated Android package patterns that should trigger idle mode in the foreground.</string>
+    <string name="hint_run_on_pause">Shell command or script ACC should run after charging is paused.</string>
+    <string name="hint_batt_status_override">Use only with an enforced charging switch when ACC needs help deciding between Idle and Discharging.</string>
+    <string name="hint_amp_factor">Override only if ACC reports the wrong current units.</string>
+    <string name="hint_volt_factor">Override only if ACC reports the wrong voltage units.</string>
 
     <!-- ACC management -->
     <string name="install_acc_title">Install/Update ACC</string>

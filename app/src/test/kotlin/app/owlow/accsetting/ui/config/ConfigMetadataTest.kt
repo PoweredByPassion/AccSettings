@@ -84,6 +84,56 @@ class ConfigMetadataTest {
         assertEquals("true", fields.getValue("current_workaround").value)
     }
 
+    @Test
+    fun coreAccFields_areExposedWithExpectedKindsAndValues() {
+        val grouped = groupedConfig(
+            capacity = CapacityConfig(5, 70, 72, 80, true, ConfigGroupMode.NORMAL),
+            properties = mapOf(
+                "allow_idle_above_pcap" to "false",
+                "prioritize_batt_idle_mode" to "true",
+                "off_mid" to "false",
+                "reboot_resume" to "true",
+                "batt_status_workaround" to "false",
+                "force_off" to "true",
+                "max_charging_current" to "1200",
+                "cooldown_current" to "500",
+                "temp_level" to "15",
+                "apply_on_boot" to "main/charge_current_max::500000",
+                "apply_on_plug" to "battery/input_suspend::0",
+                "idle_apps" to "maps,pokemon",
+                "run_cmd_on_pause" to "logcat -d",
+                "batt_status_override" to "Idle",
+                "amp_factor" to "1000000",
+                "volt_factor" to "1000000"
+            )
+        )
+
+        val fields = grouped.toConfigGroups().flatMap { it.fields }.associateBy { it.key }
+
+        assertEquals(ConfigFieldKind.TOGGLE, fields.getValue("set_capacity_mask").kind)
+        assertEquals("true", fields.getValue("set_capacity_mask").value)
+        assertEquals(ConfigFieldKind.TOGGLE, fields.getValue("allow_idle_above_pcap").kind)
+        assertEquals("false", fields.getValue("allow_idle_above_pcap").value)
+        assertEquals(ConfigFieldKind.TOGGLE, fields.getValue("prioritize_batt_idle_mode").kind)
+        assertEquals(ConfigFieldKind.TOGGLE, fields.getValue("off_mid").kind)
+        assertEquals(ConfigFieldKind.TOGGLE, fields.getValue("reboot_resume").kind)
+        assertEquals(ConfigFieldKind.TOGGLE, fields.getValue("batt_status_workaround").kind)
+        assertEquals(ConfigFieldKind.TOGGLE, fields.getValue("force_off").kind)
+        assertEquals(ConfigFieldKind.TEXT, fields.getValue("max_charging_current").kind)
+        assertEquals("1200", fields.getValue("max_charging_current").value)
+        assertEquals(ConfigFieldKind.TEXT, fields.getValue("cooldown_current").kind)
+        assertEquals("500", fields.getValue("cooldown_current").value)
+        assertEquals(ConfigFieldKind.NUMBER, fields.getValue("temp_level").kind)
+        assertEquals(R.string.config_unit_percent, fields.getValue("temp_level").unitRes)
+        assertEquals(ConfigFieldKind.TEXT, fields.getValue("apply_on_boot").kind)
+        assertEquals(ConfigFieldKind.TEXT, fields.getValue("apply_on_plug").kind)
+        assertEquals(ConfigFieldKind.TEXT, fields.getValue("idle_apps").kind)
+        assertEquals(ConfigFieldKind.TEXT, fields.getValue("run_cmd_on_pause").kind)
+        assertEquals(ConfigFieldKind.TEXT, fields.getValue("batt_status_override").kind)
+        assertEquals(ConfigFieldKind.NUMBER, fields.getValue("amp_factor").kind)
+        assertEquals(ConfigFieldKind.NUMBER, fields.getValue("volt_factor").kind)
+    }
+
     private fun groupedConfig(
         properties: Map<String, String> = emptyMap(),
         capacity: CapacityConfig = CapacityConfig.parse("(5 70 72 80 false)"),

@@ -162,6 +162,29 @@ class ConfigDataStoreTest {
     }
 
     @Test
+    fun new_core_fields_update_draft_and_group_into_expected_apply_batches() {
+        val store = testStore(groupedConfig = splitGroupedConfig())
+
+        store.putBoolean("allow_idle_above_pcap", false)
+        store.putString("cooldown_current", "500")
+        store.putString("max_charging_current", "1200")
+        store.putString("apply_on_boot", "battery/input_suspend::0")
+
+        val draft = store.currentDraftStateForTesting().draft.current
+        assertEquals("false", draft.getProperty("allow_idle_above_pcap"))
+        assertEquals("500", draft.getProperty("cooldown_current"))
+        assertEquals("1200", draft.getProperty("max_charging_current"))
+        assertEquals("battery/input_suspend::0", draft.getProperty("apply_on_boot"))
+
+        store.applyDraft()
+
+        assertEquals(
+            setOf(PatchGroup.COOLDOWN, PatchGroup.CURRENT_VOLTAGE, PatchGroup.RUNTIME_HOOKS),
+            store.appliedRequests.single().groups
+        )
+    }
+
+    @Test
     fun apply_triggers_each_required_side_effect_once() {
         val effects = mutableListOf<String>()
         val store = ConfigDataStore(
@@ -264,6 +287,8 @@ class ConfigDataStoreTest {
         val appliedRequests: MutableList<ApplyGroupedPatchRequest>
     ) {
         fun putInt(key: String, value: Int) = delegate.putInt(key, value)
+        fun putBoolean(key: String, value: Boolean) = delegate.putBoolean(key, value)
+        fun putString(key: String, value: String) = delegate.putString(key, value)
         fun getInt(key: String, defaultValue: Int): Int = delegate.getInt(key, defaultValue)
         fun applyDraft() = delegate.applyDraft()
         fun discardDraft() = delegate.discardDraft()
