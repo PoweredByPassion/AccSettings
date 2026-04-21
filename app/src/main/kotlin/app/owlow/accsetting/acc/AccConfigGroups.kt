@@ -1,5 +1,7 @@
 package app.owlow.accsetting.acc
 
+import java.util.Properties
+
 enum class ConfigGroupMode {
     NORMAL,
     VOLTAGE,
@@ -83,11 +85,65 @@ data class TemperatureConfig(
     }
 }
 
+internal fun GroupedConfigRead.resolveGroups(): GroupedConfigRead = copy(
+    currentCapacity = currentCapacity ?: current.toCapacityConfig(),
+    defaultCapacity = defaultCapacity ?: defaults.toCapacityConfig(),
+    currentTemperature = currentTemperature ?: current.toTemperatureConfig(),
+    defaultTemperature = defaultTemperature ?: defaults.toTemperatureConfig()
+)
+
+private fun Properties.toCapacityConfig(): CapacityConfig? {
+    getProperty("capacity")?.let { return CapacityConfig.parse(it) }
+
+    val shutdown = getProperty("shutdown_capacity")?.toIntOrNull() ?: return null
+    val cooldown = getProperty("cooldown_capacity")?.toIntOrNull() ?: return null
+    val resume = getProperty("resume_capacity")?.toIntOrNull() ?: return null
+    val pause = getProperty("pause_capacity")?.toIntOrNull() ?: return null
+    val maskAsFull = getProperty("capacity_mask")?.toBooleanStrictOrNull() ?: false
+    val values = listOf(shutdown, cooldown, resume, pause)
+    val mode = when {
+        values.all { it in 0..100 } -> ConfigGroupMode.NORMAL
+        values.any { it in 101..2999 } -> ConfigGroupMode.MIXED_LEGACY
+        values.all { it == 0 || it >= 3000 } -> ConfigGroupMode.VOLTAGE
+        else -> ConfigGroupMode.ADVANCED_CUSTOM
+    }
+    return CapacityConfig(
+        shutdown = shutdown,
+        cooldown = cooldown,
+        resume = resume,
+        pause = pause,
+        maskAsFull = maskAsFull,
+        mode = mode
+    )
+}
+
+private fun Properties.toTemperatureConfig(): TemperatureConfig? {
+    getProperty("temperature")?.let { return TemperatureConfig.parse(it) }
+
+    val cooldown = getProperty("cooldown_temp")?.toIntOrNull() ?: return null
+    val pause = getProperty("max_temp")?.toIntOrNull() ?: return null
+    val resume = getProperty("resume_temp")?.toIntOrNull() ?: return null
+    val shutdown = getProperty("shutdown_temp")?.toIntOrNull() ?: return null
+    val values = listOf(cooldown, pause, resume, shutdown)
+    val mode = when {
+        values.all { it in 0..100 } -> ConfigGroupMode.NORMAL
+        values.all { it == 0 || it >= 3000 } -> ConfigGroupMode.VOLTAGE
+        else -> ConfigGroupMode.ADVANCED_CUSTOM
+    }
+    return TemperatureConfig(
+        cooldown = cooldown,
+        pause = pause,
+        resume = resume,
+        shutdown = shutdown,
+        mode = mode
+    )
+}
+
 private fun tokenize(raw: String?): List<String> =
     raw
+        ?.replace("(", " ")
+        ?.replace(")", " ")
         ?.trim()
-        ?.removePrefix("(")
-        ?.removeSuffix(")")
         ?.split(Regex("\\s+"))
         ?.filter { it.isNotBlank() }
         .orEmpty()

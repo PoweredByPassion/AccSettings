@@ -91,6 +91,58 @@ class AccConfigGroupsTest {
         assertNull(grouped.defaultTemperature)
     }
 
+    @Test
+    fun readGroupedConfig_supports_split_threshold_properties() = runBlocking {
+        val current = propertiesOf(
+            "shutdown_capacity" to "5",
+            "cooldown_capacity" to "70",
+            "resume_capacity" to "72",
+            "pause_capacity" to "80",
+            "capacity_mask" to "false",
+            "cooldown_temp" to "45",
+            "max_temp" to "50",
+            "resume_temp" to "40",
+            "shutdown_temp" to "55"
+        )
+        val defaults = propertiesOf(
+            "shutdown_capacity" to "5",
+            "cooldown_capacity" to "101",
+            "resume_capacity" to "70",
+            "pause_capacity" to "75",
+            "capacity_mask" to "false",
+            "cooldown_temp" to "45",
+            "max_temp" to "50",
+            "resume_temp" to "40",
+            "shutdown_temp" to "55"
+        )
+        val bridge = AccBridge(
+            capabilityProbe = { capabilityWithDefaults() },
+            versionReader = { Pair(0, null) },
+            daemonReader = { false },
+            currentConfigReader = { current },
+            defaultConfigReader = { defaults }
+        )
+
+        val grouped = bridge.readGroupedConfig()
+
+        assertEquals(
+            CapacityConfig(5, 70, 72, 80, false, ConfigGroupMode.NORMAL),
+            grouped.currentCapacity
+        )
+        assertEquals(
+            TemperatureConfig(45, 50, 40, 55, ConfigGroupMode.NORMAL),
+            grouped.currentTemperature
+        )
+        assertEquals(
+            CapacityConfig(5, 101, 70, 75, false, ConfigGroupMode.MIXED_LEGACY),
+            grouped.defaultCapacity
+        )
+        assertEquals(
+            TemperatureConfig(45, 50, 40, 55, ConfigGroupMode.NORMAL),
+            grouped.defaultTemperature
+        )
+    }
+
     private fun capabilityWithDefaults(): AccCapability = AccCapability.from(
         AccProbeFacts(
             hasRoot = true,

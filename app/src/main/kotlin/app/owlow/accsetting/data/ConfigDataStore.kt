@@ -20,6 +20,7 @@ import app.owlow.accsetting.acc.GroupedConfigRead
 import app.owlow.accsetting.acc.PatchGroup
 import app.owlow.accsetting.acc.TemperatureConfig
 import app.owlow.accsetting.acc.TemperatureMode
+import app.owlow.accsetting.acc.resolveGroups
 import kotlinx.coroutines.runBlocking
 import java.util.Properties
 
@@ -95,6 +96,7 @@ open class ConfigDataStore internal constructor(
             resumeCapacityKey() -> updateCapacity(resume = value)
             pauseCapacityKey() -> updateCapacity(pause = value)
             cooldownTempKey() -> updateTemperature(cooldown = value)
+            resumeTempKey() -> updateTemperature(resume = value)
             maxTempKey() -> updateTemperature(pause = value)
             shutdownTempKey() -> updateTemperature(shutdown = value)
             else -> updateProperty(key, value.toString())
@@ -186,7 +188,7 @@ open class ConfigDataStore internal constructor(
 
     fun hasPendingChanges(): Boolean {
         val state = currentDraftState()
-        return state.current != state.draft
+        return !state.current.isSameAs(state.draft)
     }
 
     fun isApplyingBlocked(): Boolean = currentDraftState().status == DraftStatus.ADVANCED_MODIFIED
@@ -206,12 +208,13 @@ open class ConfigDataStore internal constructor(
     }
 
     private fun initializeDraftState(groupedConfig: GroupedConfigRead): AccDraftState {
-        var state = AccDraftState.from(groupedConfig, groupedConfig)
+        val resolvedConfig = groupedConfig.resolveGroups()
+        var state = AccDraftState.from(resolvedConfig, resolvedConfig)
         val protectedGroups = buildSet {
-            if (groupedConfig.currentCapacity?.mode in setOf(ConfigGroupMode.MIXED_LEGACY, ConfigGroupMode.ADVANCED_CUSTOM)) {
+            if (resolvedConfig.currentCapacity?.mode in setOf(ConfigGroupMode.MIXED_LEGACY, ConfigGroupMode.ADVANCED_CUSTOM)) {
                 add(PatchGroup.CAPACITY)
             }
-            if (groupedConfig.currentTemperature?.mode == ConfigGroupMode.ADVANCED_CUSTOM) {
+            if (resolvedConfig.currentTemperature?.mode == ConfigGroupMode.ADVANCED_CUSTOM) {
                 add(PatchGroup.TEMPERATURE)
             }
         }
@@ -241,6 +244,7 @@ open class ConfigDataStore internal constructor(
         configCache[supportInVoltageKey] = supportInVoltage.toString()
         state.draft.currentTemperature?.let { temperature ->
             configCache[cooldownTempKey()] = temperature.cooldown.toString()
+            configCache[resumeTempKey()] = temperature.resume.toString()
             configCache[maxTempKey()] = temperature.pause.toString()
             configCache[shutdownTempKey()] = temperature.shutdown.toString()
         }
@@ -258,7 +262,11 @@ open class ConfigDataStore internal constructor(
             rebuildCache()
             return
         }
-        val current = state.draft.currentCapacity ?: CapacityConfig(0, 0, 0, 0, false, ConfigGroupMode.NORMAL)
+        val current = state.draft.currentCapacity
+            ?: state.current.currentCapacity
+            ?: state.defaults.currentCapacity
+            ?: CapacityConfig(0, 0, 0, 0, false, ConfigGroupMode.NORMAL)
+
         val next = CapacityConfig(
             shutdown = shutdown ?: current.shutdown,
             cooldown = cooldown ?: current.cooldown,
@@ -273,6 +281,7 @@ open class ConfigDataStore internal constructor(
 
     private fun updateTemperature(
         cooldown: Int? = null,
+        resume: Int? = null,
         pause: Int? = null,
         shutdown: Int? = null
     ) {
@@ -281,19 +290,19 @@ open class ConfigDataStore internal constructor(
             rebuildCache()
             return
         }
-        val current = state.draft.currentTemperature ?: TemperatureConfig(0, 0, 0, 0, ConfigGroupMode.NORMAL)
+        val current = state.draft.currentTemperature
+            ?: state.current.currentTemperature
+            ?: state.defaults.currentTemperature
+            ?: TemperatureConfig(0, 0, 0, 0, ConfigGroupMode.NORMAL)
+
         val next = TemperatureConfig(
             cooldown = cooldown ?: current.cooldown,
+            resume = resume ?: current.resume,
             pause = pause ?: current.pause,
-            resume = current.resume,
             shutdown = shutdown ?: current.shutdown,
             mode = ConfigGroupMode.NORMAL
         )
-        draftState = state.copy(
-            draft = state.draft.copy(currentTemperature = next).withProperty("temperature", next.serialize()),
-            status = DraftStatus.MODIFIED,
-            protectedAdvancedGroups = state.protectedAdvancedGroups - PatchGroup.TEMPERATURE
-        )
+        draftState = state.updateTemperature(next)
         rebuildCache()
     }
 
@@ -331,6 +340,7 @@ open class ConfigDataStore internal constructor(
             groups += PatchGroup.TEMPERATURE
         }
         draft.current.stringPropertyNames()
+            .filterNot(::isStructuredThresholdKey)
             .filter { current.current.getProperty(it) != draft.current.getProperty(it) }
             .forEach { key -> groups += inferGroup(key) }
         return groups.toList()
@@ -350,6 +360,7 @@ open class ConfigDataStore internal constructor(
     private fun pauseCapacityKey(): String = "set_pause_capacity"
     private fun capacityMaskKey(): String = "set_capacity_mask"
     private fun cooldownTempKey(): String = "set_cooldown_temp"
+    private fun resumeTempKey(): String = "set_resume_temp"
     private fun maxTempKey(): String = "set_max_temp"
     private fun shutdownTempKey(): String = "set_shutdown_temp"
     private fun chargingSwitchKey(): String = "charging_switch"
@@ -362,6 +373,20 @@ open class ConfigDataStore internal constructor(
         else -> key
     }
 
+    private fun isStructuredThresholdKey(key: String): Boolean = key in setOf(
+        "capacity",
+        "temperature",
+        "shutdown_capacity",
+        "cooldown_capacity",
+        "resume_capacity",
+        "pause_capacity",
+        "capacity_mask",
+        "cooldown_temp",
+        "resume_temp",
+        "max_temp",
+        "shutdown_temp"
+    )
+
     companion object {
         const val TAG = "ConfigDataStore"
 
@@ -370,12 +395,8 @@ open class ConfigDataStore internal constructor(
             val defaults = Command.getDefaultConfig()
             return GroupedConfigRead(
                 current = current,
-                defaults = defaults,
-                currentCapacity = current.getProperty("capacity")?.let(CapacityConfig::parse),
-                defaultCapacity = defaults.getProperty("capacity")?.let(CapacityConfig::parse),
-                currentTemperature = current.getProperty("temperature")?.let(TemperatureConfig::parse),
-                defaultTemperature = defaults.getProperty("temperature")?.let(TemperatureConfig::parse)
-            )
+                defaults = defaults
+            ).resolveGroups()
         }
 
         fun buildBridge(): AccBridge = AccBridge(
@@ -411,10 +432,17 @@ open class ConfigDataStore internal constructor(
                 try {
                     when (group) {
                         PatchGroup.CAPACITY -> target.currentCapacity?.let {
-                            Command.setConfig("capacity", it.serialize())
+                            Command.setConfig("sc", it.shutdown.toString())
+                            Command.setConfig("cc", it.cooldown.toString())
+                            Command.setConfig("rc", it.resume.toString())
+                            Command.setConfig("pc", it.pause.toString())
+                            Command.setConfig("cm", it.maskAsFull.toString())
                         }
                         PatchGroup.TEMPERATURE -> target.currentTemperature?.let {
-                            Command.setConfig("temperature", it.serialize())
+                            Command.setConfig("ct", it.cooldown.toString())
+                            Command.setConfig("rt", it.resume.toString())
+                            Command.setConfig("mt", it.pause.toString())
+                            Command.setConfig("st", it.shutdown.toString())
                         }
                         else -> writePropertyGroup(group, target.current)
                     }
@@ -429,11 +457,24 @@ open class ConfigDataStore internal constructor(
         suspend fun writePropertyGroup(group: PatchGroup, properties: Properties) {
             properties.stringPropertyNames()
                 .filter { key -> when (group) {
-                    PatchGroup.COOLDOWN -> key.contains("cooldown")
+                    PatchGroup.COOLDOWN -> key.contains("cooldown") &&
+                        key !in setOf("temperature", "cooldown_capacity", "cooldown_temp")
                     PatchGroup.CHARGING_CONTROL -> key.contains("charging_switch") || key.contains("batt_idle")
                     PatchGroup.CURRENT_VOLTAGE -> key.contains("charging_current") || key.contains("charging_voltage")
                     PatchGroup.STATS_RESET -> key.contains("reset_batt_stats")
-                    PatchGroup.RUNTIME_HOOKS -> key !in setOf("capacity", "temperature") &&
+                    PatchGroup.RUNTIME_HOOKS -> key !in setOf(
+                        "capacity",
+                        "temperature",
+                        "shutdown_capacity",
+                        "cooldown_capacity",
+                        "resume_capacity",
+                        "pause_capacity",
+                        "capacity_mask",
+                        "cooldown_temp",
+                        "resume_temp",
+                        "max_temp",
+                        "shutdown_temp"
+                    ) &&
                         !key.contains("cooldown") &&
                         !key.contains("charging_switch") &&
                         !key.contains("batt_idle") &&

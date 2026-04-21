@@ -87,9 +87,77 @@ private fun ConfigFieldRow(
         }
     }
 
+    var showPicker by remember(field.key) { mutableStateOf(false) }
+
+    if (showPicker && field.kind == ConfigFieldKind.PICKER) {
+        val pickerState = requireNotNull(field.pickerState)
+        var selectedIndex by remember(field.key, field.value, pickerState.options) {
+            mutableIntStateOf(pickerState.options.indexOf(field.value.toIntOrNull()).coerceAtLeast(0))
+        }
+
+        AlertDialog(
+            onDismissRequest = { showPicker = false },
+            shape = RoundedCornerShape(28.dp),
+            containerColor = Color.White,
+            title = {
+                Text(
+                    text = stringResource(field.labelRes),
+                    style = AccTypography.titleLarge
+                )
+            },
+            text = {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    AndroidView(
+                        factory = {
+                            NumberPicker(context).apply {
+                                wrapSelectorWheel = false
+                                descendantFocusability = NumberPicker.FOCUS_BLOCK_DESCENDANTS
+                            }
+                        },
+                        update = { picker ->
+                            val displayedValues = pickerState.options.map(Int::toString).toTypedArray()
+                            picker.displayedValues = null
+                            picker.minValue = 0
+                            picker.maxValue = displayedValues.lastIndex
+                            picker.displayedValues = displayedValues
+                            picker.value = selectedIndex.coerceIn(0, displayedValues.lastIndex)
+                            picker.setOnValueChangedListener { _, _, newValue ->
+                                selectedIndex = newValue
+                            }
+                        }
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onFieldChanged(field.key, pickerState.options[selectedIndex].toString())
+                        showPicker = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = AccPrimary),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(text = stringResource(android.R.string.ok))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPicker = false }) {
+                    Text(text = stringResource(android.R.string.cancel), color = Zinc600)
+                }
+            }
+        )
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable(
+                enabled = field.enabled && field.kind == ConfigFieldKind.PICKER,
+                onClick = { showPicker = true }
+            )
             .padding(horizontal = 20.dp, vertical = 12.dp)
     ) {
         Row(
@@ -106,7 +174,7 @@ private fun ConfigFieldRow(
                 )
                 if (supportingLines.isNotEmpty()) {
                     Text(
-                        text = supportingLines.first(), // Show first line as primary hint
+                        text = supportingLines.first(),
                         style = AccTypography.labelMedium,
                         color = Zinc500,
                         modifier = Modifier.padding(top = 2.dp)
@@ -116,7 +184,8 @@ private fun ConfigFieldRow(
 
             FieldControl(
                 field = field,
-                onFieldChanged = onFieldChanged
+                onFieldChanged = onFieldChanged,
+                onRequestPicker = { showPicker = true }
             )
         }
     }
@@ -133,80 +202,16 @@ private fun ConfigFieldRow(
 @Composable
 private fun FieldControl(
     field: ConfigFieldUiModel,
-    onFieldChanged: (String, String) -> Unit
+    onFieldChanged: (String, String) -> Unit,
+    onRequestPicker: () -> Unit
 ) {
-    val context = LocalContext.current
-    
     when (field.kind) {
         ConfigFieldKind.PICKER -> {
-            val pickerState = requireNotNull(field.pickerState)
-            var showPicker by remember(field.key) { mutableStateOf(false) }
-            var selectedIndex by remember(field.key, field.value, pickerState.options) {
-                mutableIntStateOf(pickerState.options.indexOf(field.value.toIntOrNull()).coerceAtLeast(0))
-            }
-
-            if (showPicker) {
-                AlertDialog(
-                    onDismissRequest = { showPicker = false },
-                    shape = RoundedCornerShape(28.dp),
-                    containerColor = Color.White,
-                    title = {
-                        Text(
-                            text = stringResource(field.labelRes),
-                            style = AccTypography.titleLarge
-                        )
-                    },
-                    text = {
-                        Box(
-                            modifier = Modifier.fillMaxWidth(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            AndroidView(
-                                factory = {
-                                    NumberPicker(context).apply {
-                                        wrapSelectorWheel = false
-                                        descendantFocusability = NumberPicker.FOCUS_BLOCK_DESCENDANTS
-                                    }
-                                },
-                                update = { picker ->
-                                    val displayedValues = pickerState.options.map(Int::toString).toTypedArray()
-                                    picker.displayedValues = null
-                                    picker.minValue = 0
-                                    picker.maxValue = displayedValues.lastIndex
-                                    picker.displayedValues = displayedValues
-                                    picker.value = selectedIndex.coerceIn(0, displayedValues.lastIndex)
-                                    picker.setOnValueChangedListener { _, _, newValue ->
-                                        selectedIndex = newValue
-                                    }
-                                }
-                            )
-                        }
-                    },
-                    confirmButton = {
-                        Button(
-                            onClick = {
-                                onFieldChanged(field.key, pickerState.options[selectedIndex].toString())
-                                showPicker = false
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = AccPrimary),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text(text = stringResource(android.R.string.ok))
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { showPicker = false }) {
-                            Text(text = stringResource(android.R.string.cancel), color = Zinc600)
-                        }
-                    }
-                )
-            }
-
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(12.dp))
                     .background(Zinc100)
-                    .clickable(enabled = field.enabled) { showPicker = true }
+                    .clickable(enabled = field.enabled) { onRequestPicker() }
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 Text(

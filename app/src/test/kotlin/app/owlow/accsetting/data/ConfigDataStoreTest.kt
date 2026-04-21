@@ -135,6 +135,33 @@ class ConfigDataStoreTest {
     }
 
     @Test
+    fun split_threshold_config_populates_editable_fields() {
+        val store = testStore(
+            groupedConfig = splitGroupedConfig()
+        )
+
+        assertEquals(5, store.getInt("set_shutdown_capacity", 0))
+        assertEquals(72, store.getInt("set_resume_capacity", 0))
+        assertEquals(40, store.getInt("set_resume_temp", 0))
+        assertEquals(55, store.getInt("set_shutdown_temp", 0))
+    }
+
+    @Test
+    fun editing_one_split_capacity_value_preserves_other_live_values() {
+        val store = testStore(
+            groupedConfig = splitGroupedConfig()
+        )
+
+        store.putInt("set_pause_capacity", 85)
+
+        val draftCapacity = store.currentDraftStateForTesting().draft.currentCapacity
+        assertEquals(
+            CapacityConfig(5, 70, 72, 85, false, ConfigGroupMode.NORMAL),
+            draftCapacity
+        )
+    }
+
+    @Test
     fun apply_triggers_each_required_side_effect_once() {
         val effects = mutableListOf<String>()
         val store = ConfigDataStore(
@@ -210,6 +237,25 @@ class ConfigDataStoreTest {
             defaultCapacity = capacity,
             currentTemperature = temperature,
             defaultTemperature = temperature
+        )
+    }
+
+    private fun splitGroupedConfig(): GroupedConfigRead {
+        val current = Properties().apply {
+            setProperty("shutdown_capacity", "5")
+            setProperty("cooldown_capacity", "70")
+            setProperty("resume_capacity", "72")
+            setProperty("pause_capacity", "80")
+            setProperty("capacity_mask", "false")
+            setProperty("cooldown_temp", "45")
+            setProperty("max_temp", "50")
+            setProperty("resume_temp", "40")
+            setProperty("shutdown_temp", "55")
+        }
+        val defaults = Properties().apply { putAll(current) }
+        return GroupedConfigRead(
+            current = current,
+            defaults = defaults
         )
     }
 

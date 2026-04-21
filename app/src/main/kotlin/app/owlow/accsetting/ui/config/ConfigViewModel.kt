@@ -37,6 +37,7 @@ private val INT_FIELD_KEYS = setOf(
     "set_resume_capacity",
     "set_pause_capacity",
     "set_cooldown_temp",
+    "set_resume_temp",
     "set_max_temp",
     "set_shutdown_temp"
 )
@@ -102,7 +103,7 @@ class ConfigViewModel(
 }
 
 private class LiveConfigRepository(
-    context: Context
+    private val context: Context
 ) : ConfigRepository {
     private val configStore = ConfigDataStore(context)
 
@@ -127,7 +128,13 @@ private class LiveConfigRepository(
     override suspend fun applyDraft(): ConfigDraftSnapshot = withContext(Dispatchers.IO) {
         val result = configStore.applyDraft()
         val error = when (result) {
-            is ApplyGroupedPatchResult.ValidationFailed -> result.errors.joinToString()
+            is ApplyGroupedPatchResult.ValidationFailed -> result.errors.joinToString { error ->
+                when (error) {
+                    "capacity ordering is invalid" -> context.getString(R.string.config_error_capacity_ordering)
+                    "temperature ordering is invalid" -> context.getString(R.string.config_error_temperature_ordering)
+                    else -> error
+                }
+            }
             is ApplyGroupedPatchResult.Partial -> result.failedGroups.values.joinToString()
             is ApplyGroupedPatchResult.VerificationMismatch -> "Applied values did not fully match the device readback."
             ApplyGroupedPatchResult.StaleBaseConfig -> "Configuration changed on device. Refresh and try again."
@@ -147,7 +154,7 @@ private fun AccDraftState.toSnapshot(applyError: String? = null): ConfigDraftSna
 private fun ConfigDraftSnapshot.toUiState(): ConfigUiState = ConfigUiState(
     isLoading = false,
     groups = draft.toConfigGroups(),
-    hasPendingChanges = applied != draft,
+    hasPendingChanges = !applied.isSameAs(draft),
     isApplying = false,
     applyError = applyError
 )
@@ -214,12 +221,21 @@ private fun GroupedConfigRead.capacityFields(): List<ConfigFieldUiModel> {
     )
     val voltageMode = capacity.mode == ConfigGroupMode.VOLTAGE
     val unitRes = if (voltageMode) R.string.config_unit_millivolt else R.string.config_unit_percent
+    
+    // Use absolute ranges to avoid "locking" users when order is invalid
+    // Use step 5 for capacity to make scrolling faster as requested
+    val options = if (voltageMode) {
+        voltageOptions()
+    } else {
+        (CAPACITY_PERCENT_MIN..CAPACITY_PERCENT_MAX step 5).toList()
+    }
+
     return listOf(
         pickerField(
             key = "set_shutdown_capacity",
             labelRes = R.string.shutdown_below,
             selectedValue = capacity.shutdown,
-            options = capacityShutdownOptions(capacity),
+            options = options,
             unitRes = unitRes,
             helperTextRes = R.string.hint_capacity_shutdown
         ),
@@ -227,21 +243,21 @@ private fun GroupedConfigRead.capacityFields(): List<ConfigFieldUiModel> {
             key = "set_cooldown_capacity",
             labelRes = R.string.cooldown_above,
             selectedValue = capacity.cooldown,
-            options = capacityCooldownOptions(capacity),
+            options = options,
             unitRes = unitRes
         ),
         pickerField(
             key = "set_resume_capacity",
             labelRes = R.string.charge_below,
             selectedValue = capacity.resume,
-            options = capacityResumeOptions(capacity),
+            options = options,
             unitRes = unitRes
         ),
         pickerField(
             key = "set_pause_capacity",
             labelRes = R.string.pause_above,
             selectedValue = capacity.pause,
-            options = capacityPauseOptions(capacity),
+            options = options,
             unitRes = unitRes
         )
     )
@@ -255,26 +271,35 @@ private fun GroupedConfigRead.temperatureFields(): List<ConfigFieldUiModel> {
         shutdown = 50,
         mode = ConfigGroupMode.NORMAL
     )
+    val options = (TEMP_MIN..TEMP_MAX).toList()
+
     return listOf(
         pickerField(
             key = "set_cooldown_temp",
             labelRes = R.string.cooldown_above,
             selectedValue = temperature.cooldown,
-            options = temperatureCooldownOptions(temperature),
+            options = options,
+            unitRes = R.string.config_unit_celsius
+        ),
+        pickerField(
+            key = "set_resume_temp",
+            labelRes = R.string.charge_below,
+            selectedValue = temperature.resume,
+            options = options,
             unitRes = R.string.config_unit_celsius
         ),
         pickerField(
             key = "set_max_temp",
             labelRes = R.string.pause_above,
             selectedValue = temperature.pause,
-            options = temperaturePauseOptions(temperature),
+            options = options,
             unitRes = R.string.config_unit_celsius
         ),
         pickerField(
             key = "set_shutdown_temp",
             labelRes = R.string.shutdown_above,
             selectedValue = temperature.shutdown,
-            options = temperatureShutdownOptions(temperature),
+            options = options,
             unitRes = R.string.config_unit_celsius
         )
     )
@@ -305,60 +330,6 @@ private fun pickerField(
         minValue = resolvedOptions.first(),
         maxValue = resolvedOptions.last()
     )
-}
-
-private fun capacityShutdownOptions(capacity: CapacityConfig): List<Int> = when (capacity.mode) {
-    ConfigGroupMode.VOLTAGE -> voltageOptions()
-    else -> boundedOptions(
-        minValue = CAPACITY_PERCENT_MIN,
-        maxValue = minOf(capacity.cooldown, capacity.resume) - 1
-    )
-}
-
-private fun capacityCooldownOptions(capacity: CapacityConfig): List<Int> = when (capacity.mode) {
-    ConfigGroupMode.VOLTAGE -> voltageOptions()
-    else -> boundedOptions(
-        minValue = capacity.shutdown + 1,
-        maxValue = capacity.pause - 1
-    )
-}
-
-private fun capacityResumeOptions(capacity: CapacityConfig): List<Int> = when (capacity.mode) {
-    ConfigGroupMode.VOLTAGE -> voltageOptions()
-    else -> boundedOptions(
-        minValue = capacity.shutdown + 1,
-        maxValue = capacity.pause - 1
-    )
-}
-
-private fun capacityPauseOptions(capacity: CapacityConfig): List<Int> = when (capacity.mode) {
-    ConfigGroupMode.VOLTAGE -> voltageOptions()
-    else -> boundedOptions(
-        minValue = maxOf(capacity.cooldown, capacity.resume) + 1,
-        maxValue = CAPACITY_PERCENT_MAX
-    )
-}
-
-private fun temperatureCooldownOptions(temperature: TemperatureConfig): List<Int> = boundedOptions(
-    minValue = TEMP_MIN,
-    maxValue = minOf(temperature.pause, temperature.resume) - 1
-)
-
-private fun temperaturePauseOptions(temperature: TemperatureConfig): List<Int> = boundedOptions(
-    minValue = maxOf(temperature.cooldown + 1, temperature.resume + 1),
-    maxValue = temperature.shutdown - 1
-)
-
-private fun temperatureShutdownOptions(temperature: TemperatureConfig): List<Int> = boundedOptions(
-    minValue = temperature.pause + 1,
-    maxValue = TEMP_MAX
-)
-
-private fun boundedOptions(minValue: Int, maxValue: Int): List<Int> {
-    if (maxValue < minValue) {
-        return listOf(minValue)
-    }
-    return (minValue..maxValue).toList()
 }
 
 private fun voltageOptions(): List<Int> = listOf(0) + (VOLT_MIN..VOLT_MAX).toList()

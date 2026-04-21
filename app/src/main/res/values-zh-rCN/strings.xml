@@ -196,5 +196,9 @@
     <string name="about_app_version">版本：%1$s</string>
     <string name="about_app_package">包名：%1$s</string>
     <string name="about_project_repo">GitHub：%1$s</string>
-    <string name="about_project_description">用于管理 Advanced Charging Controller 的原生 Android 界面。</string>
-</resources>
+    <string name="about_project_description">Advanced Charging Controller (ACC) 的原生 Android 管理界面。</string>
+
+    <string name="config_error_capacity_ordering">电量阈值顺序无效：关机 &lt; 冷却 &lt;= 恢复 &lt; 停止</string>
+    <string name="config_error_temperature_ordering">温度阈值顺序无效：冷却 &lt; 恢复 &lt; 停止 &lt; 关机</string>
+    </resources>
+

@@ -1,5 +1,7 @@
 package app.owlow.accsetting.acc
 
+import java.util.Properties
+
 enum class DraftStatus {
     CLEAN,
     MODIFIED,
@@ -17,7 +19,19 @@ data class AccDraftState(
     val protectedAdvancedGroups: Set<PatchGroup> = emptySet()
 ) {
     fun updateCapacity(capacityConfig: CapacityConfig): AccDraftState {
-        val nextDraft = draft.copy(currentCapacity = capacityConfig)
+        val nextCurrent = Properties()
+        nextCurrent.putAll(draft.current)
+        nextCurrent.remove("capacity")
+        nextCurrent.setProperty("shutdown_capacity", capacityConfig.shutdown.toString())
+        nextCurrent.setProperty("cooldown_capacity", capacityConfig.cooldown.toString())
+        nextCurrent.setProperty("resume_capacity", capacityConfig.resume.toString())
+        nextCurrent.setProperty("pause_capacity", capacityConfig.pause.toString())
+        nextCurrent.setProperty("capacity_mask", capacityConfig.maskAsFull.toString())
+
+        val nextDraft = draft.copy(
+            currentCapacity = capacityConfig,
+            current = nextCurrent
+        )
         val advancedGroup = capacityConfig.mode == ConfigGroupMode.MIXED_LEGACY ||
             capacityConfig.mode == ConfigGroupMode.ADVANCED_CUSTOM
         return copy(
@@ -31,19 +45,44 @@ data class AccDraftState(
         )
     }
 
+    fun updateTemperature(temperatureConfig: TemperatureConfig): AccDraftState {
+        val nextCurrent = Properties()
+        nextCurrent.putAll(draft.current)
+        nextCurrent.remove("temperature")
+        nextCurrent.setProperty("cooldown_temp", temperatureConfig.cooldown.toString())
+        nextCurrent.setProperty("resume_temp", temperatureConfig.resume.toString())
+        nextCurrent.setProperty("max_temp", temperatureConfig.pause.toString())
+        nextCurrent.setProperty("shutdown_temp", temperatureConfig.shutdown.toString())
+
+        val nextDraft = draft.copy(
+            currentTemperature = temperatureConfig,
+            current = nextCurrent
+        )
+        val advancedGroup = temperatureConfig.mode == ConfigGroupMode.ADVANCED_CUSTOM
+        return copy(
+            draft = nextDraft,
+            status = if (advancedGroup) DraftStatus.ADVANCED_MODIFIED else DraftStatus.MODIFIED,
+            protectedAdvancedGroups = if (advancedGroup) {
+                protectedAdvancedGroups + PatchGroup.TEMPERATURE
+            } else {
+                protectedAdvancedGroups - PatchGroup.TEMPERATURE
+            }
+        )
+    }
+
     fun canOverwrite(group: PatchGroup, allowProtectedGroupRebuild: Boolean): Boolean {
         return allowProtectedGroupRebuild || group !in protectedAdvancedGroups
     }
 
-    fun isStaleAgainst(latestCurrent: GroupedConfigRead): Boolean = latestCurrent != baseCurrent
+    fun isStaleAgainst(latestCurrent: GroupedConfigRead): Boolean = !latestCurrent.isSameAs(baseCurrent)
 
     companion object {
         fun from(current: GroupedConfigRead, defaults: GroupedConfigRead): AccDraftState = AccDraftState(
-            defaults = defaults,
-            current = current,
-            draft = current.copy(),
+            defaults = defaults.resolveGroups(),
+            current = current.resolveGroups(),
+            draft = current.resolveGroups().copy(),
             status = DraftStatus.CLEAN,
-            baseCurrent = current.copy()
+            baseCurrent = current.resolveGroups().copy()
         )
     }
 }

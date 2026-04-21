@@ -198,4 +198,7 @@
     <string name="about_app_package">Package: %1$s</string>
     <string name="about_project_repo">GitHub: %1$s</string>
     <string name="about_project_description">Native Android UI for Advanced Charging Controller management.</string>
+
+    <string name="config_error_capacity_ordering">Capacity ordering is invalid: shutdown &lt; cooldown &lt;= resume &lt; pause</string>
+    <string name="config_error_temperature_ordering">Temperature ordering is invalid: cooldown &lt; resume &lt; pause &lt; shutdown</string>
 </resources>

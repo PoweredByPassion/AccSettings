@@ -52,19 +52,13 @@ class AccBridge(
     suspend fun readGroupedConfig(): GroupedConfigRead {
         val current = readCurrentConfig()
         val defaults = readDefaultConfig()
-        val base = groupedConfigReader(current, defaults)
-        return base.copy(
-            currentCapacity = current.getProperty("capacity")?.let(CapacityConfig::parse),
-            defaultCapacity = defaults.getProperty("capacity")?.let(CapacityConfig::parse),
-            currentTemperature = current.getProperty("temperature")?.let(TemperatureConfig::parse),
-            defaultTemperature = defaults.getProperty("temperature")?.let(TemperatureConfig::parse)
-        )
+        return groupedConfigReader(current, defaults).resolveGroups()
     }
 
     suspend fun applyGroupedPatch(request: ApplyGroupedPatchRequest): ApplyGroupedPatchResult =
         taskRunner.runSerialized {
             val latest = latestGroupedConfigReader()
-            if (latest != request.base) {
+            if (!latest.isSameAs(request.base)) {
                 return@runSerialized ApplyGroupedPatchResult.StaleBaseConfig
             }
 
@@ -90,7 +84,7 @@ class AccBridge(
                     failedGroups = failedGroups,
                     verifiedConfig = verified
                 )
-                verified != request.target -> ApplyGroupedPatchResult.VerificationMismatch(
+                !verified.isSameAs(request.target) -> ApplyGroupedPatchResult.VerificationMismatch(
                     appliedGroups = appliedGroups,
                     verifiedConfig = verified
                 )
