@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-04-21
+
+- Upgraded the project to target SDK 36 (Android 16) and modernized with AGP 8.13, Kotlin 2.2.0, and Compose BOM 2026.03.01
+- Renamed the package globally to `app.owlow.accsettings`
+- Added Per-App Language support (Android 13+) via system settings
+- Updated UI and lifecycle patterns with modern `enableEdgeToEdge()` and `viewModelFactory` DSL
+- Raised `minSdk` to 23 to meet modern Compose library requirements
+
 ## 2026-04-20
 
 - Fixed the Overview action wiring so refresh and navigation no longer trigger the same behavior

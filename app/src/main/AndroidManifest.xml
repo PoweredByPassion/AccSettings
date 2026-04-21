@@ -10,7 +10,8 @@
         android:icon="@drawable/ic_launcher"
         android:label="@string/acc_settings"
         android:supportsRtl="true"
-        android:theme="@style/Theme.AccSetting"
+        android:theme="@style/Theme.AccSettings"
+        android:localeConfig="@xml/locales_config"
         tools:ignore="AllowBackup">
         <activity
             android:name=".SettingsActivity"
