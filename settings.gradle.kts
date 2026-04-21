@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "AccSettings"
+rootProject.name = "Acc Setting"
 include(":app")

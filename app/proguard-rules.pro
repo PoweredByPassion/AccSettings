@@ -21,6 +21,6 @@
 #-renamesourcefileattribute SourceFile
 
 # Required to allow the ConfigFragment to launch
--keep public class crazyboyfeng.accSettings.fragment.ConfigFragment {
+-keep public class app.owlow.accsetting.fragment.ConfigFragment {
   public *;
 }
