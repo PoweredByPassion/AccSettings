@@ -90,7 +90,7 @@ if [ "$INSTALL_FLAG" = true ]; then
     echo "================================================"
 
     # 卸载旧版本（如果存在）
-    PACKAGE_NAME="app.owlow.accsetting"
+    PACKAGE_NAME="app.owlow.accsettings"
     echo "检查旧版本..."
     if adb shell pm list packages | grep -q "$PACKAGE_NAME"; then
         echo "检测到旧版本，正在卸载..."
