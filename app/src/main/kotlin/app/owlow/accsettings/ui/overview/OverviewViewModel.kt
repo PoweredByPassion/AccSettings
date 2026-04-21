@@ -217,12 +217,8 @@ private fun String.formatBatteryVoltage(): String? =
     }
 
 private fun String.formatBatteryPower(): String? =
-    toDoubleOrNull()?.let { value ->
-        val watts = when {
-            kotlin.math.abs(value) >= 1_000_000 -> value / 1_000_000.0
-            kotlin.math.abs(value) >= 1_000 -> value / 1_000.0
-            else -> value
-        }
+    toDoubleOrNull()?.let { microwatts ->
+        val watts = microwatts / 1_000_000.0
         "${formatDecimal(watts, 2)} W"
     }
 

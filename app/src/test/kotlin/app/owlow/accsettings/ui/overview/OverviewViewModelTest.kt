@@ -103,6 +103,38 @@ class OverviewViewModelTest {
     }
 
     @Test
+    fun refresh_formatsSmallNegativePowerWithoutInflatingUnits() = runTest {
+        val viewModel = OverviewViewModel(
+            context = ApplicationProvider.getApplicationContext(),
+            overviewRepository = FakeOverviewRepository(
+                status = AccStatus(
+                    installState = AccInstallState.UP_TO_DATE,
+                    installedVersionName = "2025.5.18-dev",
+                    daemonRunning = true,
+                    canManageDaemon = true,
+                    showInstallAction = false,
+                    showUninstallAction = true,
+                    batteryInfo = BatteryInfo(
+                        level = "83",
+                        status = "discharging",
+                        temp = "315",
+                        current = "-65900",
+                        voltage = "4197",
+                        power = "-276432"
+                    )
+                )
+            )
+        )
+
+        viewModel.refresh().join()
+
+        assertEquals(
+            listOf("83%", "Discharging", "31.5°C", "-65.9 mA", "4197 mV", "-0.28 W"),
+            viewModel.uiState.value.batteryFacts.map { it.value }
+        )
+    }
+
+    @Test
     fun autoRefresh_reloadsBatteryStateEveryThreeSecondsUntilStopped() = runTest {
         val repository = CountingOverviewRepository()
         val viewModel = OverviewViewModel(
