@@ -1,6 +1,8 @@
 package app.owlow.accsettings.ui.about
 
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
@@ -12,6 +14,10 @@ fun AboutRoute(
     AboutScreen(
         appVersion = packageInfo.versionName ?: "unknown",
         packageName = context.packageName,
-        projectUrl = "https://github.com/poweredByPassion/AccSettings"
+        projectUrl = "https://github.com/poweredByPassion/AccSettings",
+        onUrlClick = { url ->
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+            context.startActivity(intent)
+        }
     )
 }

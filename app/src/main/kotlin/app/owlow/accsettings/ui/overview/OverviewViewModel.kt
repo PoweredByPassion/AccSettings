@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 interface OverviewRepository {
     suspend fun loadStatus(): AccStatus?
@@ -119,10 +120,34 @@ private fun AccStatus?.toUiState(context: Context): OverviewUiState {
         }
     }
 
+    val batteryFactsList = batteryInfo?.let { info ->
+        buildList {
+            info.level?.formatBatteryPercent()?.let {
+                add(OverviewFact(context.getString(R.string.battery_level), it))
+            }
+            info.status?.formatBatteryStatus(context)?.let {
+                add(OverviewFact(context.getString(R.string.battery_charging_status), it))
+            }
+            info.temp?.formatBatteryTemperature()?.let {
+                add(OverviewFact(context.getString(R.string.battery_temperature), it))
+            }
+            info.current?.formatBatteryCurrent()?.let {
+                add(OverviewFact(context.getString(R.string.battery_current), it))
+            }
+            info.voltage?.formatBatteryVoltage()?.let {
+                add(OverviewFact(context.getString(R.string.battery_voltage), it))
+            }
+            info.power?.formatBatteryPower()?.let {
+                add(OverviewFact(context.getString(R.string.battery_power), it))
+            }
+        }
+    } ?: emptyList()
+
     return OverviewUiState(
         isLoading = false,
         statusHeadline = headline,
         runtimeFacts = facts,
+        batteryFacts = batteryFactsList,
         primaryActions = actions,
         warnings = warnings
     )
@@ -134,3 +159,49 @@ private fun AccInstallState.label(context: Context): String = when (this) {
     AccInstallState.UPDATE_AVAILABLE -> context.getString(R.string.overview_install_state_update)
     AccInstallState.UP_TO_DATE -> context.getString(R.string.overview_install_state_up_to_date)
 }
+
+private fun String.formatBatteryPercent(): String? =
+    toDoubleOrNull()?.let { "${trimTrailingZeros(it)}%" }
+
+private fun String.formatBatteryTemperature(): String? =
+    toDoubleOrNull()?.let { value ->
+        val celsius = if (kotlin.math.abs(value) >= 100) value / 10.0 else value
+        "${formatDecimal(celsius, 1)}°C"
+    }
+
+private fun String.formatBatteryCurrent(): String? =
+    toDoubleOrNull()?.let { value ->
+        val milliamps = if (kotlin.math.abs(value) >= 10_000) value / 1000.0 else value
+        "${trimTrailingZeros(milliamps)} mA"
+    }
+
+private fun String.formatBatteryVoltage(): String? =
+    toDoubleOrNull()?.let { value ->
+        val millivolts = if (kotlin.math.abs(value) >= 10_000) value / 1000.0 else value
+        "${trimTrailingZeros(millivolts)} mV"
+    }
+
+private fun String.formatBatteryPower(): String? =
+    toDoubleOrNull()?.let { value ->
+        val watts = when {
+            kotlin.math.abs(value) >= 1_000_000 -> value / 1_000_000.0
+            kotlin.math.abs(value) >= 1_000 -> value / 1_000.0
+            else -> value
+        }
+        "${formatDecimal(watts, 2)} W"
+    }
+
+private fun String.formatBatteryStatus(context: Context): String? = when (trim().lowercase(Locale.US)) {
+    "charging" -> context.getString(R.string.battery_status_charging)
+    "discharging" -> context.getString(R.string.battery_status_discharging)
+    "full" -> context.getString(R.string.battery_status_full)
+    "not_charging", "not charging" -> context.getString(R.string.battery_status_not_charging)
+    "unknown" -> context.getString(R.string.battery_status_unknown)
+    else -> takeIf { it.isNotBlank() }
+}
+
+private fun trimTrailingZeros(value: Double): String =
+    if (value % 1.0 == 0.0) value.toInt().toString() else formatDecimal(value, 1)
+
+private fun formatDecimal(value: Double, decimals: Int): String =
+    String.format(Locale.US, "%.${decimals}f", value).trimEnd('0').trimEnd('.')

@@ -30,6 +30,7 @@ class AccBridge(
         GroupedConfigRead(current = current, defaults = defaults)
     },
     private val bundledVersionCodeProvider: () -> Int = { 0 },
+    private val batteryInfoReader: (suspend () -> BatteryInfo?)? = null,
     private val taskRunner: AccTaskRunner = AccTaskRunner()
 ) {
     suspend fun probeCapabilities(): AccCapability = capabilityProbe()
@@ -37,11 +38,13 @@ class AccBridge(
     suspend fun readStatus(): AccStatus {
         val (installedVersionCode, installedVersionName) = versionReader()
         val daemonRunning = daemonReader()
+        val batteryInfo = batteryInfoReader?.invoke()
         return AccStatusResolver.resolve(
             installedVersionCode = installedVersionCode,
             installedVersionName = installedVersionName,
             bundledVersionCode = bundledVersionCodeProvider(),
-            daemonRunning = daemonRunning
+            daemonRunning = daemonRunning,
+            batteryInfo = batteryInfo
         )
     }
 

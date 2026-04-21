@@ -7,13 +7,23 @@ enum class AccInstallState {
     UP_TO_DATE
 }
 
+data class BatteryInfo(
+    val level: String?,
+    val status: String?,
+    val temp: String?,
+    val current: String?,
+    val voltage: String?,
+    val power: String?
+)
+
 data class AccStatus(
     val installState: AccInstallState,
     val installedVersionName: String?,
     val daemonRunning: Boolean,
     val canManageDaemon: Boolean,
     val showInstallAction: Boolean,
-    val showUninstallAction: Boolean
+    val showUninstallAction: Boolean,
+    val batteryInfo: BatteryInfo? = null
 )
 
 object AccStatusResolver {
@@ -21,7 +31,8 @@ object AccStatusResolver {
         installedVersionCode: Int,
         installedVersionName: String?,
         bundledVersionCode: Int,
-        daemonRunning: Boolean
+        daemonRunning: Boolean,
+        batteryInfo: BatteryInfo? = null
     ): AccStatus {
         val installState = when {
             installedVersionCode <= 0 -> AccInstallState.NOT_INSTALLED
@@ -36,7 +47,8 @@ object AccStatusResolver {
             daemonRunning = canManageDaemon && daemonRunning,
             canManageDaemon = canManageDaemon,
             showInstallAction = installState != AccInstallState.UP_TO_DATE,
-            showUninstallAction = installState != AccInstallState.NOT_INSTALLED
+            showUninstallAction = installState != AccInstallState.NOT_INSTALLED,
+            batteryInfo = batteryInfo
         )
     }
 }

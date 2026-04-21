@@ -37,6 +37,18 @@
     <string name="acc">ACC</string>
 
     <string name="battery">Battery</string>
+    <string name="battery_info_title">Battery Information</string>
+    <string name="battery_level">Level</string>
+    <string name="battery_charging_status">Charging status</string>
+    <string name="battery_temperature">Temperature</string>
+    <string name="battery_current">Current</string>
+    <string name="battery_voltage">Voltage</string>
+    <string name="battery_power">Power</string>
+    <string name="battery_status_charging">Charging</string>
+    <string name="battery_status_discharging">Discharging</string>
+    <string name="battery_status_full">Full</string>
+    <string name="battery_status_not_charging">Not charging</string>
+    <string name="battery_status_unknown">Unknown</string>
     <string name="capacity">Capacity</string>
     <string name="temperature">Temperature</string>
     <string name="current">Current</string>
@@ -130,6 +142,9 @@
     <string name="draft_changes_ready">Draft changes ready</string>
     <string name="discard">Discard</string>
     <string name="apply_changes">Apply Changes</string>
+    <string name="config_apply_success">Changes applied successfully</string>
+    <string name="config_apply_verification_mismatch">Applied values did not fully match the device readback.</string>
+    <string name="config_apply_stale_base">Configuration changed on device. Refresh and try again.</string>
     <string name="leave_with_draft_title">Leave with draft changes?</string>
     <string name="leave_with_draft_message">You still have unapplied changes. Keep the draft, discard it, or stay on this screen.</string>
     <string name="keep_draft_and_leave">Keep Draft</string>
@@ -138,6 +153,7 @@
     <string name="cancel">Cancel</string>
     <string name="tools_refresh_failed">Unable to refresh tools state</string>
     <string name="tools_action_failed">Action failed</string>
+    <string name="tools_error_not_installed">ACC is not installed</string>
     <string name="tools_unknown">unknown</string>
     <string name="tools_install_success">ACC installed successfully</string>
     <string name="tools_update_success">ACC updated successfully</string>

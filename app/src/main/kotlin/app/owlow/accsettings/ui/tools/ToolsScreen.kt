@@ -90,15 +90,6 @@ fun ToolsScreen(
                         color = Zinc600,
                         lineHeight = 22.sp
                     )
-                    state.lastMessage?.let { message ->
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = message,
-                            style = AccTypography.bodyMedium,
-                            color = AccAccent,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
                 }
             }
             item { ToolSectionCard(section = state.installSection, isBusy = state.isBusy, onAction = onAction) }
@@ -194,6 +185,17 @@ private fun ToolSectionCard(
                         )
                     }
                 }
+            }
+
+            section.statusMessage?.let { message ->
+                HorizontalDivider(color = AccDivider, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
+                Text(
+                    text = message.message,
+                    style = AccTypography.bodyMedium,
+                    color = if (message.isError) AccError else AccAccent,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
+                )
             }
         }
     }

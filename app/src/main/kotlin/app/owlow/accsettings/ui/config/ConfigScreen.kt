@@ -38,12 +38,28 @@ fun ConfigScreen(
     Scaffold(
         containerColor = AccBackground,
         bottomBar = {
-            if (state.hasPendingChanges) {
-                DraftActionBar(
-                    isApplying = state.isApplying,
-                    onDiscard = onDiscard,
-                    onApply = onApply
-                )
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(AccBackground)
+            ) {
+                state.applyFeedback?.let { feedback ->
+                    Text(
+                        text = feedback.message,
+                        style = AccTypography.bodyMedium,
+                        color = if (feedback.isError) AccError else AccAccent,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp, vertical = 12.dp)
+                    )
+                }
+                if (state.hasPendingChanges) {
+                    DraftActionBar(
+                        isApplying = state.isApplying,
+                        onDiscard = onDiscard,
+                        onApply = onApply
+                    )
+                }
             }
         }
     ) { innerPadding ->
@@ -73,15 +89,6 @@ fun ConfigScreen(
                         color = Zinc600,
                         lineHeight = 22.sp
                     )
-                    state.applyError?.let { error ->
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = error,
-                            style = AccTypography.bodyMedium,
-                            color = AccError,
-                            modifier = Modifier.padding(top = 4.dp)
-                        )
-                    }
                 }
             }
             items(state.groups) { group ->

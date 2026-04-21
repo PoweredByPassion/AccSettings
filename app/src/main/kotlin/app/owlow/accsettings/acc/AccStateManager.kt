@@ -1,6 +1,9 @@
 package app.owlow.accsettings.acc
 
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.os.BatteryManager
 import android.util.Log
 import com.topjohnwu.superuser.Shell
 import app.owlow.accsettings.R
@@ -183,6 +186,7 @@ object AccStateManager {
             daemonReader = { Command.isDaemonRunning() },
             currentConfigReader = { Command.getCurrentConfig() },
             defaultConfigReader = { Command.getDefaultConfig() },
+            batteryInfoReader = { fetchBatteryInfo() },
             installAction = { handler.install(context) },
             upgradeAction = { handler.upgrade(context) },
             repairAction = { handler.repair() },
@@ -196,6 +200,11 @@ object AccStateManager {
             bundledVersionCodeProvider = { context.resources.getInteger(R.integer.acc_version_code) }
         )
     }
+
+    private suspend fun fetchBatteryInfo(): BatteryInfo? =
+        appContext
+            ?.let(::readSystemBatteryInfo)
+            ?.toBatteryInfo()
 
     private suspend fun collectProbeFacts(): AccProbeFacts {
         val hasRoot = try {
@@ -268,5 +277,83 @@ object AccStateManager {
 
     private fun logError(message: String, throwable: Throwable) {
         runCatching { Log.e(TAG, message, throwable) }
+    }
+
+    private data class SystemBatteryInfo(
+        val level: String?,
+        val status: String?,
+        val temperature: String?,
+        val current: String?,
+        val voltage: String?,
+        val power: String?
+    )
+
+    private fun readSystemBatteryInfo(context: Context): SystemBatteryInfo? {
+        val batteryIntent = context.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+            ?: return null
+        val batteryManager = context.getSystemService(BatteryManager::class.java)
+
+        val level = batteryIntent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
+        val scale = batteryIntent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
+        val levelPercent = if (level >= 0 && scale > 0) {
+            ((level * 100f) / scale).toString()
+        } else {
+            null
+        }
+
+        val status = when (batteryIntent.getIntExtra(BatteryManager.EXTRA_STATUS, -1)) {
+            BatteryManager.BATTERY_STATUS_CHARGING -> "charging"
+            BatteryManager.BATTERY_STATUS_DISCHARGING -> "discharging"
+            BatteryManager.BATTERY_STATUS_FULL -> "full"
+            BatteryManager.BATTERY_STATUS_NOT_CHARGING -> "not_charging"
+            else -> null
+        }
+
+        val temperature = batteryIntent.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, Int.MIN_VALUE)
+            .takeIf { it != Int.MIN_VALUE }
+            ?.toString()
+
+        val voltage = batteryIntent.getIntExtra(BatteryManager.EXTRA_VOLTAGE, Int.MIN_VALUE)
+            .takeIf { it != Int.MIN_VALUE }
+            ?.toString()
+
+        val currentMicroamps = batteryManager
+            ?.getLongProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW)
+            ?.takeIf { it != Long.MIN_VALUE && it != 0L }
+
+        val powerMicrowatts = if (currentMicroamps != null && voltage != null) {
+            voltage.toLongOrNull()?.let { voltageMillivolts ->
+                (currentMicroamps * voltageMillivolts) / 1000L
+            }
+        } else {
+            null
+        }
+
+        return SystemBatteryInfo(
+            level = levelPercent,
+            status = status,
+            temperature = temperature,
+            current = currentMicroamps?.toString(),
+            voltage = voltage,
+            power = powerMicrowatts?.toString()
+        )
+    }
+
+    private fun SystemBatteryInfo.toBatteryInfo(): BatteryInfo? = BatteryInfo(
+        level = level,
+        status = status,
+        temp = temperature,
+        current = current,
+        voltage = voltage,
+        power = power
+    ).takeIf { batteryInfo ->
+        listOf(
+            batteryInfo.level,
+            batteryInfo.status,
+            batteryInfo.temp,
+            batteryInfo.current,
+            batteryInfo.voltage,
+            batteryInfo.power
+        ).any { !it.isNullOrBlank() }
     }
 }

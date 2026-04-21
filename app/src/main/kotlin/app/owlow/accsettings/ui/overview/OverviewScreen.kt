@@ -66,6 +66,20 @@ fun OverviewScreen(
             FactsGrid(facts = uiState.runtimeFacts)
         }
 
+        if (uiState.batteryFacts.isNotEmpty()) {
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Text(
+                        text = stringResource(R.string.battery_info_title),
+                        style = AccTypography.titleLarge,
+                        color = Zinc900,
+                        modifier = Modifier.padding(horizontal = 4.dp)
+                    )
+                    FactsGrid(facts = uiState.batteryFacts)
+                }
+            }
+        }
+
         item {
             ActionsSection(
                 actions = uiState.primaryActions,

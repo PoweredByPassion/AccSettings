@@ -1,10 +1,16 @@
 package app.owlow.accsettings.ui.tools
 
+data class ToolStatusMessage(
+    val message: String,
+    val isError: Boolean
+)
+
 data class ToolSection(
     val title: String = "",
     val summary: String = "",
     val details: List<ToolDetail> = emptyList(),
-    val actions: List<ToolActionState> = emptyList()
+    val actions: List<ToolActionState> = emptyList(),
+    val statusMessage: ToolStatusMessage? = null
 )
 
 data class ToolLogSection(
@@ -41,6 +47,5 @@ data class ToolsUiState(
     val logsSection: ToolLogSection = ToolLogSection(),
     val appInfoSection: ToolSection = ToolSection(),
     val isBusy: Boolean = false,
-    val lastMessage: String? = null,
     val pendingConfirmation: ToolAction? = null
 )

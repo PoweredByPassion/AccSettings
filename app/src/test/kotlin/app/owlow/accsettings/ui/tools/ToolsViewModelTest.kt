@@ -29,7 +29,28 @@ class ToolsViewModelTest {
 
         viewModel.repair().join()
 
-        assertEquals("ACC repaired successfully", viewModel.uiState.value.lastMessage)
+        assertEquals(
+            ToolStatusMessage("ACC repaired successfully", isError = false),
+            viewModel.uiState.value.installSection.statusMessage
+        )
+        assertFalse(viewModel.uiState.value.isBusy)
+    }
+
+    @Test
+    fun repairFailure_exposesErrorMessageOnInstallSection() = runTest {
+        val viewModel = ToolsViewModel(
+            context = ApplicationProvider.getApplicationContext(),
+            toolsRepository = FakeToolsRepository(
+                actionError = IllegalStateException("repair failed")
+            )
+        )
+
+        viewModel.repair().join()
+
+        assertEquals(
+            ToolStatusMessage("repair failed", isError = true),
+            viewModel.uiState.value.installSection.statusMessage
+        )
         assertFalse(viewModel.uiState.value.isBusy)
     }
 
@@ -49,7 +70,8 @@ class ToolsViewModelTest {
     }
 
     private class FakeToolsRepository(
-        private val actionMessage: String,
+        private val actionMessage: String = "ok",
+        private val actionError: Throwable? = null,
         private val logContent: String = "No logs"
     ) : ToolsRepository {
         override suspend fun loadSnapshot(): ToolsSnapshot = ToolsSnapshot(
@@ -61,12 +83,17 @@ class ToolsViewModelTest {
             packageName = "app.owlow.accsettings"
         )
 
-        override suspend fun installOrUpdate(): String = actionMessage
+        override suspend fun installOrUpdate(): String = actionResult()
 
-        override suspend fun repair(): String = actionMessage
+        override suspend fun repair(): String = actionResult()
 
-        override suspend fun restartService(): String = actionMessage
+        override suspend fun restartService(): String = actionResult()
 
-        override suspend fun forceRedetect(): String = actionMessage
+        override suspend fun forceRedetect(): String = actionResult()
+
+        private fun actionResult(): String {
+            actionError?.let { throw it }
+            return actionMessage
+        }
     }
 }

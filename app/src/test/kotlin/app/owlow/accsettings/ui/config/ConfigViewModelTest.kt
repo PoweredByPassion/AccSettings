@@ -63,13 +63,31 @@ class ConfigViewModelTest {
         assertEquals("25", fields.getValue("set_shutdown_capacity").value)
     }
 
+    @Test
+    fun applyChanges_exposesSuccessFeedbackNearActionArea() = runTest {
+        val store = FakeConfigRepository(applyMessage = "Changes applied successfully")
+        val viewModel = ConfigViewModel(store)
+
+        viewModel.applyChanges().join()
+
+        assertEquals(
+            ConfigFeedback("Changes applied successfully", isError = false),
+            viewModel.uiState.value.applyFeedback
+        )
+    }
+
     private class FakeConfigRepository : ConfigRepository {
         var applyCalls = 0
         var sideEffectCalls = 0
         private val values = linkedMapOf<String, String>()
+        private val applyMessage: String?
 
-        constructor(initialValues: Map<String, String> = emptyMap()) {
+        constructor(
+            initialValues: Map<String, String> = emptyMap(),
+            applyMessage: String? = null
+        ) {
             values.putAll(initialValues)
+            this.applyMessage = applyMessage
         }
 
         override suspend fun loadSnapshot(): ConfigDraftSnapshot = snapshotOf(values)
@@ -86,10 +104,13 @@ class ConfigViewModelTest {
 
         override suspend fun applyDraft(): ConfigDraftSnapshot {
             applyCalls++
-            return snapshotOf(values)
+            return snapshotOf(values, applyMessage = applyMessage)
         }
 
-        private fun snapshotOf(fieldValues: Map<String, String>): ConfigDraftSnapshot {
+        private fun snapshotOf(
+            fieldValues: Map<String, String>,
+            applyMessage: String? = null
+        ): ConfigDraftSnapshot {
             val applied = GroupedConfigRead(
                 current = Properties(),
                 defaults = Properties(),
@@ -120,7 +141,8 @@ class ConfigViewModelTest {
             return ConfigDraftSnapshot(
                 applied = applied,
                 draft = draft,
-                draftStatus = if (fieldValues.isEmpty()) DraftStatus.CLEAN else DraftStatus.MODIFIED
+                draftStatus = if (fieldValues.isEmpty()) DraftStatus.CLEAN else DraftStatus.MODIFIED,
+                applyFeedback = applyMessage?.let { ConfigFeedback(it, isError = false) }
             )
         }
     }

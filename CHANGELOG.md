@@ -4,6 +4,10 @@
 
 - Upgraded the project to target SDK 36 (Android 16) and modernized with AGP 8.13, Kotlin 2.2.0, and Compose BOM 2026.03.01
 - Renamed the package globally to `app.owlow.accsettings`
+- Added live **Battery Information** block to the Overview page (level, temp, current, voltage, power)
+- Made the **GitHub project link** interactive on the About page
+- Fixed **Navigation stability** ensuring the Overview tab remains reachable after internal redirects
+- Implemented **Anchored Inline Feedback** for actions on Tools and Configuration pages
 - Added Per-App Language support (Android 13+) via system settings
 - Updated UI and lifecycle patterns with modern `enableEdgeToEdge()` and `viewModelFactory` DSL
 - Raised `minSdk` to 23 to meet modern Compose library requirements

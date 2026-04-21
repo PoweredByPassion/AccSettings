@@ -66,7 +66,7 @@ data class ConfigDraftSnapshot(
     val applied: GroupedConfigRead,
     val draft: GroupedConfigRead,
     val draftStatus: DraftStatus,
-    val applyError: String? = null
+    val applyFeedback: ConfigFeedback? = null
 )
 
 interface ConfigRepository {
@@ -97,12 +97,12 @@ class ConfigViewModel(
     }
 
     fun applyChanges(): Job = publishSnapshot {
-        _uiState.value = _uiState.value.copy(isApplying = true, applyError = null)
+        _uiState.value = _uiState.value.copy(isApplying = true, applyFeedback = null)
         configRepository.applyDraft()
     }
 
     private fun publishSnapshot(block: suspend () -> ConfigDraftSnapshot): Job = viewModelScope.launch {
-        _uiState.value = _uiState.value.copy(isLoading = true)
+        _uiState.value = _uiState.value.copy(isLoading = true, applyFeedback = null)
         _uiState.value = block().toUiState()
     }
 
@@ -145,28 +145,43 @@ private class LiveConfigRepository(
 
     override suspend fun applyDraft(): ConfigDraftSnapshot = withContext(Dispatchers.IO) {
         val result = configStore.applyDraft()
-        val error = when (result) {
-            is ApplyGroupedPatchResult.ValidationFailed -> result.errors.joinToString { error ->
-                when (error) {
-                    "capacity ordering is invalid" -> context.getString(R.string.config_error_capacity_ordering)
-                    "temperature ordering is invalid" -> context.getString(R.string.config_error_temperature_ordering)
-                    else -> error
-                }
-            }
-            is ApplyGroupedPatchResult.Partial -> result.failedGroups.values.joinToString()
-            is ApplyGroupedPatchResult.VerificationMismatch -> "Applied values did not fully match the device readback."
-            ApplyGroupedPatchResult.StaleBaseConfig -> "Configuration changed on device. Refresh and try again."
-            is ApplyGroupedPatchResult.Success -> null
+        val feedback = when (result) {
+            is ApplyGroupedPatchResult.ValidationFailed -> ConfigFeedback(
+                message = result.errors.joinToString { error ->
+                    when (error) {
+                        "capacity ordering is invalid" -> context.getString(R.string.config_error_capacity_ordering)
+                        "temperature ordering is invalid" -> context.getString(R.string.config_error_temperature_ordering)
+                        else -> error
+                    }
+                },
+                isError = true
+            )
+            is ApplyGroupedPatchResult.Partial -> ConfigFeedback(
+                message = result.failedGroups.values.joinToString(),
+                isError = true
+            )
+            is ApplyGroupedPatchResult.VerificationMismatch -> ConfigFeedback(
+                message = context.getString(R.string.config_apply_verification_mismatch),
+                isError = true
+            )
+            ApplyGroupedPatchResult.StaleBaseConfig -> ConfigFeedback(
+                message = context.getString(R.string.config_apply_stale_base),
+                isError = true
+            )
+            is ApplyGroupedPatchResult.Success -> ConfigFeedback(
+                message = context.getString(R.string.config_apply_success),
+                isError = false
+            )
         }
-        configStore.currentDraftState().toSnapshot(applyError = error)
+        configStore.currentDraftState().toSnapshot(applyFeedback = feedback)
     }
 }
 
-private fun AccDraftState.toSnapshot(applyError: String? = null): ConfigDraftSnapshot = ConfigDraftSnapshot(
+private fun AccDraftState.toSnapshot(applyFeedback: ConfigFeedback? = null): ConfigDraftSnapshot = ConfigDraftSnapshot(
     applied = current,
     draft = draft,
     draftStatus = status,
-    applyError = applyError
+    applyFeedback = applyFeedback
 )
 
 private fun ConfigDraftSnapshot.toUiState(): ConfigUiState = ConfigUiState(
@@ -174,7 +189,7 @@ private fun ConfigDraftSnapshot.toUiState(): ConfigUiState = ConfigUiState(
     groups = draft.toConfigGroups(),
     hasPendingChanges = !applied.isSameAs(draft),
     isApplying = false,
-    applyError = applyError
+    applyFeedback = applyFeedback
 )
 
 internal fun GroupedConfigRead.toConfigGroups(): List<ConfigGroupUiModel> = listOf(

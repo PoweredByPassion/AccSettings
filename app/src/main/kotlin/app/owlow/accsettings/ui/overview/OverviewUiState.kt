@@ -4,6 +4,7 @@ data class OverviewUiState(
     val isLoading: Boolean = true,
     val statusHeadline: String = "",
     val runtimeFacts: List<OverviewFact> = emptyList(),
+    val batteryFacts: List<OverviewFact> = emptyList(),
     val primaryActions: List<OverviewAction> = emptyList(),
     val warnings: List<String> = emptyList()
 )

@@ -2,6 +2,7 @@ package app.owlow.accsettings.ui.about
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,6 +23,7 @@ fun AboutScreen(
     appVersion: String,
     packageName: String,
     projectUrl: String,
+    onUrlClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
@@ -61,7 +63,9 @@ fun AboutScreen(
                     entries = listOf(
                         stringResource(R.string.about_project_repo, projectUrl),
                         stringResource(R.string.about_project_description)
-                    )
+                    ),
+                    onUrlClick = onUrlClick,
+                    projectUrl = projectUrl
                 )
             }
         }
@@ -71,7 +75,9 @@ fun AboutScreen(
 @Composable
 private fun AboutInfoCard(
     title: String,
-    entries: List<String>
+    entries: List<String>,
+    onUrlClick: ((String) -> Unit)? = null,
+    projectUrl: String? = null
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -93,11 +99,21 @@ private fun AboutInfoCard(
                 .padding(vertical = 8.dp)
         ) {
             entries.forEachIndexed { index, entry ->
+                val isUrl = projectUrl != null && entry.contains(projectUrl)
                 Text(
                     text = entry,
                     style = AccTypography.bodyLarge,
-                    color = Zinc600,
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
+                    color = if (isUrl) AccPrimary else Zinc600,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .then(
+                            if (isUrl && onUrlClick != null) {
+                                Modifier.clickable { onUrlClick(projectUrl!!) }
+                            } else {
+                                Modifier
+                            }
+                        )
+                        .padding(horizontal = 20.dp, vertical = 12.dp)
                 )
                 if (index < entries.size - 1) {
                     HorizontalDivider(color = AccDivider, modifier = Modifier.padding(horizontal = 20.dp))

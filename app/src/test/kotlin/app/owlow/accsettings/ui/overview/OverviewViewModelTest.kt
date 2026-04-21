@@ -3,6 +3,7 @@ package app.owlow.accsettings.ui.overview
 import app.owlow.accsettings.MainDispatcherRule
 import app.owlow.accsettings.acc.AccInstallState
 import app.owlow.accsettings.acc.AccStatus
+import app.owlow.accsettings.acc.BatteryInfo
 import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -62,6 +63,38 @@ class OverviewViewModelTest {
         assertEquals(
             listOf("refresh", "start", "configuration"),
             viewModel.uiState.value.primaryActions.map { it.id }
+        )
+    }
+
+    @Test
+    fun refresh_formatsBatteryFactsIntoUserFacingUnits() = runTest {
+        val viewModel = OverviewViewModel(
+            context = ApplicationProvider.getApplicationContext(),
+            overviewRepository = FakeOverviewRepository(
+                status = AccStatus(
+                    installState = AccInstallState.UP_TO_DATE,
+                    installedVersionName = "2025.5.18-dev",
+                    daemonRunning = true,
+                    canManageDaemon = true,
+                    showInstallAction = false,
+                    showUninstallAction = true,
+                    batteryInfo = BatteryInfo(
+                        level = "83",
+                        status = "charging",
+                        temp = "315",
+                        current = "1543000",
+                        voltage = "4187000",
+                        power = "6459000"
+                    )
+                )
+            )
+        )
+
+        viewModel.refresh().join()
+
+        assertEquals(
+            listOf("83%", "Charging", "31.5°C", "1543 mA", "4187 mV", "6.46 W"),
+            viewModel.uiState.value.batteryFacts.map { it.value }
         )
     }
 

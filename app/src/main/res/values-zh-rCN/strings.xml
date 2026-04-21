@@ -37,7 +37,19 @@
     <string name="acc">ACC</string>
 
     <string name="battery">电池</string>
-    <string name="capacity">电量</string>
+    <string name="battery_info_title">电池信息</string>
+    <string name="battery_level">电量</string>
+    <string name="battery_charging_status">充电状态</string>
+    <string name="battery_temperature">温度</string>
+    <string name="battery_current">电流</string>
+    <string name="battery_voltage">电压</string>
+    <string name="battery_power">功率</string>
+    <string name="battery_status_charging">充电中</string>
+    <string name="battery_status_discharging">放电中</string>
+    <string name="battery_status_full">已充满</string>
+    <string name="battery_status_not_charging">未充电</string>
+    <string name="battery_status_unknown">未知</string>
+    <string name="capacity">容量</string>
     <string name="temperature">温度</string>
     <string name="current">电流</string>
     <string name="voltage">电压</string>
@@ -129,6 +141,9 @@
     <string name="draft_changes_ready">草稿更改已准备好</string>
     <string name="discard">丢弃</string>
     <string name="apply_changes">应用更改</string>
+    <string name="config_apply_success">更改已成功应用</string>
+    <string name="config_apply_verification_mismatch">已应用的值与设备回读结果不完全一致。</string>
+    <string name="config_apply_stale_base">设备上的配置已发生变化。请先刷新后再重试。</string>
     <string name="leave_with_draft_title">离开时保留草稿更改？</string>
     <string name="leave_with_draft_message">你还有未应用的更改。可以保留草稿、丢弃草稿，或者继续停留在当前页面。</string>
     <string name="keep_draft_and_leave">保留草稿</string>
@@ -137,6 +152,7 @@
     <string name="cancel">取消</string>
     <string name="tools_refresh_failed">无法刷新工具页面状态</string>
     <string name="tools_action_failed">操作失败</string>
+    <string name="tools_error_not_installed">ACC 未安装</string>
     <string name="tools_unknown">未知</string>
     <string name="tools_install_success">ACC 安装成功</string>
     <string name="tools_update_success">ACC 更新成功</string>

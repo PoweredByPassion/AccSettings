@@ -10,6 +10,7 @@ import app.owlow.accsettings.acc.AccHandler
 import app.owlow.accsettings.acc.AccInstallState
 import app.owlow.accsettings.acc.AccStateManager
 import app.owlow.accsettings.acc.AccStatus
+import app.owlow.accsettings.acc.Command
 import app.owlow.accsettings.acc.LifecycleDecision
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -52,13 +53,17 @@ class ToolsViewModel(
         _uiState.value = runCatching {
             toolsRepository.loadSnapshot().toUiState(
                 context = context,
-                previousMessage = _uiState.value.lastMessage,
                 pendingConfirmation = _uiState.value.pendingConfirmation
             )
         }.getOrElse { error ->
             _uiState.value.copy(
                 isBusy = false,
-                lastMessage = error.localizedMessage ?: context.getString(R.string.tools_refresh_failed)
+                diagnosticsSection = _uiState.value.diagnosticsSection.copy(
+                    statusMessage = ToolStatusMessage(
+                        message = error.toToolsMessage(context, R.string.tools_refresh_failed),
+                        isError = true
+                    )
+                )
             )
         }
     }
@@ -89,7 +94,7 @@ class ToolsViewModel(
     fun repair(): Job = perform(ToolAction.REPAIR)
 
     private fun perform(action: ToolAction): Job = viewModelScope.launch {
-        _uiState.value = _uiState.value.copy(isBusy = true, lastMessage = null)
+        _uiState.value = _uiState.value.copy(isBusy = true)
         val actionMessage = runCatching {
             when (action) {
                 ToolAction.INSTALL_OR_UPDATE -> toolsRepository.installOrUpdate()
@@ -99,19 +104,39 @@ class ToolsViewModel(
                 ToolAction.REFRESH -> null
             }
         }.getOrElse { error ->
-            _uiState.value = _uiState.value.copy(
-                isBusy = false,
-                lastMessage = error.localizedMessage ?: context.getString(R.string.tools_action_failed)
+            val message = ToolStatusMessage(
+                message = error.toToolsMessage(context, R.string.tools_action_failed),
+                isError = true
+            )
+            _uiState.value = toolsRepository.loadSnapshot().toUiState(
+                context = context,
+                previousMessage = message,
+                lastAction = action
             )
             return@launch
         }
 
         _uiState.value = runCatching {
-            toolsRepository.loadSnapshot().toUiState(context = context, previousMessage = actionMessage)
+            toolsRepository.loadSnapshot().toUiState(
+                context = context,
+                previousMessage = actionMessage?.let {
+                    ToolStatusMessage(message = it, isError = false)
+                },
+                lastAction = action
+            )
         }.getOrElse { error ->
             _uiState.value.copy(
                 isBusy = false,
-                lastMessage = error.localizedMessage ?: actionMessage ?: context.getString(R.string.tools_refresh_failed)
+                diagnosticsSection = _uiState.value.diagnosticsSection.copy(
+                    statusMessage = ToolStatusMessage(
+                        message = error.toToolsMessage(
+                            context = context,
+                            fallbackRes = R.string.tools_refresh_failed,
+                            fallbackText = actionMessage
+                        ),
+                        isError = true
+                    )
+                )
             )
         }
     }
@@ -185,8 +210,9 @@ private class LiveToolsRepository(
 
 private fun ToolsSnapshot.toUiState(
     context: Context,
-    previousMessage: String? = null,
-    pendingConfirmation: ToolAction? = null
+    previousMessage: ToolStatusMessage? = null,
+    pendingConfirmation: ToolAction? = null,
+    lastAction: ToolAction? = null
 ): ToolsUiState {
     val installSummary = when (status?.installState) {
         AccInstallState.NOT_INSTALLED -> context.getString(R.string.tools_install_summary_not_installed)
@@ -254,7 +280,8 @@ private fun ToolsSnapshot.toUiState(
                 ToolDetail(context.getString(R.string.tools_detail_installed_acc), status?.installedVersionName ?: context.getString(R.string.tools_value_not_installed)),
                 ToolDetail(context.getString(R.string.tools_detail_bundled_acc), bundledAccVersion)
             ),
-            actions = installActions
+            actions = installActions,
+            statusMessage = if (lastAction == ToolAction.INSTALL_OR_UPDATE || lastAction == ToolAction.REPAIR) previousMessage else null
         ),
         serviceSection = ToolSection(
             title = context.getString(R.string.tools_section_service_title),
@@ -263,7 +290,8 @@ private fun ToolsSnapshot.toUiState(
                 ToolDetail(context.getString(R.string.tools_detail_service_status), if (serviceRunning) context.getString(R.string.tools_value_running) else context.getString(R.string.tools_value_stopped)),
                 ToolDetail(context.getString(R.string.tools_detail_manual_control), if (status?.canManageDaemon == true) context.getString(R.string.tools_value_available) else context.getString(R.string.tools_value_unavailable))
             ),
-            actions = serviceActions
+            actions = serviceActions,
+            statusMessage = if (lastAction == ToolAction.RESTART_SERVICE) previousMessage else null
         ),
         diagnosticsSection = ToolSection(
             title = context.getString(R.string.tools_section_diagnostics_title),
@@ -273,7 +301,8 @@ private fun ToolsSnapshot.toUiState(
                 ToolDetail(context.getString(R.string.tools_detail_entrypoint), capability?.staticAvailability?.selectedEntrypoint ?: context.getString(R.string.tools_value_not_detected)),
                 ToolDetail(context.getString(R.string.tools_detail_runtime_info), if (capability?.runtimeCapability?.canReadInfo == true) context.getString(R.string.tools_value_readable) else context.getString(R.string.tools_value_unavailable))
             ),
-            actions = diagnosticsActions
+            actions = diagnosticsActions,
+            statusMessage = if (lastAction == ToolAction.FORCE_REDETECT || lastAction == ToolAction.REFRESH) previousMessage else null
         ),
         logsSection = ToolLogSection(
             title = context.getString(R.string.tools_section_logs_title),
@@ -291,7 +320,21 @@ private fun ToolsSnapshot.toUiState(
             )
         ),
         isBusy = false,
-        lastMessage = previousMessage,
         pendingConfirmation = pendingConfirmation
     )
+}
+
+private fun Throwable.toToolsMessage(
+    context: Context,
+    fallbackRes: Int,
+    fallbackText: String? = null
+): String = when (this) {
+    is Command.NotRootException -> context.getString(R.string.need_root_permission)
+    is Command.NotInstalledException -> context.getString(R.string.tools_error_not_installed)
+    is Command.NoBusyboxException,
+    is Command.FailedException,
+    is Command.AccException -> context.getString(R.string.command_failed)
+    else -> localizedMessage?.takeIf { it.isNotBlank() }
+        ?: fallbackText
+        ?: context.getString(fallbackRes)
 }

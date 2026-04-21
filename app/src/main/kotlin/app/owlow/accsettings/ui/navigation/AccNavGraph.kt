@@ -23,8 +23,24 @@ fun AccNavGraph(
     ) {
         composable(AccDestination.Overview.route) {
             OverviewRoute(
-                onOpenConfiguration = { navController.navigate(AccDestination.Configuration.route) },
-                onOpenTools = { navController.navigate(AccDestination.Tools.route) }
+                onOpenConfiguration = {
+                    navController.navigate(AccDestination.Configuration.route) {
+                        popUpTo(navController.graph.startDestinationId) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
+                onOpenTools = {
+                    navController.navigate(AccDestination.Tools.route) {
+                        popUpTo(navController.graph.startDestinationId) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
             )
         }
         composable(AccDestination.Configuration.route) {
