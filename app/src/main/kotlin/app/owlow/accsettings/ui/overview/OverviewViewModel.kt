@@ -9,6 +9,8 @@ import app.owlow.accsettings.acc.AccInstallState
 import app.owlow.accsettings.acc.AccStateManager
 import app.owlow.accsettings.acc.AccStatus
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,13 +26,13 @@ class OverviewViewModel(
     private val context: Context,
     private val overviewRepository: OverviewRepository
 ) : ViewModel() {
+    private var autoRefreshJob: Job? = null
+
     private val _uiState = MutableStateFlow(OverviewUiState())
     val uiState: StateFlow<OverviewUiState> = _uiState.asStateFlow()
 
     fun refresh(): Job = viewModelScope.launch {
-        _uiState.value = _uiState.value.copy(isLoading = true)
-        val status = overviewRepository.loadStatus()
-        _uiState.value = status.toUiState(context)
+        reloadStatus(showLoading = true)
     }
 
     fun startService(): Job = viewModelScope.launch {
@@ -39,7 +41,40 @@ class OverviewViewModel(
         _uiState.value = status.toUiState(context)
     }
 
+    fun startAutoRefresh(intervalMs: Long = BATTERY_REFRESH_INTERVAL_MS) {
+        if (autoRefreshJob?.isActive == true) {
+            return
+        }
+        autoRefreshJob = viewModelScope.launch {
+            reloadStatus(showLoading = _uiState.value.runtimeFacts.isEmpty() && _uiState.value.batteryFacts.isEmpty())
+            while (isActive) {
+                delay(intervalMs)
+                reloadStatus(showLoading = false)
+            }
+        }
+    }
+
+    fun stopAutoRefresh() {
+        autoRefreshJob?.cancel()
+        autoRefreshJob = null
+    }
+
+    private suspend fun reloadStatus(showLoading: Boolean) {
+        if (showLoading) {
+            _uiState.value = _uiState.value.copy(isLoading = true)
+        }
+        val status = overviewRepository.loadStatus()
+        _uiState.value = status.toUiState(context)
+    }
+
+    override fun onCleared() {
+        stopAutoRefresh()
+        super.onCleared()
+    }
+
     companion object {
+        private const val BATTERY_REFRESH_INTERVAL_MS = 3_000L
+
         fun factory(
             context: Context,
             overviewRepository: OverviewRepository = LiveOverviewRepository

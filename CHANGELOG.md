@@ -5,6 +5,9 @@
 - Upgraded the project to target SDK 36 (Android 16) and modernized with AGP 8.13, Kotlin 2.2.0, and Compose BOM 2026.03.01
 - Renamed the package globally to `app.owlow.accsettings`
 - Added live **Battery Information** block to the Overview page (level, temp, current, voltage, power)
+- Switched Overview battery telemetry to Android system battery APIs instead of ACC runtime info
+- Added **charging status** to the Overview battery block
+- Refreshed Overview battery information automatically every 3 seconds while the page is visible
 - Made the **GitHub project link** interactive on the About page
 - Fixed **Navigation stability** ensuring the Overview tab remains reachable after internal redirects
 - Implemented **Anchored Inline Feedback** for actions on Tools and Configuration pages
