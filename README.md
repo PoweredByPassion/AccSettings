@@ -21,6 +21,17 @@ It provides a modern Compose-based interface for checking ACC status, editing co
 - `Tools`: install, repair, service control, diagnostics, and runtime logs
 - `About`: app details and clickable project repository link
 
+## Screenshots
+
+<div align="center">
+  <img src="ScreenShots/Overview.jpg" alt="Overview" width="200"/>
+  <img src="ScreenShots/Configrations.jpg" alt="Configurations" width="200"/>
+  <img src="ScreenShots/Tools-1.jpg" alt="Tools 1" width="200"/>
+  <img src="ScreenShots/Tools-2.jpg" alt="Tools 2" width="200"/>
+  <img src="ScreenShots/Tools-3.jpg" alt="Tools 3" width="200"/>
+  <img src="ScreenShots/About.jpg" alt="About" width="200"/>
+</div>
+
 ## Requirements
 
 - Android SDK 36
@@ -31,6 +42,7 @@ It provides a modern Compose-based interface for checking ACC status, editing co
 ## App Info
 
 - App name: `Acc Setting`
+- Acc Version: 2025.5.18-dev
 - Application id: `app.owlow.accsettings`
 - Minimum SDK: 23
 - Target SDK: 36
