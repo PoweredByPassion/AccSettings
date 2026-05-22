@@ -26,6 +26,7 @@ import app.owlow.accsettings.ui.theme.*
 fun OverviewScreen(
     uiState: OverviewUiState,
     onAction: (String) -> Unit,
+    onToggleAction: (String, Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
     if (uiState.isLoading) {
@@ -63,7 +64,10 @@ fun OverviewScreen(
         }
 
         item {
-            FactsGrid(facts = uiState.runtimeFacts)
+            FactsGrid(
+                facts = uiState.runtimeFacts,
+                onToggleAction = onToggleAction
+            )
         }
 
         if (uiState.batteryFacts.isNotEmpty()) {
@@ -75,7 +79,10 @@ fun OverviewScreen(
                         color = Zinc900,
                         modifier = Modifier.padding(horizontal = 4.dp)
                     )
-                    FactsGrid(facts = uiState.batteryFacts)
+                    FactsGrid(
+                        facts = uiState.batteryFacts,
+                        onToggleAction = onToggleAction
+                    )
                 }
             }
         }
@@ -116,6 +123,7 @@ private fun OverviewHeader(
 @Composable
 private fun FactsGrid(
     facts: List<OverviewFact>,
+    onToggleAction: (String, Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -128,7 +136,8 @@ private fun FactsGrid(
         facts.forEachIndexed { index, fact ->
             FactRow(
                 fact = fact,
-                isLast = index == facts.size - 1
+                isLast = index == facts.size - 1,
+                onToggleAction = onToggleAction
             )
         }
     }
@@ -137,7 +146,8 @@ private fun FactsGrid(
 @Composable
 private fun FactRow(
     fact: OverviewFact,
-    isLast: Boolean
+    isLast: Boolean,
+    onToggleAction: (String, Boolean) -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -152,15 +162,34 @@ private fun FactRow(
             color = Zinc500,
             fontWeight = FontWeight.Medium
         )
-        Text(
-            text = fact.value,
-            style = AccTypography.bodyLarge.copy(
-                fontFamily = MonospaceNumbers.fontFamily,
-                letterSpacing = MonospaceNumbers.letterSpacing
-            ),
-            color = Zinc900,
-            fontWeight = FontWeight.SemiBold
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = fact.value,
+                style = AccTypography.bodyLarge.copy(
+                    fontFamily = MonospaceNumbers.fontFamily,
+                    letterSpacing = MonospaceNumbers.letterSpacing
+                ),
+                color = Zinc900,
+                fontWeight = FontWeight.SemiBold
+            )
+            if (fact.actionId != null && fact.actionValue != null) {
+                Switch(
+                    checked = fact.actionValue,
+                    onCheckedChange = { onToggleAction(fact.actionId, it) },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.White,
+                        checkedTrackColor = AccPrimary,
+                        uncheckedThumbColor = Zinc400,
+                        uncheckedTrackColor = Zinc100,
+                        uncheckedBorderColor = Color.Transparent
+                    ),
+                    modifier = Modifier.scale(0.8f)
+                )
+            }
+        }
     }
     if (!isLast) {
         HorizontalDivider(

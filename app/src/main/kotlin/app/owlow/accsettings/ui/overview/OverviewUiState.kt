@@ -11,7 +11,9 @@ data class OverviewUiState(
 
 data class OverviewFact(
     val label: String,
-    val value: String
+    val value: String,
+    val actionId: String? = null,
+    val actionValue: Boolean? = null
 )
 
 data class OverviewAction(

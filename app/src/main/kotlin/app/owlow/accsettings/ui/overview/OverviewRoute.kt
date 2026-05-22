@@ -36,6 +36,11 @@ fun OverviewRoute(
                 "tools" -> onOpenTools()
             }
         },
+        onToggleAction = { actionId, enabled ->
+            when (actionId) {
+                "toggle_daemon" -> overviewViewModel.toggleDaemon(enabled)
+            }
+        },
         modifier = modifier
     )
 }

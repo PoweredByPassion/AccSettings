@@ -20,6 +20,7 @@ import java.util.Locale
 interface OverviewRepository {
     suspend fun loadStatus(): AccStatus?
     suspend fun startService(): AccStatus?
+    suspend fun setDaemonRunning(enabled: Boolean): AccStatus?
 }
 
 class OverviewViewModel(
@@ -38,6 +39,12 @@ class OverviewViewModel(
     fun startService(): Job = viewModelScope.launch {
         _uiState.value = _uiState.value.copy(isLoading = true)
         val status = overviewRepository.startService()
+        _uiState.value = status.toUiState(context)
+    }
+
+    fun toggleDaemon(enabled: Boolean): Job = viewModelScope.launch {
+        _uiState.value = _uiState.value.copy(isLoading = true)
+        val status = overviewRepository.setDaemonRunning(enabled)
         _uiState.value = status.toUiState(context)
     }
 
@@ -94,6 +101,11 @@ private object LiveOverviewRepository : OverviewRepository {
         AccStateManager.setDaemonRunning(true)
         return AccStateManager.refreshStatus()
     }
+
+    override suspend fun setDaemonRunning(enabled: Boolean): AccStatus? {
+        AccStateManager.setDaemonRunning(enabled)
+        return AccStateManager.refreshStatus()
+    }
 }
 
 private fun AccStatus?.toUiState(context: Context): OverviewUiState {
@@ -120,12 +132,19 @@ private fun AccStatus?.toUiState(context: Context): OverviewUiState {
     }
 
     val facts = buildList {
+        add(
+            OverviewFact(
+                label = context.getString(R.string.overview_fact_daemon),
+                value = if (daemonRunning) {
+                    context.getString(R.string.tools_value_running)
+                } else {
+                    context.getString(R.string.tools_value_stopped)
+                },
+                actionId = if (canManageDaemon) "toggle_daemon" else null,
+                actionValue = if (canManageDaemon) daemonRunning else null
+            )
+        )
         add(OverviewFact(context.getString(R.string.overview_fact_install_state), installState.label(context)))
-        add(OverviewFact(context.getString(R.string.overview_fact_daemon), if (daemonRunning) {
-            context.getString(R.string.tools_value_running)
-        } else {
-            context.getString(R.string.tools_value_stopped)
-        }))
         installedVersionName?.takeIf { it.isNotBlank() }?.let { version ->
             add(OverviewFact(context.getString(R.string.overview_fact_version), version))
         }
