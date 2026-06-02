@@ -33,7 +33,8 @@ class OverviewScreenTest {
                             OverviewAction("configuration", "Open configuration")
                         )
                     ),
-                    onAction = { tappedActions += it }
+                    onAction = { tappedActions += it },
+                    onToggleAction = { _, _ -> }
                 )
             }
         }
@@ -56,7 +57,8 @@ class OverviewScreenTest {
                         isLoading = false,
                         statusHeadline = "status"
                     ),
-                    onAction = {}
+                    onAction = {},
+                    onToggleAction = { _, _ -> }
                 )
             }
         }

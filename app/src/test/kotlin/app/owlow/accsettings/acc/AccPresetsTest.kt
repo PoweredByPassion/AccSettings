@@ -24,8 +24,8 @@ class AccPresetsTest {
     @Test
     fun battery_care_generates_a_capacity_focused_draft() {
         val current = groupedConfig(
-            capacity = CapacityConfig(5, 101, 70, 75, false, ConfigGroupMode.MIXED_LEGACY),
-            temperature = TemperatureConfig(45, 50, 48, 55, ConfigGroupMode.NORMAL)
+            capacity = CapacityConfig(5, 101, 70, 75, false, CapacitySync.FALSE, ConfigGroupMode.NORMAL),
+            temperature = TemperatureConfig(45, 50, 48, 55, false, ConfigGroupMode.NORMAL)
         )
 
         val candidate = AccPresets.generateDraft(
@@ -45,8 +45,8 @@ class AccPresetsTest {
     @Test
     fun thermal_guard_generates_a_temperature_focused_draft() {
         val current = groupedConfig(
-            capacity = CapacityConfig(5, 70, 72, 85, false, ConfigGroupMode.NORMAL),
-            temperature = TemperatureConfig(45, 50, 48, 60, ConfigGroupMode.NORMAL)
+            capacity = CapacityConfig(5, 70, 72, 85, false, CapacitySync.FALSE, ConfigGroupMode.NORMAL),
+            temperature = TemperatureConfig(45, 50, 48, 60, false, ConfigGroupMode.NORMAL)
         )
 
         val candidate = AccPresets.generateDraft(
@@ -103,8 +103,8 @@ class AccPresetsTest {
     }
 
     private fun groupedConfig(
-        capacity: CapacityConfig = CapacityConfig(5, 70, 72, 80, false, ConfigGroupMode.NORMAL),
-        temperature: TemperatureConfig = TemperatureConfig(42, 45, 43, 50, ConfigGroupMode.NORMAL)
+        capacity: CapacityConfig = CapacityConfig(5, 70, 72, 80, false, CapacitySync.FALSE, ConfigGroupMode.NORMAL),
+        temperature: TemperatureConfig = TemperatureConfig(42, 45, 43, 50, false, ConfigGroupMode.NORMAL)
     ): GroupedConfigRead {
         val current = propertiesOf(
             "capacity" to capacity.serialize(),

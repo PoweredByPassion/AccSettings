@@ -11,6 +11,7 @@ import app.owlow.accsettings.R
 import app.owlow.accsettings.acc.AccDraftState
 import app.owlow.accsettings.acc.ApplyGroupedPatchResult
 import app.owlow.accsettings.acc.CapacityConfig
+import app.owlow.accsettings.acc.CapacitySync
 import app.owlow.accsettings.acc.ConfigGroupMode
 import app.owlow.accsettings.acc.DraftStatus
 import app.owlow.accsettings.acc.GroupedConfigRead
@@ -32,6 +33,7 @@ private const val COOLDOWN_CURRENT_KEY = "cooldown_current"
 private const val TEMP_LEVEL_KEY = "temp_level"
 private const val CURRENT_WORKAROUND_KEY = "current_workaround"
 private const val CAPACITY_MASK_KEY = "set_capacity_mask"
+private const val CAPACITY_SYNC_KEY = "set_capacity_sync"
 private const val CAPACITY_PERCENT_MIN = 0
 private const val CAPACITY_PERCENT_MAX = 100
 private const val TEMP_MIN = 0
@@ -235,17 +237,23 @@ private fun GroupedConfigRead.capacityFields(): List<ConfigFieldUiModel> {
         resume = 72,
         pause = 80,
         maskAsFull = false,
+        sync = CapacitySync.FALSE,
         mode = ConfigGroupMode.NORMAL
     )
     val voltageMode = capacity.mode == ConfigGroupMode.VOLTAGE
     val unitRes = if (voltageMode) R.string.config_unit_millivolt else R.string.config_unit_percent
-    
+
     // Use absolute ranges to avoid "locking" users when order is invalid
     // Use step 5 for capacity to make scrolling faster as requested
     val options = if (voltageMode) {
         voltageOptions()
     } else {
         (CAPACITY_PERCENT_MIN..CAPACITY_PERCENT_MAX step 5).toList()
+    }
+    val cooldownOptions = if (voltageMode) {
+        voltageOptions()
+    } else {
+        (options + 101).distinct().sorted()
     }
 
     return listOf(
@@ -261,7 +269,7 @@ private fun GroupedConfigRead.capacityFields(): List<ConfigFieldUiModel> {
             key = "set_cooldown_capacity",
             labelRes = R.string.cooldown_above,
             selectedValue = capacity.cooldown,
-            options = options,
+            options = cooldownOptions,
             unitRes = unitRes
         ),
         pickerField(
@@ -283,6 +291,12 @@ private fun GroupedConfigRead.capacityFields(): List<ConfigFieldUiModel> {
             labelRes = R.string.pause_as_full,
             value = capacity.maskAsFull.toString(),
             helperTextRes = R.string.hint_capacity_mask
+        ),
+        textField(
+            key = CAPACITY_SYNC_KEY,
+            labelRes = R.string.capacity_sync,
+            value = capacity.sync.serialize(),
+            helperTextRes = R.string.hint_capacity_sync
         )
     )
 }
@@ -293,6 +307,7 @@ private fun GroupedConfigRead.temperatureFields(): List<ConfigFieldUiModel> {
         pause = 45,
         resume = 43,
         shutdown = 50,
+        resumeTempByCooldown = false,
         mode = ConfigGroupMode.NORMAL
     )
     val options = (TEMP_MIN..TEMP_MAX).toList()
@@ -310,7 +325,8 @@ private fun GroupedConfigRead.temperatureFields(): List<ConfigFieldUiModel> {
             labelRes = R.string.charge_below,
             selectedValue = temperature.resume,
             options = options,
-            unitRes = R.string.config_unit_celsius
+            unitRes = R.string.config_unit_celsius,
+            helperTextRes = if (temperature.resumeTempByCooldown) R.string.hint_resume_temp_r else null
         ),
         pickerField(
             key = "set_max_temp",

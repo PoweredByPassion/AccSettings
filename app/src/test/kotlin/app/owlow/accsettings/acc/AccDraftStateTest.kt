@@ -10,8 +10,8 @@ class AccDraftStateTest {
     @Test
     fun current_config_copies_into_clean_draft() {
         val current = groupedConfig(
-            currentCapacity = CapacityConfig(5, 70, 72, 80, true, ConfigGroupMode.NORMAL),
-            currentTemperature = TemperatureConfig(39, 45, 42, 50, ConfigGroupMode.NORMAL)
+            currentCapacity = CapacityConfig(5, 70, 72, 80, true, CapacitySync.FALSE, ConfigGroupMode.NORMAL),
+            currentTemperature = TemperatureConfig(39, 45, 42, 50, false, ConfigGroupMode.NORMAL)
         )
 
         val state = AccDraftState.from(current = current, defaults = groupedConfig())
@@ -22,38 +22,29 @@ class AccDraftStateTest {
     }
 
     @Test
-    fun draft_state_transitions_to_modified_and_advanced_modified() {
+    fun draft_state_transitions_to_modified() {
         val initial = AccDraftState.from(current = groupedConfig(), defaults = groupedConfig())
         val modified = initial.updateCapacity(
-            CapacityConfig(5, 70, 72, 80, true, ConfigGroupMode.NORMAL)
+            CapacityConfig(5, 70, 72, 80, true, CapacitySync.FALSE, ConfigGroupMode.NORMAL)
         )
-        val advanced = modified.updateCapacity(
-            CapacityConfig(5, 101, 72, 80, false, ConfigGroupMode.MIXED_LEGACY)
+        val disabledCooldown = modified.updateCapacity(
+            CapacityConfig(5, 101, 72, 80, false, CapacitySync.FALSE, ConfigGroupMode.NORMAL)
         )
 
         assertEquals(DraftStatus.MODIFIED, modified.status)
-        assertEquals(DraftStatus.ADVANCED_MODIFIED, advanced.status)
+        assertEquals(DraftStatus.MODIFIED, disabledCooldown.status)
     }
 
     @Test
-    fun protected_group_overwrite_requires_explicit_rebuild() {
+    fun advanced_custom_capacity_creates_protected_group() {
         val advanced = AccDraftState.from(current = groupedConfig(), defaults = groupedConfig())
             .updateCapacity(
-                CapacityConfig(5, 101, 72, 80, false, ConfigGroupMode.MIXED_LEGACY)
+                CapacityConfig(0, 0, 0, 0, false, CapacitySync.FALSE, ConfigGroupMode.ADVANCED_CUSTOM)
             )
 
-        assertFalse(
-            advanced.canOverwrite(
-                PatchGroup.CAPACITY,
-                allowProtectedGroupRebuild = false
-            )
-        )
-        assertTrue(
-            advanced.canOverwrite(
-                PatchGroup.CAPACITY,
-                allowProtectedGroupRebuild = true
-            )
-        )
+        assertEquals(DraftStatus.ADVANCED_MODIFIED, advanced.status)
+        assertFalse(advanced.canOverwrite(PatchGroup.CAPACITY, allowProtectedGroupRebuild = false))
+        assertTrue(advanced.canOverwrite(PatchGroup.CAPACITY, allowProtectedGroupRebuild = true))
     }
 
     @Test
@@ -61,7 +52,7 @@ class AccDraftStateTest {
         val current = groupedConfig()
         val state = AccDraftState.from(current = current, defaults = groupedConfig())
         val changedCurrent = groupedConfig(
-            currentCapacity = CapacityConfig(10, 70, 72, 80, true, ConfigGroupMode.NORMAL)
+            currentCapacity = CapacityConfig(10, 70, 72, 80, true, CapacitySync.FALSE, ConfigGroupMode.NORMAL)
         )
 
         assertFalse(state.isStaleAgainst(current))

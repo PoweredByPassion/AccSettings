@@ -106,6 +106,9 @@
     <string name="hint_idle_mode">与某些三星及其他设备不兼容。</string>
     <string name="hint_strict_current_control">仅使用匹配\"batt\"的控制文件。\n当电流限制同时影响输入和充电电流时需要启用。</string>
     <string name="hint_capacity_mask">让 Android 继续显示常规 0-100 电量，而不是 ACC 限制后的暂停区间。</string>
+    <string name="capacity_sync">电量同步</string>
+    <string name="hint_capacity_sync">控制电池统计同步：auto、true 或 false。</string>
+    <string name="hint_resume_temp_r">恢复温度绕过电量阈值（\'r\' 模式已激活）。</string>
     <string name="hint_allow_idle_above_pause_capacity">常插电设备如果不想长期停在高电量，可关闭这一项。</string>
     <string name="hint_prioritize_batt_idle_mode">只影响自动检测充电开关时的优先级。可用时优先选择支持空闲模式的开关。</string>
     <string name="hint_off_mid">系统重启或守护进程重启后，如果电量仍在恢复和暂停阈值之间，则再次关闭充电。</string>
@@ -243,6 +246,6 @@
     <string name="about_project_repo">GitHub：%1$s</string>
     <string name="about_project_description">Advanced Charging Controller (ACC) 的原生 Android 管理界面。</string>
 
-    <string name="config_error_capacity_ordering">电量阈值顺序无效：关机 &lt; 冷却 &lt;= 恢复 &lt; 停止</string>
+    <string name="config_error_capacity_ordering">电量阈值顺序无效：关机 &lt; 恢复 &lt;= 冷却 &lt;= 停止</string>
     <string name="config_error_temperature_ordering">温度阈值顺序无效：冷却 &lt; 恢复 &lt; 停止 &lt; 关机</string>
     </resources>

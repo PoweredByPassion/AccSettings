@@ -12,6 +12,7 @@ import app.owlow.accsettings.acc.ApplyGroupedPatchRequest
 import app.owlow.accsettings.acc.ApplyGroupedPatchResult
 import app.owlow.accsettings.acc.CapacityConfig
 import app.owlow.accsettings.acc.CapacityMode
+import app.owlow.accsettings.acc.CapacitySync
 import app.owlow.accsettings.acc.Command
 import app.owlow.accsettings.acc.ConfigGroupMode
 import app.owlow.accsettings.acc.DraftStatus
@@ -114,7 +115,13 @@ open class ConfigDataStore internal constructor(
         logVerbose("putString: $key=$value")
         ensureDraftLoaded()
         val canonicalKey = canonicalKey(key)
-        updateProperty(canonicalKey, value.orEmpty())
+        when (canonicalKey) {
+            capacitySyncKey() -> {
+                val sync = CapacitySync.parse(value.orEmpty()) ?: CapacitySync.FALSE
+                updateCapacity(sync = sync)
+            }
+            else -> updateProperty(canonicalKey, value.orEmpty())
+        }
         onConfigChangeListener?.onConfigChanged(key)
         when (canonicalKey) {
             chargingSwitchKey() -> pendingSideEffects += PendingSideEffect.RESTART_DAEMON
@@ -239,6 +246,7 @@ open class ConfigDataStore internal constructor(
             configCache[resumeCapacityKey()] = capacity.resume.toString()
             configCache[pauseCapacityKey()] = capacity.pause.toString()
             configCache[capacityMaskKey()] = capacity.maskAsFull.toString()
+            configCache[capacitySyncKey()] = capacity.sync.serialize()
             supportInVoltage = capacity.mode == ConfigGroupMode.VOLTAGE
         }
         configCache[supportInVoltageKey] = supportInVoltage.toString()
@@ -255,7 +263,8 @@ open class ConfigDataStore internal constructor(
         cooldown: Int? = null,
         resume: Int? = null,
         pause: Int? = null,
-        maskAsFull: Boolean? = null
+        maskAsFull: Boolean? = null,
+        sync: CapacitySync? = null
     ) {
         val state = requireNotNull(draftState)
         if (!state.canOverwrite(PatchGroup.CAPACITY, PatchGroup.CAPACITY in protectedGroupRebuilds)) {
@@ -265,7 +274,7 @@ open class ConfigDataStore internal constructor(
         val current = state.draft.currentCapacity
             ?: state.current.currentCapacity
             ?: state.defaults.currentCapacity
-            ?: CapacityConfig(0, 0, 0, 0, false, ConfigGroupMode.NORMAL)
+            ?: CapacityConfig(0, 0, 0, 0, false, CapacitySync.FALSE, ConfigGroupMode.NORMAL)
 
         val next = CapacityConfig(
             shutdown = shutdown ?: current.shutdown,
@@ -273,6 +282,7 @@ open class ConfigDataStore internal constructor(
             resume = resume ?: current.resume,
             pause = pause ?: current.pause,
             maskAsFull = maskAsFull ?: current.maskAsFull,
+            sync = sync ?: current.sync,
             mode = if (supportInVoltage) ConfigGroupMode.VOLTAGE else ConfigGroupMode.NORMAL
         )
         draftState = state.updateCapacity(next)
@@ -293,13 +303,14 @@ open class ConfigDataStore internal constructor(
         val current = state.draft.currentTemperature
             ?: state.current.currentTemperature
             ?: state.defaults.currentTemperature
-            ?: TemperatureConfig(0, 0, 0, 0, ConfigGroupMode.NORMAL)
+            ?: TemperatureConfig(0, 0, 0, 0, false, ConfigGroupMode.NORMAL)
 
         val next = TemperatureConfig(
             cooldown = cooldown ?: current.cooldown,
             resume = resume ?: current.resume,
             pause = pause ?: current.pause,
             shutdown = shutdown ?: current.shutdown,
+            resumeTempByCooldown = current.resumeTempByCooldown,
             mode = ConfigGroupMode.NORMAL
         )
         draftState = state.updateTemperature(next)
@@ -359,6 +370,7 @@ open class ConfigDataStore internal constructor(
     private fun resumeCapacityKey(): String = "set_resume_capacity"
     private fun pauseCapacityKey(): String = "set_pause_capacity"
     private fun capacityMaskKey(): String = "set_capacity_mask"
+    private fun capacitySyncKey(): String = "set_capacity_sync"
     private fun cooldownTempKey(): String = "set_cooldown_temp"
     private fun resumeTempKey(): String = "set_resume_temp"
     private fun maxTempKey(): String = "set_max_temp"
@@ -381,6 +393,7 @@ open class ConfigDataStore internal constructor(
         "resume_capacity",
         "pause_capacity",
         "capacity_mask",
+        "capacity_sync",
         "cooldown_temp",
         "resume_temp",
         "max_temp",
@@ -437,10 +450,12 @@ open class ConfigDataStore internal constructor(
                             Command.setConfig("rc", it.resume.toString())
                             Command.setConfig("pc", it.pause.toString())
                             Command.setConfig("cm", it.maskAsFull.toString())
+                            Command.setConfig("cs", it.sync.serialize())
                         }
                         PatchGroup.TEMPERATURE -> target.currentTemperature?.let {
                             Command.setConfig("ct", it.cooldown.toString())
-                            Command.setConfig("rt", it.resume.toString())
+                            val resumeTempStr = if (it.resumeTempByCooldown) "${it.resume}r" else it.resume.toString()
+                            Command.setConfig("rt", resumeTempStr)
                             Command.setConfig("mt", it.pause.toString())
                             Command.setConfig("st", it.shutdown.toString())
                         }

@@ -106,6 +106,9 @@
     <string name="hint_idle_mode">Incompatible with some Samsung and other devices.</string>
     <string name="hint_strict_current_control">Only use control files match \"batt\".\nNeed if current limit affects both input and charging current.</string>
     <string name="hint_capacity_mask">Make Android show a normal 0-100 style battery scale instead of the restricted ACC pause range.</string>
+    <string name="capacity_sync">Capacity sync</string>
+    <string name="hint_capacity_sync">Controls battery stats synchronization: auto, true, or false.</string>
+    <string name="hint_resume_temp_r">Resume temperature bypasses capacity threshold (\'r\' mode active).</string>
     <string name="hint_allow_idle_above_pause_capacity">Turn this off for always-plugged setups when keeping a high charge for long periods is a concern.</string>
     <string name="hint_prioritize_batt_idle_mode">Only affects automatic switch detection. Prefer idle-mode capable switches when available.</string>
     <string name="hint_off_mid">After reboot or daemon restart, stop charging again if the battery is still between resume and pause thresholds.</string>
@@ -244,6 +247,6 @@
     <string name="about_project_repo">GitHub: %1$s</string>
     <string name="about_project_description">Native Android UI for Advanced Charging Controller management.</string>
 
-    <string name="config_error_capacity_ordering">Capacity ordering is invalid: shutdown &lt; cooldown &lt;= resume &lt; pause</string>
+    <string name="config_error_capacity_ordering">Capacity ordering is invalid: shutdown &lt; resume &lt;= cooldown &lt;= pause</string>
     <string name="config_error_temperature_ordering">Temperature ordering is invalid: cooldown &lt; resume &lt; pause &lt; shutdown</string>
 </resources>

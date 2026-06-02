@@ -166,6 +166,8 @@ class OverviewViewModelTest {
         override suspend fun loadStatus(): AccStatus? = status
 
         override suspend fun startService(): AccStatus? = status?.copy(daemonRunning = true)
+
+        override suspend fun setDaemonRunning(enabled: Boolean): AccStatus? = status?.copy(daemonRunning = enabled)
     }
 
     private class CountingOverviewRepository : OverviewRepository {
@@ -192,5 +194,7 @@ class OverviewViewModelTest {
         }
 
         override suspend fun startService(): AccStatus = loadStatus().copy(daemonRunning = true)
+
+        override suspend fun setDaemonRunning(enabled: Boolean): AccStatus = loadStatus().copy(daemonRunning = enabled)
     }
 }

@@ -65,7 +65,7 @@ class AccFeatureRegistryTest {
         assertEquals(
             "(5 70 72 80 true)",
             serializer!!.serialize(
-                CapacityConfig(5, 70, 72, 80, true, ConfigGroupMode.NORMAL)
+                CapacityConfig(5, 70, 72, 80, true, CapacitySync.FALSE, ConfigGroupMode.NORMAL)
             )
         )
     }

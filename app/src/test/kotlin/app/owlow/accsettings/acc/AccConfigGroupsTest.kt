@@ -8,7 +8,7 @@ import java.util.Properties
 
 class AccConfigGroupsTest {
     @Test
-    fun parseCapacity_handles_special_upstream_tuple() {
+    fun parseCapacity_handles_cooldown_101_as_normal() {
         assertEquals(
             CapacityConfig(
                 shutdown = 5,
@@ -16,9 +16,34 @@ class AccConfigGroupsTest {
                 resume = 70,
                 pause = 75,
                 maskAsFull = false,
-                mode = ConfigGroupMode.MIXED_LEGACY
+                sync = CapacitySync.FALSE,
+                mode = ConfigGroupMode.NORMAL
             ),
             CapacityConfig.parse("(5 101 70 75 false)")
+        )
+    }
+
+    @Test
+    fun parseCapacity_handles_shutdown_disable_sentinel() {
+        assertEquals(
+            ConfigGroupMode.NORMAL,
+            CapacityConfig.parse("(-1 70 72 80 false)").mode
+        )
+    }
+
+    @Test
+    fun parseCapacity_handles_6_element_tuple_with_sync() {
+        assertEquals(
+            CapacityConfig(
+                shutdown = 5,
+                cooldown = 70,
+                resume = 72,
+                pause = 80,
+                maskAsFull = false,
+                sync = CapacitySync.AUTO,
+                mode = ConfigGroupMode.NORMAL
+            ),
+            CapacityConfig.parse("(5 70 72 80 false auto)")
         )
     }
 
@@ -30,9 +55,25 @@ class AccConfigGroupsTest {
                 pause = 45,
                 resume = 42,
                 shutdown = 50,
+                resumeTempByCooldown = false,
                 mode = ConfigGroupMode.NORMAL
             ),
             TemperatureConfig.parse("(39 45 42 50)")
+        )
+    }
+
+    @Test
+    fun parseTemperature_handles_resume_temp_r_suffix() {
+        assertEquals(
+            TemperatureConfig(
+                cooldown = 39,
+                pause = 45,
+                resume = 42,
+                shutdown = 50,
+                resumeTempByCooldown = true,
+                mode = ConfigGroupMode.NORMAL
+            ),
+            TemperatureConfig.parse("(39 45 42r 50)")
         )
     }
 
@@ -52,6 +93,7 @@ class AccConfigGroupsTest {
             resume = 72,
             pause = 80,
             maskAsFull = true,
+            sync = CapacitySync.FALSE,
             mode = ConfigGroupMode.NORMAL
         )
         val temperature = TemperatureConfig(
@@ -59,11 +101,41 @@ class AccConfigGroupsTest {
             pause = 45,
             resume = 42,
             shutdown = 50,
+            resumeTempByCooldown = false,
             mode = ConfigGroupMode.NORMAL
         )
 
         assertEquals(capacity, CapacityConfig.parse(capacity.serialize()))
         assertEquals(temperature, TemperatureConfig.parse(temperature.serialize()))
+    }
+
+    @Test
+    fun temperature_serialization_preserves_r_suffix() {
+        val temperature = TemperatureConfig(
+            cooldown = 39,
+            pause = 45,
+            resume = 42,
+            shutdown = 50,
+            resumeTempByCooldown = true,
+            mode = ConfigGroupMode.NORMAL
+        )
+        assertEquals("(39 45 42r 50)", temperature.serialize())
+        assertEquals(temperature, TemperatureConfig.parse(temperature.serialize()))
+    }
+
+    @Test
+    fun capacity_serialization_preserves_sync_when_non_default() {
+        val capacity = CapacityConfig(
+            shutdown = 5,
+            cooldown = 70,
+            resume = 72,
+            pause = 80,
+            maskAsFull = false,
+            sync = CapacitySync.AUTO,
+            mode = ConfigGroupMode.NORMAL
+        )
+        assertEquals("(5 70 72 80 false auto)", capacity.serialize())
+        assertEquals(capacity, CapacityConfig.parse(capacity.serialize()))
     }
 
     @Test
@@ -83,7 +155,7 @@ class AccConfigGroupsTest {
 
         val grouped = bridge.readGroupedConfig()
 
-        assertEquals(ConfigGroupMode.MIXED_LEGACY, grouped.currentCapacity?.mode)
+        assertEquals(ConfigGroupMode.NORMAL, grouped.currentCapacity?.mode)
         assertEquals(75, grouped.currentCapacity?.pause)
         assertEquals(ConfigGroupMode.NORMAL, grouped.currentTemperature?.mode)
         assertEquals(50, grouped.currentTemperature?.shutdown)
@@ -126,19 +198,19 @@ class AccConfigGroupsTest {
         val grouped = bridge.readGroupedConfig()
 
         assertEquals(
-            CapacityConfig(5, 70, 72, 80, false, ConfigGroupMode.NORMAL),
+            CapacityConfig(5, 70, 72, 80, false, CapacitySync.FALSE, ConfigGroupMode.NORMAL),
             grouped.currentCapacity
         )
         assertEquals(
-            TemperatureConfig(45, 50, 40, 55, ConfigGroupMode.NORMAL),
+            TemperatureConfig(45, 50, 40, 55, false, ConfigGroupMode.NORMAL),
             grouped.currentTemperature
         )
         assertEquals(
-            CapacityConfig(5, 101, 70, 75, false, ConfigGroupMode.MIXED_LEGACY),
+            CapacityConfig(5, 101, 70, 75, false, CapacitySync.FALSE, ConfigGroupMode.NORMAL),
             grouped.defaultCapacity
         )
         assertEquals(
-            TemperatureConfig(45, 50, 40, 55, ConfigGroupMode.NORMAL),
+            TemperatureConfig(45, 50, 40, 55, false, ConfigGroupMode.NORMAL),
             grouped.defaultTemperature
         )
     }

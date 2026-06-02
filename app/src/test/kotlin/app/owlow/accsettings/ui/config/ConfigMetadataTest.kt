@@ -2,6 +2,7 @@ package app.owlow.accsettings.ui.config
 
 import app.owlow.accsettings.R
 import app.owlow.accsettings.acc.CapacityConfig
+import app.owlow.accsettings.acc.CapacitySync
 import app.owlow.accsettings.acc.ConfigGroupMode
 import app.owlow.accsettings.acc.GroupedConfigRead
 import app.owlow.accsettings.acc.TemperatureConfig
@@ -39,6 +40,7 @@ class ConfigMetadataTest {
         assertEquals(80, fields.getValue("set_pause_capacity").pickerState!!.selectedValue)
         assertEquals(0, fields.getValue("set_pause_capacity").pickerState!!.minValue)
         assertEquals(100, fields.getValue("set_pause_capacity").pickerState!!.maxValue)
+        assertEquals(101, fields.getValue("set_cooldown_capacity").pickerState!!.maxValue)
         assertEquals(R.string.config_unit_celsius, fields.getValue("set_max_temp").unitRes)
         assertEquals(ConfigFieldKind.PICKER, fields.getValue("set_max_temp").kind)
         assertEquals(0, fields.getValue("set_max_temp").pickerState!!.minValue)
@@ -50,7 +52,7 @@ class ConfigMetadataTest {
     @Test
     fun voltageCapacityFields_preserveVoltageModeRanges() {
         val grouped = groupedConfig(
-            capacity = CapacityConfig(0, 3600, 3800, 4000, false, ConfigGroupMode.VOLTAGE)
+            capacity = CapacityConfig(0, 3600, 3800, 4000, false, CapacitySync.FALSE, ConfigGroupMode.VOLTAGE)
         )
 
         val fields = grouped.toConfigGroups().flatMap { it.fields }.associateBy { it.key }
@@ -87,7 +89,7 @@ class ConfigMetadataTest {
     @Test
     fun coreAccFields_areExposedWithExpectedKindsAndValues() {
         val grouped = groupedConfig(
-            capacity = CapacityConfig(5, 70, 72, 80, true, ConfigGroupMode.NORMAL),
+            capacity = CapacityConfig(5, 70, 72, 80, true, CapacitySync.FALSE, ConfigGroupMode.NORMAL),
             properties = mapOf(
                 "allow_idle_above_pcap" to "false",
                 "prioritize_batt_idle_mode" to "true",

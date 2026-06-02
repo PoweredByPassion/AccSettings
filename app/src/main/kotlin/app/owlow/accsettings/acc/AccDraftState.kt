@@ -27,6 +27,7 @@ data class AccDraftState(
         nextCurrent.setProperty("resume_capacity", capacityConfig.resume.toString())
         nextCurrent.setProperty("pause_capacity", capacityConfig.pause.toString())
         nextCurrent.setProperty("capacity_mask", capacityConfig.maskAsFull.toString())
+        nextCurrent.setProperty("capacity_sync", capacityConfig.sync.serialize())
 
         val nextDraft = draft.copy(
             currentCapacity = capacityConfig,
@@ -50,7 +51,8 @@ data class AccDraftState(
         nextCurrent.putAll(draft.current)
         nextCurrent.remove("temperature")
         nextCurrent.setProperty("cooldown_temp", temperatureConfig.cooldown.toString())
-        nextCurrent.setProperty("resume_temp", temperatureConfig.resume.toString())
+        val resumeTempStr = if (temperatureConfig.resumeTempByCooldown) "${temperatureConfig.resume}r" else temperatureConfig.resume.toString()
+        nextCurrent.setProperty("resume_temp", resumeTempStr)
         nextCurrent.setProperty("max_temp", temperatureConfig.pause.toString())
         nextCurrent.setProperty("shutdown_temp", temperatureConfig.shutdown.toString())
 

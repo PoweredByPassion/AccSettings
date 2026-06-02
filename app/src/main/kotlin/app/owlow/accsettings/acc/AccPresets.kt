@@ -31,7 +31,7 @@ object AccPresets {
             featureAppliers = mapOf(
                 "capacity" to { draft ->
                     draft.withCapacity(
-                        CapacityConfig(5, 70, 75, 80, false, ConfigGroupMode.NORMAL)
+                        CapacityConfig(5, 70, 75, 80, false, CapacitySync.FALSE, ConfigGroupMode.NORMAL)
                     )
                 }
             )
@@ -46,7 +46,7 @@ object AccPresets {
             featureAppliers = mapOf(
                 "capacity" to { draft ->
                     draft.withCapacity(
-                        CapacityConfig(5, 55, 58, 60, false, ConfigGroupMode.NORMAL)
+                        CapacityConfig(5, 55, 58, 60, false, CapacitySync.FALSE, ConfigGroupMode.NORMAL)
                     )
                 }
             )
@@ -61,7 +61,7 @@ object AccPresets {
             featureAppliers = mapOf(
                 "temperature" to { draft ->
                     draft.withTemperature(
-                        TemperatureConfig(40, 43, 41, 47, ConfigGroupMode.NORMAL)
+                        TemperatureConfig(40, 43, 41, 47, false, ConfigGroupMode.NORMAL)
                     )
                 }
             )
@@ -76,7 +76,7 @@ object AccPresets {
             featureAppliers = mapOf(
                 "temperature" to { draft ->
                     draft.withTemperature(
-                        TemperatureConfig(41, 44, 42, 48, ConfigGroupMode.NORMAL)
+                        TemperatureConfig(41, 44, 42, 48, false, ConfigGroupMode.NORMAL)
                     )
                 },
                 "current_voltage" to { draft ->
@@ -94,7 +94,7 @@ object AccPresets {
             featureAppliers = mapOf(
                 "capacity" to { draft ->
                     draft.withCapacity(
-                        CapacityConfig(0, 95, 97, 100, false, ConfigGroupMode.NORMAL)
+                        CapacityConfig(0, 95, 97, 100, false, CapacitySync.FALSE, ConfigGroupMode.NORMAL)
                     )
                 },
                 "current_voltage" to { draft ->

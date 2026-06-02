@@ -104,9 +104,7 @@ class AccBridge(
             val capacity = request.target.currentCapacity
             if (capacity != null &&
                 capacity.mode == ConfigGroupMode.NORMAL &&
-                !(capacity.shutdown < capacity.cooldown &&
-                    capacity.cooldown <= capacity.resume &&
-                    capacity.resume < capacity.pause)
+                !isValidCapacityOrdering(capacity)
             ) {
                 errors += "capacity ordering is invalid"
             }
@@ -123,6 +121,16 @@ class AccBridge(
             }
         }
         return errors
+    }
+
+    private fun isValidCapacityOrdering(capacity: CapacityConfig): Boolean {
+        val shutdownEffective = if (capacity.shutdown < 1) -1 else capacity.shutdown
+        if (capacity.cooldown == 101) {
+            return shutdownEffective < capacity.resume && capacity.resume < capacity.pause
+        }
+        return shutdownEffective < capacity.resume &&
+            capacity.resume <= capacity.cooldown &&
+            capacity.cooldown <= capacity.pause
     }
 
     suspend fun ensureInstalled(): LifecycleActionResult = taskRunner.runSerialized {

@@ -2,6 +2,27 @@ package app.owlow.accsettings.acc
 
 import java.util.Properties
 
+enum class CapacitySync {
+    AUTO,
+    TRUE,
+    FALSE;
+
+    fun serialize(): String = when (this) {
+        AUTO -> "auto"
+        TRUE -> "true"
+        FALSE -> "false"
+    }
+
+    companion object {
+        fun parse(raw: String): CapacitySync? = when (raw.lowercase()) {
+            "auto" -> AUTO
+            "true" -> TRUE
+            "false" -> FALSE
+            else -> null
+        }
+    }
+}
+
 enum class ConfigGroupMode {
     NORMAL,
     VOLTAGE,
@@ -15,15 +36,22 @@ data class CapacityConfig(
     val resume: Int,
     val pause: Int,
     val maskAsFull: Boolean,
+    val sync: CapacitySync = CapacitySync.FALSE,
     val mode: ConfigGroupMode
 ) {
-    fun serialize(): String = "($shutdown $cooldown $resume $pause $maskAsFull)"
+    fun serialize(): String {
+        return if (sync != CapacitySync.FALSE) {
+            "($shutdown $cooldown $resume $pause $maskAsFull ${sync.serialize()})"
+        } else {
+            "($shutdown $cooldown $resume $pause $maskAsFull)"
+        }
+    }
 
     companion object {
         fun parse(raw: String?): CapacityConfig {
             val tokens = tokenize(raw)
-            if (tokens.size != 5) {
-                return CapacityConfig(0, 0, 0, 0, false, ConfigGroupMode.ADVANCED_CUSTOM)
+            if (tokens.size < 5 || tokens.size > 6) {
+                return CapacityConfig(0, 0, 0, 0, false, CapacitySync.FALSE, ConfigGroupMode.ADVANCED_CUSTOM)
             }
 
             val shutdown = tokens[0].toIntOrNull()
@@ -31,18 +59,25 @@ data class CapacityConfig(
             val resume = tokens[2].toIntOrNull()
             val pause = tokens[3].toIntOrNull()
             val maskAsFull = tokens[4].toBooleanStrictOrNull()
+            val sync = if (tokens.size == 6) CapacitySync.parse(tokens[5]) ?: CapacitySync.FALSE else CapacitySync.FALSE
+
             if (shutdown == null || cooldown == null || resume == null || pause == null || maskAsFull == null) {
-                return CapacityConfig(0, 0, 0, 0, false, ConfigGroupMode.ADVANCED_CUSTOM)
+                return CapacityConfig(0, 0, 0, 0, false, CapacitySync.FALSE, ConfigGroupMode.ADVANCED_CUSTOM)
             }
 
-            val values = listOf(shutdown, cooldown, resume, pause)
-            val mode = when {
+            val mode = classifyCapacityMode(shutdown, cooldown, resume, pause)
+            return CapacityConfig(shutdown, cooldown, resume, pause, maskAsFull, sync, mode)
+        }
+
+        fun classifyCapacityMode(shutdown: Int, cooldown: Int, resume: Int, pause: Int): ConfigGroupMode {
+            val effectiveShutdown = if (shutdown < 1) 0 else shutdown
+            val effectiveCooldown = if (cooldown == 101) 0 else cooldown
+            val values = listOf(effectiveShutdown, effectiveCooldown, resume, pause)
+            return when {
                 values.all { it in 0..100 } -> ConfigGroupMode.NORMAL
-                values.any { it in 101..2999 } -> ConfigGroupMode.MIXED_LEGACY
                 values.all { it == 0 || it >= 3000 } -> ConfigGroupMode.VOLTAGE
                 else -> ConfigGroupMode.ADVANCED_CUSTOM
             }
-            return CapacityConfig(shutdown, cooldown, resume, pause, maskAsFull, mode)
         }
     }
 }
@@ -52,33 +87,45 @@ data class TemperatureConfig(
     val pause: Int,
     val resume: Int,
     val shutdown: Int,
+    val resumeTempByCooldown: Boolean = false,
     val mode: ConfigGroupMode
 ) {
-    fun serialize(): String = "($cooldown $pause $resume $shutdown)"
+    fun serialize(): String {
+        val resumeStr = if (resumeTempByCooldown) "${resume}r" else resume.toString()
+        return "($cooldown $pause $resumeStr $shutdown)"
+    }
 
     companion object {
         fun parse(raw: String?): TemperatureConfig {
             val tokens = tokenize(raw)
             if (tokens.size != 4) {
-                return TemperatureConfig(0, 0, 0, 0, ConfigGroupMode.ADVANCED_CUSTOM)
+                return TemperatureConfig(0, 0, 0, 0, false, ConfigGroupMode.ADVANCED_CUSTOM)
             }
 
-            val values = tokens.map { it.toIntOrNull() }
-            if (values.any { it == null }) {
-                return TemperatureConfig(0, 0, 0, 0, ConfigGroupMode.ADVANCED_CUSTOM)
+            val rawResume = tokens[2]
+            val resumeTempByCooldown = rawResume.endsWith("r")
+            val resumeNum = rawResume.removeSuffix("r").toIntOrNull()
+
+            val cooldown = tokens[0].toIntOrNull()
+            val pause = tokens[1].toIntOrNull()
+            val shutdown = tokens[3].toIntOrNull()
+
+            if (cooldown == null || pause == null || resumeNum == null || shutdown == null) {
+                return TemperatureConfig(0, 0, 0, 0, false, ConfigGroupMode.ADVANCED_CUSTOM)
             }
 
-            val parsed = values.filterNotNull()
+            val values = listOf(cooldown, pause, resumeNum, shutdown)
             val mode = when {
-                parsed.all { it in 0..100 } -> ConfigGroupMode.NORMAL
-                parsed.all { it == 0 || it >= 3000 } -> ConfigGroupMode.VOLTAGE
+                values.all { it in 0..100 } -> ConfigGroupMode.NORMAL
+                values.all { it == 0 || it >= 3000 } -> ConfigGroupMode.VOLTAGE
                 else -> ConfigGroupMode.ADVANCED_CUSTOM
             }
             return TemperatureConfig(
-                cooldown = parsed[0],
-                pause = parsed[1],
-                resume = parsed[2],
-                shutdown = parsed[3],
+                cooldown = cooldown,
+                pause = pause,
+                resume = resumeNum,
+                shutdown = shutdown,
+                resumeTempByCooldown = resumeTempByCooldown,
                 mode = mode
             )
         }
@@ -100,19 +147,16 @@ private fun Properties.toCapacityConfig(): CapacityConfig? {
     val resume = getProperty("resume_capacity")?.toIntOrNull() ?: return null
     val pause = getProperty("pause_capacity")?.toIntOrNull() ?: return null
     val maskAsFull = getProperty("capacity_mask")?.toBooleanStrictOrNull() ?: false
-    val values = listOf(shutdown, cooldown, resume, pause)
-    val mode = when {
-        values.all { it in 0..100 } -> ConfigGroupMode.NORMAL
-        values.any { it in 101..2999 } -> ConfigGroupMode.MIXED_LEGACY
-        values.all { it == 0 || it >= 3000 } -> ConfigGroupMode.VOLTAGE
-        else -> ConfigGroupMode.ADVANCED_CUSTOM
-    }
+    val sync = getProperty("capacity_sync")?.let { CapacitySync.parse(it) } ?: CapacitySync.FALSE
+
+    val mode = CapacityConfig.classifyCapacityMode(shutdown, cooldown, resume, pause)
     return CapacityConfig(
         shutdown = shutdown,
         cooldown = cooldown,
         resume = resume,
         pause = pause,
         maskAsFull = maskAsFull,
+        sync = sync,
         mode = mode
     )
 }
@@ -122,8 +166,11 @@ private fun Properties.toTemperatureConfig(): TemperatureConfig? {
 
     val cooldown = getProperty("cooldown_temp")?.toIntOrNull() ?: return null
     val pause = getProperty("max_temp")?.toIntOrNull() ?: return null
-    val resume = getProperty("resume_temp")?.toIntOrNull() ?: return null
+    val rawResume = getProperty("resume_temp") ?: return null
+    val resumeTempByCooldown = rawResume.endsWith("r")
+    val resume = rawResume.removeSuffix("r").toIntOrNull() ?: return null
     val shutdown = getProperty("shutdown_temp")?.toIntOrNull() ?: return null
+
     val values = listOf(cooldown, pause, resume, shutdown)
     val mode = when {
         values.all { it in 0..100 } -> ConfigGroupMode.NORMAL
@@ -135,6 +182,7 @@ private fun Properties.toTemperatureConfig(): TemperatureConfig? {
         pause = pause,
         resume = resume,
         shutdown = shutdown,
+        resumeTempByCooldown = resumeTempByCooldown,
         mode = mode
     )
 }
