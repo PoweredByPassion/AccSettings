@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     kotlin("android")
@@ -16,6 +18,43 @@ android {
         testInstrumentationRunner = "app.owlow.accsettings.test.AccSettingTestRunner"
         resValue("string", "version_name", versionName!!)
     }
+    signingConfigs {
+        create("release") {
+            val localPropsFile = rootProject.file("local.properties")
+            val ksFile = System.getenv("KEYSTORE_FILE")
+                ?: if (localPropsFile.exists()) {
+                    val props = Properties()
+                    localPropsFile.inputStream().use { props.load(it) }
+                    props.getProperty("KEYSTORE_FILE")
+                } else null
+                ?: throw GradleException("KEYSTORE_FILE not set. Add to local.properties or env.")
+            val ksPass = System.getenv("KEYSTORE_PASSWORD")
+                ?: if (localPropsFile.exists()) {
+                    val props = Properties()
+                    localPropsFile.inputStream().use { props.load(it) }
+                    props.getProperty("KEYSTORE_PASSWORD")
+                } else null
+                ?: throw GradleException("KEYSTORE_PASSWORD not set. Add to local.properties or env.")
+            val kaAlias = System.getenv("KEY_ALIAS")
+                ?: if (localPropsFile.exists()) {
+                    val props = Properties()
+                    localPropsFile.inputStream().use { props.load(it) }
+                    props.getProperty("KEY_ALIAS")
+                } else null
+                ?: "accsettings"
+            val kaPass = System.getenv("KEY_PASSWORD")
+                ?: if (localPropsFile.exists()) {
+                    val props = Properties()
+                    localPropsFile.inputStream().use { props.load(it) }
+                    props.getProperty("KEY_PASSWORD")
+                } else null
+                ?: throw GradleException("KEY_PASSWORD not set. Add to local.properties or env.")
+            storeFile = rootProject.file(ksFile)
+            storePassword = ksPass
+            keyAlias = kaAlias
+            keyPassword = kaPass
+        }
+    }
     buildFeatures {
         compose = true
     }
@@ -27,7 +66,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
     compileOptions {

@@ -37,7 +37,17 @@ jobs:
       - name: Make release script executable
         run: chmod +x scripts/release-apk.sh
 
+      - name: Decode keystore
+        run: |
+          mkdir -p keystore
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > keystore/release.jks
+
       - name: Build release APK
+        env:
+          KEYSTORE_FILE: keystore/release.jks
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: ./scripts/release-apk.sh
 
       - name: Upload APK artifact
