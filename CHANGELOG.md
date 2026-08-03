@@ -2,6 +2,19 @@
 
 ## 2026-08-03
 
+**Fixes (cross-checked against official ACC command syntax + real-device testing)**
+
+- **Fixed the root cause of config writes silently failing**: `Command.setConfig` wrongly appended a `--` prefix after `--set` (producing `--set --sc=10`, which official ACC rejects), so capacity/temperature/current edits "saved but never applied". Now emits the correct `--set sc=10` syntax, locked down with contract tests
+- Fixed ACC executable cache: when the cached path goes stale after ACC uninstall/update, it is now re-validated and re-discovered instead of reusing a dead path
+- **Fixed Config / Overview crashing when ACC is unavailable** (not installed, no root, command failure): errors are mapped to readable messages instead of crashing the screen
+- Fixed status refresh swallowing errors: `AccStatus` gained `lastError`, and Overview now shows the real reason when a refresh fails
+- Fixed battery current unit: `BATTERY_PROPERTY_CURRENT_NOW` is in µA, so low standby currents were shown as "XXX mA"; now displays µA/mA/A correctly; removed an unreachable dead branch in voltage formatting
+- Fixed temperature ordering validation being too strict: official default `cooldown_temp=45 > resume_temp=40` is inverted by design, and the old check rejected valid configs; now only enforces `resume <= pause <= shutdown`
+- Real capability probing: charging switch list and current/voltage control support are now read from the device (`-s s:`, `max_charging_current`, etc.) instead of hardcoded "unsupported"
+- **Fixed daemon toggle appearing frozen**: a progress indicator is shown and the affected controls are disabled while the root command runs
+
+**Cleanup**
+
 - Removed the `capacity_sync` config item (the underlying ACC key no longer exists); reverted its UI field and serializer to the 5-element capacity format
 - Cut Overview battery polling from 3s to 15s to reduce root command frequency
 - Removed the full-screen loading spinner from service start and daemon toggle; failures still clear the loading state

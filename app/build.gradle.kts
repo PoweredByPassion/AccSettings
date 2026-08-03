@@ -13,8 +13,8 @@ android {
         applicationId = "app.owlow.accsettings"
         minSdk = 23
         targetSdk = 36
-        versionCode = 202606020
-        versionName = "2026.6.2"
+        versionCode = 202608030
+        versionName = "2026.8.3"
         testInstrumentationRunner = "app.owlow.accsettings.test.AccSettingTestRunner"
         resValue("string", "version_name", versionName!!)
     }
