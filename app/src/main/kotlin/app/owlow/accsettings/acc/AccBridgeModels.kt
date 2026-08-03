@@ -24,7 +24,7 @@ data class GroupedConfigRead(
         // 排除掉已经结构化的 capacity 和 temperature 相关字段
         val keysToIgnore = setOf(
             "capacity", "temperature",
-            "shutdown_capacity", "cooldown_capacity", "resume_capacity", "pause_capacity", "capacity_mask", "capacity_sync",
+            "shutdown_capacity", "cooldown_capacity", "resume_capacity", "pause_capacity", "capacity_mask",
             "cooldown_temp", "resume_temp", "max_temp", "shutdown_temp"
         )
         

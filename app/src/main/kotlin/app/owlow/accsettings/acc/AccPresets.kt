@@ -31,7 +31,7 @@ object AccPresets {
             featureAppliers = mapOf(
                 "capacity" to { draft ->
                     draft.withCapacity(
-                        CapacityConfig(5, 70, 75, 80, false, CapacitySync.FALSE, ConfigGroupMode.NORMAL)
+                        CapacityConfig(5, 70, 75, 80, false, ConfigGroupMode.NORMAL)
                     )
                 }
             )
@@ -46,7 +46,7 @@ object AccPresets {
             featureAppliers = mapOf(
                 "capacity" to { draft ->
                     draft.withCapacity(
-                        CapacityConfig(5, 55, 58, 60, false, CapacitySync.FALSE, ConfigGroupMode.NORMAL)
+                        CapacityConfig(5, 55, 58, 60, false, ConfigGroupMode.NORMAL)
                     )
                 }
             )
@@ -94,7 +94,7 @@ object AccPresets {
             featureAppliers = mapOf(
                 "capacity" to { draft ->
                     draft.withCapacity(
-                        CapacityConfig(0, 95, 97, 100, false, CapacitySync.FALSE, ConfigGroupMode.NORMAL)
+                        CapacityConfig(0, 95, 97, 100, false, ConfigGroupMode.NORMAL)
                     )
                 },
                 "current_voltage" to { draft ->

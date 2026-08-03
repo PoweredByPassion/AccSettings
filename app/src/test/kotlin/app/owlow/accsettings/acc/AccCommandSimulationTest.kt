@@ -97,13 +97,13 @@ class AccCommandSimulationTest {
         val config1 = GroupedConfigRead(
             current = groupedProps,
             defaults = Properties(),
-            currentCapacity = CapacityConfig(5, 70, 72, 80, false, CapacitySync.FALSE, ConfigGroupMode.NORMAL)
+            currentCapacity = CapacityConfig(5, 70, 72, 80, false, ConfigGroupMode.NORMAL)
         )
 
         val config2 = GroupedConfigRead(
             current = individualProps,
             defaults = Properties(),
-            currentCapacity = CapacityConfig(5, 70, 72, 80, false, CapacitySync.FALSE, ConfigGroupMode.NORMAL)
+            currentCapacity = CapacityConfig(5, 70, 72, 80, false, ConfigGroupMode.NORMAL)
         )
 
         // 虽然 Properties 内部内容完全不同，但逻辑上它们应该是相等的

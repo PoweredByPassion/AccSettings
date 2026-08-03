@@ -3,7 +3,6 @@ package app.owlow.accsettings.data
 import app.owlow.accsettings.acc.ApplyGroupedPatchRequest
 import app.owlow.accsettings.acc.ApplyGroupedPatchResult
 import app.owlow.accsettings.acc.CapacityConfig
-import app.owlow.accsettings.acc.CapacitySync
 import app.owlow.accsettings.acc.ConfigGroupMode
 import app.owlow.accsettings.acc.GroupedConfigRead
 import app.owlow.accsettings.acc.PatchGroup
@@ -51,7 +50,7 @@ class ConfigDataStoreTest {
 
     @Test
     fun advanced_custom_groups_are_protected_from_silent_standard_overwrite() {
-        val advancedCapacity = CapacityConfig(0, 0, 0, 0, false, CapacitySync.FALSE, ConfigGroupMode.ADVANCED_CUSTOM)
+        val advancedCapacity = CapacityConfig(0, 0, 0, 0, false, ConfigGroupMode.ADVANCED_CUSTOM)
         val store = testStore(
             groupedConfig = groupedConfig(capacity = advancedCapacity)
         )
@@ -157,7 +156,7 @@ class ConfigDataStoreTest {
 
         val draftCapacity = store.currentDraftStateForTesting().draft.currentCapacity
         assertEquals(
-            CapacityConfig(5, 70, 72, 85, false, CapacitySync.FALSE, ConfigGroupMode.NORMAL),
+            CapacityConfig(5, 70, 72, 85, false, ConfigGroupMode.NORMAL),
             draftCapacity
         )
     }
@@ -247,7 +246,7 @@ class ConfigDataStoreTest {
     }
 
     private fun groupedConfig(
-        capacity: CapacityConfig = CapacityConfig(5, 70, 72, 80, false, CapacitySync.FALSE, ConfigGroupMode.NORMAL),
+        capacity: CapacityConfig = CapacityConfig(5, 70, 72, 80, false, ConfigGroupMode.NORMAL),
         temperature: TemperatureConfig = TemperatureConfig(42, 45, 43, 50, false, ConfigGroupMode.NORMAL)
     ): GroupedConfigRead {
         val current = Properties().apply {

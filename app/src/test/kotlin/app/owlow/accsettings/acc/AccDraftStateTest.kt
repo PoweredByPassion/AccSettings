@@ -10,7 +10,7 @@ class AccDraftStateTest {
     @Test
     fun current_config_copies_into_clean_draft() {
         val current = groupedConfig(
-            currentCapacity = CapacityConfig(5, 70, 72, 80, true, CapacitySync.FALSE, ConfigGroupMode.NORMAL),
+            currentCapacity = CapacityConfig(5, 70, 72, 80, true, ConfigGroupMode.NORMAL),
             currentTemperature = TemperatureConfig(39, 45, 42, 50, false, ConfigGroupMode.NORMAL)
         )
 
@@ -25,10 +25,10 @@ class AccDraftStateTest {
     fun draft_state_transitions_to_modified() {
         val initial = AccDraftState.from(current = groupedConfig(), defaults = groupedConfig())
         val modified = initial.updateCapacity(
-            CapacityConfig(5, 70, 72, 80, true, CapacitySync.FALSE, ConfigGroupMode.NORMAL)
+            CapacityConfig(5, 70, 72, 80, true, ConfigGroupMode.NORMAL)
         )
         val disabledCooldown = modified.updateCapacity(
-            CapacityConfig(5, 101, 72, 80, false, CapacitySync.FALSE, ConfigGroupMode.NORMAL)
+            CapacityConfig(5, 101, 72, 80, false, ConfigGroupMode.NORMAL)
         )
 
         assertEquals(DraftStatus.MODIFIED, modified.status)
@@ -39,7 +39,7 @@ class AccDraftStateTest {
     fun advanced_custom_capacity_creates_protected_group() {
         val advanced = AccDraftState.from(current = groupedConfig(), defaults = groupedConfig())
             .updateCapacity(
-                CapacityConfig(0, 0, 0, 0, false, CapacitySync.FALSE, ConfigGroupMode.ADVANCED_CUSTOM)
+                CapacityConfig(0, 0, 0, 0, false, ConfigGroupMode.ADVANCED_CUSTOM)
             )
 
         assertEquals(DraftStatus.ADVANCED_MODIFIED, advanced.status)
@@ -52,7 +52,7 @@ class AccDraftStateTest {
         val current = groupedConfig()
         val state = AccDraftState.from(current = current, defaults = groupedConfig())
         val changedCurrent = groupedConfig(
-            currentCapacity = CapacityConfig(10, 70, 72, 80, true, CapacitySync.FALSE, ConfigGroupMode.NORMAL)
+            currentCapacity = CapacityConfig(10, 70, 72, 80, true, ConfigGroupMode.NORMAL)
         )
 
         assertFalse(state.isStaleAgainst(current))

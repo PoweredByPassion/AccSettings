@@ -2,27 +2,6 @@ package app.owlow.accsettings.acc
 
 import java.util.Properties
 
-enum class CapacitySync {
-    AUTO,
-    TRUE,
-    FALSE;
-
-    fun serialize(): String = when (this) {
-        AUTO -> "auto"
-        TRUE -> "true"
-        FALSE -> "false"
-    }
-
-    companion object {
-        fun parse(raw: String): CapacitySync? = when (raw.lowercase()) {
-            "auto" -> AUTO
-            "true" -> TRUE
-            "false" -> FALSE
-            else -> null
-        }
-    }
-}
-
 enum class ConfigGroupMode {
     NORMAL,
     VOLTAGE,
@@ -36,22 +15,17 @@ data class CapacityConfig(
     val resume: Int,
     val pause: Int,
     val maskAsFull: Boolean,
-    val sync: CapacitySync = CapacitySync.FALSE,
     val mode: ConfigGroupMode
 ) {
     fun serialize(): String {
-        return if (sync != CapacitySync.FALSE) {
-            "($shutdown $cooldown $resume $pause $maskAsFull ${sync.serialize()})"
-        } else {
-            "($shutdown $cooldown $resume $pause $maskAsFull)"
-        }
+        return "($shutdown $cooldown $resume $pause $maskAsFull)"
     }
 
     companion object {
         fun parse(raw: String?): CapacityConfig {
             val tokens = tokenize(raw)
-            if (tokens.size < 5 || tokens.size > 6) {
-                return CapacityConfig(0, 0, 0, 0, false, CapacitySync.FALSE, ConfigGroupMode.ADVANCED_CUSTOM)
+            if (tokens.size != 5) {
+                return CapacityConfig(0, 0, 0, 0, false, ConfigGroupMode.ADVANCED_CUSTOM)
             }
 
             val shutdown = tokens[0].toIntOrNull()
@@ -59,14 +33,13 @@ data class CapacityConfig(
             val resume = tokens[2].toIntOrNull()
             val pause = tokens[3].toIntOrNull()
             val maskAsFull = tokens[4].toBooleanStrictOrNull()
-            val sync = if (tokens.size == 6) CapacitySync.parse(tokens[5]) ?: CapacitySync.FALSE else CapacitySync.FALSE
 
             if (shutdown == null || cooldown == null || resume == null || pause == null || maskAsFull == null) {
-                return CapacityConfig(0, 0, 0, 0, false, CapacitySync.FALSE, ConfigGroupMode.ADVANCED_CUSTOM)
+                return CapacityConfig(0, 0, 0, 0, false, ConfigGroupMode.ADVANCED_CUSTOM)
             }
 
             val mode = classifyCapacityMode(shutdown, cooldown, resume, pause)
-            return CapacityConfig(shutdown, cooldown, resume, pause, maskAsFull, sync, mode)
+            return CapacityConfig(shutdown, cooldown, resume, pause, maskAsFull, mode)
         }
 
         fun classifyCapacityMode(shutdown: Int, cooldown: Int, resume: Int, pause: Int): ConfigGroupMode {
@@ -147,7 +120,6 @@ private fun Properties.toCapacityConfig(): CapacityConfig? {
     val resume = getProperty("resume_capacity")?.toIntOrNull() ?: return null
     val pause = getProperty("pause_capacity")?.toIntOrNull() ?: return null
     val maskAsFull = getProperty("capacity_mask")?.toBooleanStrictOrNull() ?: false
-    val sync = getProperty("capacity_sync")?.let { CapacitySync.parse(it) } ?: CapacitySync.FALSE
 
     val mode = CapacityConfig.classifyCapacityMode(shutdown, cooldown, resume, pause)
     return CapacityConfig(
@@ -156,7 +128,6 @@ private fun Properties.toCapacityConfig(): CapacityConfig? {
         resume = resume,
         pause = pause,
         maskAsFull = maskAsFull,
-        sync = sync,
         mode = mode
     )
 }

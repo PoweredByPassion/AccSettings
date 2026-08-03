@@ -9,11 +9,11 @@ import java.util.Properties
 class AccBridgeApplyTest {
     @Test
     fun stale_base_config_rejects_apply() = runBlocking {
-        val base = groupedConfig(capacity = CapacityConfig(5, 80, 70, 85, true, CapacitySync.FALSE, ConfigGroupMode.NORMAL))
-        val latest = groupedConfig(capacity = CapacityConfig(10, 80, 70, 85, true, CapacitySync.FALSE, ConfigGroupMode.NORMAL))
+        val base = groupedConfig(capacity = CapacityConfig(5, 80, 70, 85, true, ConfigGroupMode.NORMAL))
+        val latest = groupedConfig(capacity = CapacityConfig(10, 80, 70, 85, true, ConfigGroupMode.NORMAL))
         val request = ApplyGroupedPatchRequest(
             base = base,
-            target = groupedConfig(capacity = CapacityConfig(5, 80, 70, 90, true, CapacitySync.FALSE, ConfigGroupMode.NORMAL)),
+            target = groupedConfig(capacity = CapacityConfig(5, 80, 70, 90, true, ConfigGroupMode.NORMAL)),
             groups = setOf(PatchGroup.CAPACITY)
         )
         val bridge = AccBridge(
@@ -35,7 +35,7 @@ class AccBridgeApplyTest {
     fun grouped_validation_failure_returns_error() = runBlocking {
         // shutdown=90 > resume=72 — violates correct ordering: shutdown < resume <= cooldown <= pause
         val invalidTarget = groupedConfig(
-            capacity = CapacityConfig(90, 80, 72, 85, true, CapacitySync.FALSE, ConfigGroupMode.NORMAL)
+            capacity = CapacityConfig(90, 80, 72, 85, true, ConfigGroupMode.NORMAL)
         )
         val request = ApplyGroupedPatchRequest(
             base = groupedConfig(),
@@ -60,7 +60,7 @@ class AccBridgeApplyTest {
     @Test
     fun capacity_with_resume_below_cooldown_passes_validation() = runBlocking {
         val validTarget = groupedConfig(
-            capacity = CapacityConfig(5, 80, 70, 85, true, CapacitySync.FALSE, ConfigGroupMode.NORMAL)
+            capacity = CapacityConfig(5, 80, 70, 85, true, ConfigGroupMode.NORMAL)
         )
         val request = ApplyGroupedPatchRequest(
             base = groupedConfig(),
@@ -85,7 +85,7 @@ class AccBridgeApplyTest {
     @Test
     fun capacity_with_cooldown_101_passes_validation() = runBlocking {
         val validTarget = groupedConfig(
-            capacity = CapacityConfig(5, 101, 70, 80, true, CapacitySync.FALSE, ConfigGroupMode.NORMAL)
+            capacity = CapacityConfig(5, 101, 70, 80, true, ConfigGroupMode.NORMAL)
         )
         val request = ApplyGroupedPatchRequest(
             base = groupedConfig(),
@@ -111,7 +111,7 @@ class AccBridgeApplyTest {
     fun full_apply_success_returns_verified_result() = runBlocking {
         val writes = mutableListOf<PatchGroup>()
         val target = groupedConfig(
-            capacity = CapacityConfig(5, 80, 70, 85, true, CapacitySync.FALSE, ConfigGroupMode.NORMAL),
+            capacity = CapacityConfig(5, 80, 70, 85, true, ConfigGroupMode.NORMAL),
             temperature = TemperatureConfig(39, 45, 42, 50, false, ConfigGroupMode.NORMAL)
         )
         val request = ApplyGroupedPatchRequest(
@@ -146,7 +146,7 @@ class AccBridgeApplyTest {
     @Test
     fun partial_apply_result_reports_failed_groups() = runBlocking {
         val target = groupedConfig(
-            capacity = CapacityConfig(5, 80, 70, 85, true, CapacitySync.FALSE, ConfigGroupMode.NORMAL),
+            capacity = CapacityConfig(5, 80, 70, 85, true, ConfigGroupMode.NORMAL),
             temperature = TemperatureConfig(39, 45, 42, 50, false, ConfigGroupMode.NORMAL)
         )
         val request = ApplyGroupedPatchRequest(
@@ -181,10 +181,10 @@ class AccBridgeApplyTest {
     @Test
     fun verification_mismatch_returns_result() = runBlocking {
         val target = groupedConfig(
-            capacity = CapacityConfig(5, 80, 70, 85, true, CapacitySync.FALSE, ConfigGroupMode.NORMAL)
+            capacity = CapacityConfig(5, 80, 70, 85, true, ConfigGroupMode.NORMAL)
         )
         val verified = groupedConfig(
-            capacity = CapacityConfig(5, 80, 70, 84, true, CapacitySync.FALSE, ConfigGroupMode.NORMAL)
+            capacity = CapacityConfig(5, 80, 70, 84, true, ConfigGroupMode.NORMAL)
         )
         val request = ApplyGroupedPatchRequest(
             base = groupedConfig(),

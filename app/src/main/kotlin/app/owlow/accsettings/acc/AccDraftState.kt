@@ -27,7 +27,6 @@ data class AccDraftState(
         nextCurrent.setProperty("resume_capacity", capacityConfig.resume.toString())
         nextCurrent.setProperty("pause_capacity", capacityConfig.pause.toString())
         nextCurrent.setProperty("capacity_mask", capacityConfig.maskAsFull.toString())
-        nextCurrent.setProperty("capacity_sync", capacityConfig.sync.serialize())
 
         val nextDraft = draft.copy(
             currentCapacity = capacityConfig,

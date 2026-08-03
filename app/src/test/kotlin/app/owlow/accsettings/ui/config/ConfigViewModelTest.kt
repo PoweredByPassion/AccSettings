@@ -2,7 +2,6 @@ package app.owlow.accsettings.ui.config
 
 import app.owlow.accsettings.MainDispatcherRule
 import app.owlow.accsettings.acc.CapacityConfig
-import app.owlow.accsettings.acc.CapacitySync
 import app.owlow.accsettings.acc.ConfigGroupMode
 import app.owlow.accsettings.acc.DraftStatus
 import app.owlow.accsettings.acc.GroupedConfigRead
@@ -115,7 +114,7 @@ class ConfigViewModelTest {
             val applied = GroupedConfigRead(
                 current = Properties(),
                 defaults = Properties(),
-                currentCapacity = CapacityConfig(10, 70, 72, 80, false, CapacitySync.FALSE, ConfigGroupMode.NORMAL),
+                currentCapacity = CapacityConfig(10, 70, 72, 80, false, ConfigGroupMode.NORMAL),
                 currentTemperature = TemperatureConfig(42, 45, 43, 50, false, ConfigGroupMode.NORMAL)
             )
             val draft = GroupedConfigRead(
@@ -129,7 +128,6 @@ class ConfigViewModelTest {
                     fieldValues["set_resume_capacity"]?.toIntOrNull() ?: 72,
                     fieldValues["set_pause_capacity"]?.toIntOrNull() ?: 80,
                     false,
-                    CapacitySync.FALSE,
                     ConfigGroupMode.NORMAL
                 ),
                 currentTemperature = TemperatureConfig(

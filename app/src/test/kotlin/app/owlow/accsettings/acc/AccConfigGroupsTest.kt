@@ -16,7 +16,6 @@ class AccConfigGroupsTest {
                 resume = 70,
                 pause = 75,
                 maskAsFull = false,
-                sync = CapacitySync.FALSE,
                 mode = ConfigGroupMode.NORMAL
             ),
             CapacityConfig.parse("(5 101 70 75 false)")
@@ -32,18 +31,11 @@ class AccConfigGroupsTest {
     }
 
     @Test
-    fun parseCapacity_handles_6_element_tuple_with_sync() {
+    fun parseCapacity_rejects_6_element_tuple_as_advanced_custom() {
+        // Official ACC capacity is a 5-tuple (sc cc rc pc mask); an extra element is invalid.
         assertEquals(
-            CapacityConfig(
-                shutdown = 5,
-                cooldown = 70,
-                resume = 72,
-                pause = 80,
-                maskAsFull = false,
-                sync = CapacitySync.AUTO,
-                mode = ConfigGroupMode.NORMAL
-            ),
-            CapacityConfig.parse("(5 70 72 80 false auto)")
+            ConfigGroupMode.ADVANCED_CUSTOM,
+            CapacityConfig.parse("(5 70 72 80 false auto)").mode
         )
     }
 
@@ -93,7 +85,6 @@ class AccConfigGroupsTest {
             resume = 72,
             pause = 80,
             maskAsFull = true,
-            sync = CapacitySync.FALSE,
             mode = ConfigGroupMode.NORMAL
         )
         val temperature = TemperatureConfig(
@@ -124,17 +115,16 @@ class AccConfigGroupsTest {
     }
 
     @Test
-    fun capacity_serialization_preserves_sync_when_non_default() {
+    fun capacity_serialization_always_uses_5_element_tuple() {
         val capacity = CapacityConfig(
             shutdown = 5,
             cooldown = 70,
             resume = 72,
             pause = 80,
             maskAsFull = false,
-            sync = CapacitySync.AUTO,
             mode = ConfigGroupMode.NORMAL
         )
-        assertEquals("(5 70 72 80 false auto)", capacity.serialize())
+        assertEquals("(5 70 72 80 false)", capacity.serialize())
         assertEquals(capacity, CapacityConfig.parse(capacity.serialize()))
     }
 
@@ -198,7 +188,7 @@ class AccConfigGroupsTest {
         val grouped = bridge.readGroupedConfig()
 
         assertEquals(
-            CapacityConfig(5, 70, 72, 80, false, CapacitySync.FALSE, ConfigGroupMode.NORMAL),
+            CapacityConfig(5, 70, 72, 80, false, ConfigGroupMode.NORMAL),
             grouped.currentCapacity
         )
         assertEquals(
@@ -206,7 +196,7 @@ class AccConfigGroupsTest {
             grouped.currentTemperature
         )
         assertEquals(
-            CapacityConfig(5, 101, 70, 75, false, CapacitySync.FALSE, ConfigGroupMode.NORMAL),
+            CapacityConfig(5, 101, 70, 75, false, ConfigGroupMode.NORMAL),
             grouped.defaultCapacity
         )
         assertEquals(

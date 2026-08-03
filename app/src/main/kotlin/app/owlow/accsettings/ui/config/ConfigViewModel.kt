@@ -11,7 +11,6 @@ import app.owlow.accsettings.R
 import app.owlow.accsettings.acc.AccDraftState
 import app.owlow.accsettings.acc.ApplyGroupedPatchResult
 import app.owlow.accsettings.acc.CapacityConfig
-import app.owlow.accsettings.acc.CapacitySync
 import app.owlow.accsettings.acc.ConfigGroupMode
 import app.owlow.accsettings.acc.DraftStatus
 import app.owlow.accsettings.acc.GroupedConfigRead
@@ -33,7 +32,6 @@ private const val COOLDOWN_CURRENT_KEY = "cooldown_current"
 private const val TEMP_LEVEL_KEY = "temp_level"
 private const val CURRENT_WORKAROUND_KEY = "current_workaround"
 private const val CAPACITY_MASK_KEY = "set_capacity_mask"
-private const val CAPACITY_SYNC_KEY = "set_capacity_sync"
 private const val CAPACITY_PERCENT_MIN = 0
 private const val CAPACITY_PERCENT_MAX = 100
 private const val TEMP_MIN = 0
@@ -237,7 +235,6 @@ private fun GroupedConfigRead.capacityFields(): List<ConfigFieldUiModel> {
         resume = 72,
         pause = 80,
         maskAsFull = false,
-        sync = CapacitySync.FALSE,
         mode = ConfigGroupMode.NORMAL
     )
     val voltageMode = capacity.mode == ConfigGroupMode.VOLTAGE
@@ -291,12 +288,6 @@ private fun GroupedConfigRead.capacityFields(): List<ConfigFieldUiModel> {
             labelRes = R.string.pause_as_full,
             value = capacity.maskAsFull.toString(),
             helperTextRes = R.string.hint_capacity_mask
-        ),
-        textField(
-            key = CAPACITY_SYNC_KEY,
-            labelRes = R.string.capacity_sync,
-            value = capacity.sync.serialize(),
-            helperTextRes = R.string.hint_capacity_sync
         )
     )
 }
