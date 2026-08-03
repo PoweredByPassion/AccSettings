@@ -29,6 +29,8 @@ fun OverviewScreen(
     onToggleAction: (String, Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val colors = MaterialTheme.colorScheme
+
     if (uiState.isLoading) {
         Box(
             modifier = modifier
@@ -36,7 +38,7 @@ fun OverviewScreen(
                 .padding(24.dp),
             contentAlignment = Alignment.Center
         ) {
-            CircularProgressIndicator(color = AccPrimary, strokeWidth = 2.dp)
+            CircularProgressIndicator(color = colors.primary, strokeWidth = 2.dp)
         }
         return
     }
@@ -44,7 +46,7 @@ fun OverviewScreen(
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .background(AccBackground)
+            .background(colors.background)
             .padding(horizontal = 24.dp),
         contentPadding = PaddingValues(bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp)
@@ -53,13 +55,14 @@ fun OverviewScreen(
             OverviewHeader(
                 headline = stringResource(R.string.overview),
                 status = uiState.statusHeadline,
+                colors = colors,
                 modifier = Modifier.padding(top = 40.dp)
             )
         }
 
         if (uiState.warnings.isNotEmpty()) {
             items(uiState.warnings) { warning ->
-                WarningCard(text = warning)
+                WarningCard(text = warning, colors = colors)
             }
         }
 
@@ -67,6 +70,7 @@ fun OverviewScreen(
             FactsGrid(
                 facts = uiState.runtimeFacts,
                 daemonBusy = uiState.daemonBusy,
+                colors = colors,
                 onToggleAction = onToggleAction
             )
         }
@@ -77,11 +81,12 @@ fun OverviewScreen(
                     Text(
                         text = stringResource(R.string.battery_info_title),
                         style = AccTypography.titleLarge,
-                        color = Zinc900,
+                        color = colors.onSurface,
                         modifier = Modifier.padding(horizontal = 4.dp)
                     )
                     FactsGrid(
                         facts = uiState.batteryFacts,
+                        colors = colors,
                         onToggleAction = onToggleAction
                     )
                 }
@@ -92,6 +97,7 @@ fun OverviewScreen(
             ActionsSection(
                 actions = uiState.primaryActions,
                 actionsEnabled = !uiState.daemonBusy,
+                colors = colors,
                 onAction = onAction
             )
         }
@@ -102,6 +108,7 @@ fun OverviewScreen(
 private fun OverviewHeader(
     headline: String,
     status: String,
+    colors: ColorScheme,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -111,12 +118,12 @@ private fun OverviewHeader(
         Text(
             text = headline,
             style = AccTypography.headlineMedium,
-            color = Zinc950
+            color = colors.onSurface
         )
         Text(
             text = status,
             style = AccTypography.bodyLarge,
-            color = Zinc600,
+            color = colors.onSurfaceVariant,
             lineHeight = 22.sp
         )
     }
@@ -126,6 +133,7 @@ private fun OverviewHeader(
 private fun FactsGrid(
     facts: List<OverviewFact>,
     daemonBusy: Boolean = false,
+    colors: ColorScheme,
     onToggleAction: (String, Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -133,7 +141,7 @@ private fun FactsGrid(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(24.dp))
-            .background(Color.White)
+            .background(colors.surface)
             .padding(vertical = 12.dp)
     ) {
         facts.forEachIndexed { index, fact ->
@@ -141,6 +149,7 @@ private fun FactsGrid(
                 fact = fact,
                 daemonBusy = daemonBusy,
                 isLast = index == facts.size - 1,
+                colors = colors,
                 onToggleAction = onToggleAction
             )
         }
@@ -152,6 +161,7 @@ private fun FactRow(
     fact: OverviewFact,
     daemonBusy: Boolean,
     isLast: Boolean,
+    colors: ColorScheme,
     onToggleAction: (String, Boolean) -> Unit
 ) {
     Row(
@@ -164,7 +174,7 @@ private fun FactRow(
         Text(
             text = fact.label,
             style = AccTypography.labelMedium,
-            color = Zinc500,
+            color = colors.onSurfaceVariant,
             fontWeight = FontWeight.Medium
         )
         Row(
@@ -177,7 +187,7 @@ private fun FactRow(
                     fontFamily = MonospaceNumbers.fontFamily,
                     letterSpacing = MonospaceNumbers.letterSpacing
                 ),
-                color = Zinc900,
+                color = colors.onSurface,
                 fontWeight = FontWeight.SemiBold
             )
             if (fact.actionId != null && fact.actionValue != null) {
@@ -185,17 +195,17 @@ private fun FactRow(
                     CircularProgressIndicator(
                         modifier = Modifier.size(24.dp),
                         strokeWidth = 2.dp,
-                        color = AccPrimary
+                        color = colors.primary
                     )
                 } else {
                     Switch(
                         checked = fact.actionValue,
                         onCheckedChange = { onToggleAction(fact.actionId, it) },
                         colors = SwitchDefaults.colors(
-                            checkedThumbColor = Color.White,
-                            checkedTrackColor = AccPrimary,
-                            uncheckedThumbColor = Zinc400,
-                            uncheckedTrackColor = Zinc100,
+                            checkedThumbColor = colors.onPrimary,
+                            checkedTrackColor = colors.primary,
+                            uncheckedThumbColor = colors.onSurfaceVariant,
+                            uncheckedTrackColor = colors.surfaceVariant,
                             uncheckedBorderColor = Color.Transparent
                         ),
                         modifier = Modifier.scale(0.8f)
@@ -207,25 +217,25 @@ private fun FactRow(
     if (!isLast) {
         HorizontalDivider(
             modifier = Modifier.padding(horizontal = 20.dp),
-            color = AccDivider,
+            color = colors.outlineVariant,
             thickness = 1.dp
         )
     }
 }
 
 @Composable
-private fun WarningCard(text: String) {
+private fun WarningCard(text: String, colors: ColorScheme) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(AccError.copy(alpha = 0.08f))
+            .background(colors.error.copy(alpha = 0.08f))
             .padding(16.dp)
     ) {
         Text(
             text = text,
             style = AccTypography.bodyMedium,
-            color = AccError,
+            color = colors.error,
             fontWeight = FontWeight.Medium
         )
     }
@@ -235,6 +245,7 @@ private fun WarningCard(text: String) {
 private fun ActionsSection(
     actions: List<OverviewAction>,
     actionsEnabled: Boolean,
+    colors: ColorScheme,
     onAction: (String) -> Unit
 ) {
     Column(
@@ -244,6 +255,7 @@ private fun ActionsSection(
             AccActionButton(
                 label = action.label,
                 enabled = actionsEnabled,
+                colors = colors,
                 onClick = { onAction(action.id) }
             )
         }
@@ -254,6 +266,7 @@ private fun ActionsSection(
 private fun AccActionButton(
     label: String,
     enabled: Boolean,
+    colors: ColorScheme,
     onClick: () -> Unit
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "breathing")
@@ -276,8 +289,8 @@ private fun AccActionButton(
             .scale(if (enabled) scale else 1f),
         shape = RoundedCornerShape(16.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = AccPrimary,
-            contentColor = AccOnPrimary
+            containerColor = colors.primary,
+            contentColor = colors.onPrimary
         ),
         elevation = ButtonDefaults.buttonElevation(
             defaultElevation = 2.dp,
@@ -287,7 +300,7 @@ private fun AccActionButton(
         Text(
             text = label,
             style = AccTypography.titleMedium,
-            color = AccOnPrimary
+            color = colors.onPrimary
         )
     }
 }
