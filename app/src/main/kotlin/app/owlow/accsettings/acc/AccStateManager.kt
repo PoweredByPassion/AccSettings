@@ -243,6 +243,33 @@ object AccStateManager {
         } else {
             false
         }
+        val supportedChargingSwitches = if (hasRoot) {
+            try {
+                Command.listChargingSwitches()
+            } catch (_: Exception) {
+                emptyList()
+            }
+        } else {
+            emptyList()
+        }
+        val supportsCurrentControl = if (hasRoot) {
+            try {
+                Command.readMaxChargingCurrent() != null
+            } catch (_: Exception) {
+                false
+            }
+        } else {
+            false
+        }
+        val supportsVoltageControl = if (hasRoot) {
+            try {
+                Command.readMaxChargingVoltage() != null
+            } catch (_: Exception) {
+                false
+            }
+        } else {
+            false
+        }
 
         return AccProbeFacts(
             hasRoot = hasRoot,
@@ -256,10 +283,10 @@ object AccStateManager {
             canReadDefaultConfig = selectedEntrypoint != null,
             canReadLogs = hasRoot,
             canExportDiagnostics = hasRoot,
-            supportedChargingSwitches = emptyList(),
-            preferredChargingSwitch = null,
-            supportsCurrentControl = false,
-            supportsVoltageControl = false,
+            supportedChargingSwitches = supportedChargingSwitches,
+            preferredChargingSwitch = supportedChargingSwitches.firstOrNull(),
+            supportsCurrentControl = supportsCurrentControl,
+            supportsVoltageControl = supportsVoltageControl,
             supportedCapacityModes = setOf(CapacityMode.PERCENT),
             supportedTemperatureModes = setOf(TemperatureMode.CELSIUS)
         )

@@ -185,6 +185,48 @@ class AccCapabilityProbeTest {
         assertEquals(2, invocationCount)
     }
 
+    @Test
+    fun real_probe_results_fill_device_control_capabilities() = runBlocking {
+        // Mirrors what collectProbeFacts() produces after real probing:
+        // -s s: -> lines like "battery/charging_enabled 1 0", --set --print max_charging_current -> "500".
+        val probe = AccCapabilityProbe {
+            fakeFacts(
+                supportedChargingSwitches = listOf("battery/charging_enabled 1 0", "input_suspend 1 0"),
+                preferredChargingSwitch = "battery/charging_enabled 1 0",
+                supportsCurrentControl = true,
+                supportsVoltageControl = false
+            )
+        }
+
+        val snapshot = probe.snapshot()
+
+        assertEquals(
+            listOf("battery/charging_enabled 1 0", "input_suspend 1 0"),
+            snapshot.deviceControlCapability.supportedChargingSwitches
+        )
+        assertTrue(snapshot.deviceControlCapability.supportsCurrentControl)
+        assertFalse(snapshot.deviceControlCapability.supportsVoltageControl)
+    }
+
+    @Test
+    fun missing_probe_results_leave_controls_reported_unavailable() = runBlocking {
+        val probe = AccCapabilityProbe {
+            fakeFacts(
+                supportedChargingSwitches = emptyList(),
+                preferredChargingSwitch = null,
+                supportsCurrentControl = false,
+                supportsVoltageControl = false
+            )
+        }
+
+        val snapshot = probe.snapshot()
+
+        assertTrue(snapshot.deviceControlCapability.supportedChargingSwitches.isEmpty())
+        assertEquals(null, snapshot.deviceControlCapability.preferredChargingSwitch)
+        assertFalse(snapshot.deviceControlCapability.supportsCurrentControl)
+        assertFalse(snapshot.deviceControlCapability.supportsVoltageControl)
+    }
+
     private fun fakeFacts(
         hasRoot: Boolean = true,
         availableEntrypoints: List<String> = listOf("/dev/acca", "/data/adb/vr25/acc/acc.sh"),

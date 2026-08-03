@@ -127,6 +127,51 @@ object Command {
     suspend fun getConfig(property: String): String =
         getPropertyValue(execAcc("set", "print $property"))
 
+    /**
+     * Lists the charging switches ACC knows about, via `{accPath} -s s:`. Real devices return
+     * rc=0 with one `ctrl_file on off` line per switch (the switch list ACC itself maintains).
+     * Returns an empty list on any failure so capability probing never blocks on this.
+     */
+    suspend fun listChargingSwitches(): List<String> = runCatching {
+        val accPath = withContext(Dispatchers.IO) {
+            requireAccExecutable { path -> execTest(path) }
+        }
+        exec("$accPath -s s:")
+            .lineSequence()
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .toList()
+    }.getOrDefault(emptyList())
+
+    /**
+     * Reads the max charging current (mcc) ACC is allowed to use, via the full config key
+     * `max_charging_current` on `{accPath} --set --print <key>`. Returns null when the key is
+     * absent (current/voltage control not supported) or the probe fails.
+     */
+    suspend fun readMaxChargingCurrent(): String? = runCatching {
+        parsePrintValue("max_charging_current")
+    }.getOrNull()
+
+    /**
+     * Reads the max charging voltage (mcv) ACC is allowed to use, via the full config key
+     * `max_charging_voltage`. Returns null when the key is absent or the probe fails.
+     */
+    suspend fun readMaxChargingVoltage(): String? = runCatching {
+        parsePrintValue("max_charging_voltage")
+    }.getOrNull()
+
+    private suspend fun parsePrintValue(key: String): String? {
+        val accPath = withContext(Dispatchers.IO) {
+            requireAccExecutable { path -> execTest(path) }
+        }
+        val output = exec("$accPath --set --print $key")
+        return output.lineSequence()
+            .firstOrNull { it.startsWith("$key=") }
+            ?.substringAfter("=")
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
+    }
+
     suspend fun getDefaultConfig(): Properties {
         val properties = Properties()
         @Suppress("BlockingMethodInNonBlockingContext")

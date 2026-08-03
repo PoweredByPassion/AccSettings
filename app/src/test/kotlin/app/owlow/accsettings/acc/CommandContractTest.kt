@@ -3,6 +3,7 @@ package app.owlow.accsettings.acc
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 
@@ -111,5 +112,63 @@ class CommandContractTest {
         } catch (e: IllegalArgumentException) {
             assertEquals("setConfig requires property/value pairs", e.message)
         }
+    }
+
+    @Test
+    fun listChargingSwitches_uses_dash_s_s_colon() = runBlocking {
+        Command.execOverride = { cmd ->
+            captured += cmd
+            "battery/charging_enabled 1 0\ninput_suspend 1 0\n"
+        }
+        assertEquals(
+            listOf("battery/charging_enabled 1 0", "input_suspend 1 0"),
+            Command.listChargingSwitches()
+        )
+        assertEquals(listOf("/dev/acca -s s:"), captured)
+    }
+
+    @Test
+    fun listChargingSwitches_trims_and_skips_blank_lines() = runBlocking {
+        Command.execOverride = { "  battery/charging_enabled  1 0  \n\n  \n" }
+        assertEquals(listOf("battery/charging_enabled  1 0"), Command.listChargingSwitches())
+    }
+
+    @Test
+    fun listChargingSwitches_returnsEmptyOnFailure() = runBlocking {
+        Command.execOverride = { throw Command.NotRootException() }
+        assertEquals(emptyList<String>(), Command.listChargingSwitches())
+    }
+
+    @Test
+    fun readMaxChargingCurrent_uses_full_key_print() = runBlocking {
+        Command.execOverride = { cmd ->
+            captured += cmd
+            "max_charging_current=500\n"
+        }
+        assertEquals("500", Command.readMaxChargingCurrent())
+        assertEquals(listOf("/dev/acca --set --print max_charging_current"), captured)
+    }
+
+    @Test
+    fun readMaxChargingVoltage_uses_full_key_print() = runBlocking {
+        Command.execOverride = { cmd ->
+            captured += cmd
+            "max_charging_voltage=4200\n"
+        }
+        assertEquals("4200", Command.readMaxChargingVoltage())
+        assertEquals(listOf("/dev/acca --set --print max_charging_voltage"), captured)
+    }
+
+    @Test
+    fun readMaxChargingCurrent_ignoresUnrelatedLines() = runBlocking {
+        // --set --print emits the whole config; only the exact key= line is used.
+        Command.execOverride = { "acc_version=v2025.5.18-dev (202505180)\n\nmax_charging_current=500\n" }
+        assertEquals("500", Command.readMaxChargingCurrent())
+    }
+
+    @Test
+    fun readMaxChargingCurrent_returnsNullWhenKeyAbsent() = runBlocking {
+        Command.execOverride = { "acc_version=v2025.5.18-dev (202505180)\n" }
+        assertNull(Command.readMaxChargingCurrent())
     }
 }
