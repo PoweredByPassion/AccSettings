@@ -27,6 +27,8 @@ fun ConfigScreen(
     onDiscardAndLeave: () -> Unit = {},
     onDismissLeaveDialog: () -> Unit = {}
 ) {
+    val colors = MaterialTheme.colorScheme
+
     if (showLeaveDialog) {
         LeaveWithDraftDialog(
             onKeepDraftAndLeave = onKeepDraftAndLeave,
@@ -36,18 +38,18 @@ fun ConfigScreen(
     }
 
     Scaffold(
-        containerColor = AccBackground,
+        containerColor = colors.background,
         bottomBar = {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(AccBackground)
+                    .background(colors.background)
             ) {
                 state.applyFeedback?.let { feedback ->
                     Text(
                         text = feedback.message,
                         style = AccTypography.bodyMedium,
-                        color = if (feedback.isError) AccError else AccAccent,
+                        color = if (feedback.isError) colors.error else colors.tertiary,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 24.dp, vertical = 12.dp)
@@ -81,12 +83,12 @@ fun ConfigScreen(
                     Text(
                         text = stringResource(R.string.configuration_title),
                         style = AccTypography.headlineMedium,
-                        color = Zinc950
+                        color = colors.onSurface
                     )
                     Text(
                         text = stringResource(R.string.configuration_intro),
                         style = AccTypography.bodyLarge,
-                        color = Zinc600,
+                        color = colors.onSurfaceVariant,
                         lineHeight = 22.sp
                     )
                 }

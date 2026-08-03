@@ -32,6 +32,8 @@ fun ConfigGroupSection(
     group: ConfigGroupUiModel,
     onFieldChanged: (String, String) -> Unit
 ) {
+    val colors = MaterialTheme.colorScheme
+
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -43,12 +45,12 @@ fun ConfigGroupSection(
             Text(
                 text = stringResource(group.titleRes),
                 style = AccTypography.titleLarge,
-                color = Zinc950
+                color = colors.onSurface
             )
             Text(
                 text = stringResource(group.summaryRes),
                 style = AccTypography.bodyMedium,
-                color = Zinc500,
+                color = colors.onSurfaceVariant,
                 lineHeight = 18.sp
             )
         }
@@ -57,15 +59,16 @@ fun ConfigGroupSection(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(24.dp))
-                .background(Color.White)
-                .border(1.dp, AccDivider, RoundedCornerShape(24.dp))
+                .background(colors.surface)
+                .border(1.dp, colors.outlineVariant, RoundedCornerShape(24.dp))
                 .padding(vertical = 8.dp)
         ) {
             group.fields.forEachIndexed { index, field ->
                 ConfigFieldRow(
                     field = field,
                     onFieldChanged = onFieldChanged,
-                    isLast = index == group.fields.size - 1
+                    isLast = index == group.fields.size - 1,
+                    colors = colors
                 )
             }
         }
@@ -76,7 +79,8 @@ fun ConfigGroupSection(
 private fun ConfigFieldRow(
     field: ConfigFieldUiModel,
     onFieldChanged: (String, String) -> Unit,
-    isLast: Boolean
+    isLast: Boolean,
+    colors: ColorScheme
 ) {
     val context = LocalContext.current
     val supportingLines = buildList {
@@ -98,7 +102,7 @@ private fun ConfigFieldRow(
         AlertDialog(
             onDismissRequest = { showPicker = false },
             shape = RoundedCornerShape(28.dp),
-            containerColor = Color.White,
+            containerColor = colors.surface,
             title = {
                 Text(
                     text = stringResource(field.labelRes),
@@ -137,7 +141,7 @@ private fun ConfigFieldRow(
                         onFieldChanged(field.key, pickerState.options[selectedIndex].toString())
                         showPicker = false
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = AccPrimary),
+                    colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(text = stringResource(android.R.string.ok))
@@ -145,7 +149,7 @@ private fun ConfigFieldRow(
             },
             dismissButton = {
                 TextButton(onClick = { showPicker = false }) {
-                    Text(text = stringResource(android.R.string.cancel), color = Zinc600)
+                    Text(text = stringResource(android.R.string.cancel), color = colors.onSurfaceVariant)
                 }
             }
         )
@@ -169,14 +173,14 @@ private fun ConfigFieldRow(
                 Text(
                     text = stringResource(field.labelRes),
                     style = AccTypography.bodyLarge,
-                    color = Zinc900,
+                    color = colors.onSurface,
                     fontWeight = FontWeight.Medium
                 )
                 if (supportingLines.isNotEmpty()) {
                     Text(
                         text = supportingLines.first(),
                         style = AccTypography.labelMedium,
-                        color = Zinc500,
+                        color = colors.onSurfaceVariant,
                         modifier = Modifier.padding(top = 2.dp)
                     )
                 }
@@ -185,7 +189,8 @@ private fun ConfigFieldRow(
             FieldControl(
                 field = field,
                 onFieldChanged = onFieldChanged,
-                onRequestPicker = { showPicker = true }
+                onRequestPicker = { showPicker = true },
+                colors = colors
             )
         }
     }
@@ -193,7 +198,7 @@ private fun ConfigFieldRow(
     if (!isLast) {
         HorizontalDivider(
             modifier = Modifier.padding(horizontal = 20.dp),
-            color = AccDivider,
+            color = colors.outlineVariant,
             thickness = 1.dp
         )
     }
@@ -203,14 +208,15 @@ private fun ConfigFieldRow(
 private fun FieldControl(
     field: ConfigFieldUiModel,
     onFieldChanged: (String, String) -> Unit,
-    onRequestPicker: () -> Unit
+    onRequestPicker: () -> Unit,
+    colors: ColorScheme
 ) {
     when (field.kind) {
         ConfigFieldKind.PICKER -> {
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Zinc100)
+                    .background(colors.surfaceVariant)
                     .clickable(enabled = field.enabled) { onRequestPicker() }
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
@@ -220,7 +226,7 @@ private fun FieldControl(
                         fontFamily = MonospaceNumbers.fontFamily,
                         letterSpacing = MonospaceNumbers.letterSpacing
                     ),
-                    color = Zinc950,
+                    color = colors.onSurface,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -231,10 +237,10 @@ private fun FieldControl(
                 checked = field.value.equals("true", ignoreCase = true),
                 onCheckedChange = { checked -> onFieldChanged(field.key, checked.toString()) },
                 colors = SwitchDefaults.colors(
-                    checkedThumbColor = Color.White,
-                    checkedTrackColor = AccAccent,
-                    uncheckedThumbColor = Zinc400,
-                    uncheckedTrackColor = Zinc200,
+                    checkedThumbColor = colors.onTertiary,
+                    checkedTrackColor = colors.tertiary,
+                    uncheckedThumbColor = colors.onSurfaceVariant,
+                    uncheckedTrackColor = colors.surfaceVariant,
                     uncheckedBorderColor = Color.Transparent
                 )
             )
@@ -257,10 +263,10 @@ private fun FieldControl(
                     KeyboardOptions.Default
                 },
                 colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedContainerColor = Zinc100,
-                    focusedContainerColor = Zinc100,
+                    unfocusedContainerColor = colors.surfaceVariant,
+                    focusedContainerColor = colors.surfaceVariant,
                     unfocusedBorderColor = Color.Transparent,
-                    focusedBorderColor = AccPrimary
+                    focusedBorderColor = colors.primary
                 )
             )
         }
