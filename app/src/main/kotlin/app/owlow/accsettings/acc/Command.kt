@@ -39,6 +39,9 @@ object Command {
     /** Test-only hook to capture/short-circuit the command line exec would run. */
     internal var execOverride: (suspend (String) -> String)? = null
 
+    /** Test-only hook to short-circuit path existence checks without hitting a real Shell. */
+    internal var execTestOverride: ((String) -> Boolean)? = null
+
     suspend fun exec(command: String): String = withContext(Dispatchers.IO) {
         runCatching { Log.v(TAG, "exec: $command") }
         execOverride?.let { return@withContext it(command) }
@@ -188,18 +191,22 @@ object Command {
     internal fun resetForTesting() {
         cachedAccPath = null
         execOverride = null
+        execTestOverride = null
     }
 
     private val VERSION_REGEX = Regex("""v([0-9][0-9A-Za-z.\-]*)\s*\((\d+)\)""")
 
     private fun execTest(path: String): Boolean {
+        execTestOverride?.let { return it(path) }
         val shell = Shell.getShell()
         if (!shell.isRoot) return false
         return shell.newJob().add("test -f \"$path\"").to(mutableListOf(), mutableListOf()).exec().isSuccess
     }
 
     internal fun findAccExecutable(pathExists: (String) -> Boolean): String? {
-        cachedAccPath?.let { return it }
+        val cached = cachedAccPath
+        if (cached != null && pathExists(cached)) return cached
+        cachedAccPath = null
         val found = ACC_EXECUTABLE_CANDIDATES.firstOrNull(pathExists)
         cachedAccPath = found
         return found

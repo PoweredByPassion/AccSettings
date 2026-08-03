@@ -25,8 +25,12 @@ class CommandContractTest {
         captured.clear()
         Command.resetForTesting()
         // Preset the resolved ACC path so requireAccExecutable/findAccExecutable return it
-        // from cache without calling execTest() (which would hit the real Shell).
-        Command.findAccExecutable { it == "/dev/acca" }
+        // without calling execTest() (which would hit the real Shell). The cache-revalidation
+        // step re-checks pathExists on every call, so the path check is stubbed to keep the
+        // whole resolution path off the Shell.
+        val pathExists = { path: String -> path == "/dev/acca" }
+        Command.execTestOverride = pathExists
+        Command.findAccExecutable(pathExists)
         Command.execOverride = { cmd ->
             captured += cmd
             ""

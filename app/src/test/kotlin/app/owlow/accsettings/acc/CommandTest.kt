@@ -97,4 +97,45 @@ class CommandTest {
             }
         )
     }
+
+    @Test
+    fun findAccExecutable_validatesCachedPathAndRefindsWhenItDisappears() {
+        // First call resolves and caches /dev/acca.
+        assertEquals(
+            "/dev/acca",
+            Command.findAccExecutable { path ->
+                path == "/dev/acca" || path == "/data/adb/vr25/acc/acc.sh"
+            }
+        )
+        // ACC is moved/updated: the cached path no longer exists, so the cache is
+        // invalidated and a fresh scan must yield the new valid path.
+        assertEquals(
+            "/data/adb/vr25/acc/acc.sh",
+            Command.findAccExecutable { path -> path == "/data/adb/vr25/acc/acc.sh" }
+        )
+    }
+
+    @Test
+    fun findAccExecutable_returnsNullAfterCachedPathDisappearsAndNothingElseExists() {
+        Command.findAccExecutable { path ->
+            path == "/dev/acca" || path == "/data/adb/vr25/acc/acc.sh"
+        }
+        // Cached path is gone and no candidate is left -> must return null, not a stale cache hit.
+        assertEquals(null, Command.findAccExecutable { false })
+    }
+
+    @Test
+    fun findAccExecutable_usesCacheWhenCachedPathStillValid() {
+        var checks = 0
+        Command.findAccExecutable { path ->
+            checks++
+            path == "/dev/acca"
+        }
+        // Second call: cache is validated with a single existence check, no rescans.
+        assertEquals("/dev/acca", Command.findAccExecutable { path ->
+            checks++
+            path == "/dev/acca"
+        })
+        assertEquals(2, checks)
+    }
 }
