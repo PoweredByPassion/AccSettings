@@ -10,7 +10,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -26,9 +25,10 @@ fun AboutScreen(
     onUrlClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val colors = MaterialTheme.colorScheme
     Scaffold(
         modifier = modifier,
-        containerColor = AccBackground
+        containerColor = colors.background
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -44,11 +44,12 @@ fun AboutScreen(
                 Text(
                     text = stringResource(R.string.about),
                     style = AccTypography.headlineMedium,
-                    color = Zinc950
+                    color = colors.onSurface
                 )
             }
             item {
                 AboutInfoCard(
+                    colors = colors,
                     title = stringResource(R.string.about_app_section_title),
                     entries = listOf(
                         stringResource(R.string.about_app_name, stringResource(R.string.acc_settings)),
@@ -59,6 +60,7 @@ fun AboutScreen(
             }
             item {
                 AboutInfoCard(
+                    colors = colors,
                     title = stringResource(R.string.about_project_section_title),
                     entries = listOf(
                         stringResource(R.string.about_project_repo, projectUrl),
@@ -74,6 +76,7 @@ fun AboutScreen(
 
 @Composable
 private fun AboutInfoCard(
+    colors: ColorScheme,
     title: String,
     entries: List<String>,
     onUrlClick: ((String) -> Unit)? = null,
@@ -86,7 +89,7 @@ private fun AboutInfoCard(
         Text(
             text = title,
             style = AccTypography.titleLarge,
-            color = Zinc900,
+            color = colors.onSurface,
             modifier = Modifier.padding(horizontal = 4.dp)
         )
 
@@ -94,8 +97,8 @@ private fun AboutInfoCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(24.dp))
-                .background(Color.White)
-                .border(1.dp, AccDivider, RoundedCornerShape(24.dp))
+                .background(colors.surface)
+                .border(1.dp, colors.outlineVariant, RoundedCornerShape(24.dp))
                 .padding(vertical = 8.dp)
         ) {
             entries.forEachIndexed { index, entry ->
@@ -103,7 +106,7 @@ private fun AboutInfoCard(
                 Text(
                     text = entry,
                     style = AccTypography.bodyLarge,
-                    color = if (isUrl) AccPrimary else Zinc600,
+                    color = if (isUrl) colors.primary else colors.onSurfaceVariant,
                     modifier = Modifier
                         .fillMaxWidth()
                         .then(
@@ -116,7 +119,7 @@ private fun AboutInfoCard(
                         .padding(horizontal = 20.dp, vertical = 12.dp)
                 )
                 if (index < entries.size - 1) {
-                    HorizontalDivider(color = AccDivider, modifier = Modifier.padding(horizontal = 20.dp))
+                    HorizontalDivider(color = colors.outlineVariant, modifier = Modifier.padding(horizontal = 20.dp))
                 }
             }
         }
