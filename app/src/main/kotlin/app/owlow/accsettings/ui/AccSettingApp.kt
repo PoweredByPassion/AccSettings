@@ -5,7 +5,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -22,12 +21,13 @@ fun AccSettingApp(
     val navController = rememberNavController()
     val navBackStackEntry = navController.currentBackStackEntryAsState().value
     val currentRoute = navBackStackEntry?.destination?.route
+    val colors = MaterialTheme.colorScheme
 
     Scaffold(
-        containerColor = AccBackground,
+        containerColor = colors.background,
         bottomBar = {
             NavigationBar(
-                containerColor = Color.White,
+                containerColor = colors.surface,
                 tonalElevation = 0.dp,
                 modifier = Modifier.padding(bottom = 0.dp) // Standard bottom nav
             ) {
@@ -53,11 +53,11 @@ fun AccSettingApp(
                             )
                         },
                         colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = AccPrimary,
-                            selectedTextColor = AccPrimary,
-                            unselectedIconColor = Zinc400,
-                            unselectedTextColor = Zinc400,
-                            indicatorColor = Zinc100
+                            selectedIconColor = colors.primary,
+                            selectedTextColor = colors.primary,
+                            unselectedIconColor = colors.onSurfaceVariant,
+                            unselectedTextColor = colors.onSurfaceVariant,
+                            indicatorColor = colors.secondaryContainer
                         )
                     )
                 }
