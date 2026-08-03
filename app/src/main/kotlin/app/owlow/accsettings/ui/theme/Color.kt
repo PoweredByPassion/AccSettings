@@ -16,6 +16,7 @@ val Zinc900 = Color(0xFF18181B)
 val Zinc950 = Color(0xFF09090B)
 
 // Accents (Emerald-ish for charging/energy)
+val Emerald400 = Color(0xFF34D399)
 val Emerald500 = Color(0xFF10B981)
 val Emerald600 = Color(0xFF059669)
 
@@ -28,5 +29,6 @@ val AccOnPrimary = Zinc50
 val AccSecondary = Zinc600
 val AccOnSecondary = Zinc50
 val AccAccent = Emerald600
+val AccAccentDark = Emerald400
 val AccError = Color(0xFFE11D48) // Rose 600
 val AccDivider = Zinc200.copy(alpha = 0.5f)

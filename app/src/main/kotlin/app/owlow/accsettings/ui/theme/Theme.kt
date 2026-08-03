@@ -1,5 +1,6 @@
 package app.owlow.accsettings.ui.theme
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -18,7 +19,11 @@ private val LightColors = lightColorScheme(
     background = AccBackground,
     onBackground = Zinc950,
     error = AccError,
-    outline = AccDivider
+    outline = AccDivider,
+    outlineVariant = AccDivider,
+    secondaryContainer = Zinc100,
+    tertiary = AccAccent,
+    onTertiary = Color.White
 )
 
 private val DarkColors = darkColorScheme(
@@ -33,12 +38,16 @@ private val DarkColors = darkColorScheme(
     background = Zinc950,
     onBackground = Zinc50,
     error = AccError,
-    outline = Zinc700
+    outline = Zinc700,
+    outlineVariant = Zinc700,
+    secondaryContainer = Zinc800,
+    tertiary = AccAccentDark,
+    onTertiary = Zinc950
 )
 
 @Composable
 fun AccSettingTheme(
-    darkTheme: Boolean = false, // TODO: Observe system settings if needed
+    darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
     val colorScheme = if (darkTheme) DarkColors else LightColors
