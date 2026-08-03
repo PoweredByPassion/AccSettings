@@ -4,12 +4,14 @@ import app.owlow.accsettings.MainDispatcherRule
 import app.owlow.accsettings.acc.AccInstallState
 import app.owlow.accsettings.acc.AccStatus
 import app.owlow.accsettings.acc.BatteryInfo
+import app.owlow.accsettings.acc.Command
 import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -160,14 +162,117 @@ class OverviewViewModelTest {
         assertEquals(3, repository.loadCount)
     }
 
+    @Test
+    fun toggleDaemon_whenAccUnavailable_appendsWarningInsteadOfCrashing() = runTest {
+        val viewModel = OverviewViewModel(
+            context = ApplicationProvider.getApplicationContext(),
+            overviewRepository = FakeOverviewRepository(
+                status = AccStatus(
+                    installState = AccInstallState.UP_TO_DATE,
+                    installedVersionName = "2025.5.18-dev",
+                    daemonRunning = false,
+                    canManageDaemon = true,
+                    showInstallAction = false,
+                    showUninstallAction = true
+                )
+            ).apply { failDaemonToggle = true }
+        )
+
+        viewModel.toggleDaemon(enabled = true).join()
+
+        val state = viewModel.uiState.value
+        assertFalse(state.isLoading)
+        assertTrue(state.warnings.any { it == "Failed to toggle daemon" })
+    }
+
+    @Test
+    fun startService_whenAccUnavailable_appendsWarningInsteadOfCrashing() = runTest {
+        val viewModel = OverviewViewModel(
+            context = ApplicationProvider.getApplicationContext(),
+            overviewRepository = FakeOverviewRepository(
+                status = AccStatus(
+                    installState = AccInstallState.UP_TO_DATE,
+                    installedVersionName = "2025.5.18-dev",
+                    daemonRunning = false,
+                    canManageDaemon = true,
+                    showInstallAction = false,
+                    showUninstallAction = true
+                )
+            ).apply { failStartService = true }
+        )
+
+        viewModel.startService().join()
+
+        val state = viewModel.uiState.value
+        assertFalse(state.isLoading)
+        assertTrue(state.warnings.any { it == "Failed to start service" })
+    }
+
+    @Test
+    fun refresh_exposesLastErrorAsWarning() = runTest {
+        val viewModel = OverviewViewModel(
+            context = ApplicationProvider.getApplicationContext(),
+            overviewRepository = FakeOverviewRepository(
+                status = AccStatus(
+                    installState = AccInstallState.UP_TO_DATE,
+                    installedVersionName = "2025.5.18-dev",
+                    daemonRunning = false,
+                    canManageDaemon = true,
+                    showInstallAction = false,
+                    showUninstallAction = true,
+                    lastError = "Root permission required"
+                )
+            )
+        )
+
+        viewModel.refresh().join()
+
+        assertTrue(viewModel.uiState.value.warnings.any { it == "Root permission required" })
+    }
+
+    @Test
+    fun refresh_omitsBlankLastErrorFromWarnings() = runTest {
+        val viewModel = OverviewViewModel(
+            context = ApplicationProvider.getApplicationContext(),
+            overviewRepository = FakeOverviewRepository(
+                status = AccStatus(
+                    installState = AccInstallState.UP_TO_DATE,
+                    installedVersionName = "2025.5.18-dev",
+                    daemonRunning = true,
+                    canManageDaemon = true,
+                    showInstallAction = false,
+                    showUninstallAction = true,
+                    lastError = "   "
+                )
+            )
+        )
+
+        viewModel.refresh().join()
+
+        assertTrue(viewModel.uiState.value.warnings.none { it == "   " })
+    }
+
     private class FakeOverviewRepository(
         private val status: AccStatus?
     ) : OverviewRepository {
+        var failStartService = false
+        var failDaemonToggle = false
+
         override suspend fun loadStatus(): AccStatus? = status
 
-        override suspend fun startService(): AccStatus? = status?.copy(daemonRunning = true)
+        override suspend fun startService(): AccStatus? {
+            if (failStartService) {
+                throw Command.NotRootException()
+            }
+            return status?.copy(daemonRunning = true)
+        }
 
-        override suspend fun setDaemonRunning(enabled: Boolean): AccStatus? = status?.copy(daemonRunning = enabled)
+        override suspend fun setDaemonRunning(enabled: Boolean): AccStatus? {
+            if (failDaemonToggle) {
+                throw Command.NotRootException()
+            }
+            return status?.copy(daemonRunning = enabled)
+        }
     }
 
     private class CountingOverviewRepository : OverviewRepository {

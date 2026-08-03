@@ -3,6 +3,7 @@ package app.owlow.accsettings.acc
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -77,6 +78,78 @@ class AccStateManagerTest {
 
         assertEquals(listOf(true), calls)
         assertTrue(AccStateManager.isDaemonRunning())
+    }
+
+    @Test
+    fun refresh_now_sets_lastError_when_bridge_read_fails() = runBlocking {
+        AccStateManager.resetForTesting(
+            bridgeFactory = {
+                testBridge(
+                    version = 202505180,
+                    versionName = "2025.5.18-dev",
+                    daemonRunning = { throw Command.NotRootException() },
+                    bundledVersionCode = 202505180
+                )
+            }
+        )
+
+        AccStateManager.refreshNow()
+
+        assertEquals(
+            "Root permission required",
+            AccStateManager.getCurrentStatus()?.lastError
+        )
+    }
+
+    @Test
+    fun refresh_now_first_failure_with_root_error_does_not_claim_not_installed() = runBlocking {
+        AccStateManager.resetForTesting(
+            bridgeFactory = {
+                testBridge(
+                    version = 202505180,
+                    versionName = "2025.5.18-dev",
+                    daemonRunning = { throw Command.NotRootException() },
+                    bundledVersionCode = 202505180
+                )
+            }
+        )
+
+        AccStateManager.refreshNow()
+
+        val status = AccStateManager.getCurrentStatus()
+        assertEquals(AccInstallState.UP_TO_DATE, status?.installState)
+        assertFalse(status?.showInstallAction ?: true)
+        assertEquals("Root permission required", status?.lastError)
+    }
+
+    @Test
+    fun refresh_now_clears_lastError_on_success() = runBlocking {
+        AccStateManager.resetForTesting(
+            bridgeFactory = {
+                testBridge(
+                    version = 202501010,
+                    versionName = "2025.1",
+                    daemonRunning = { throw Command.NotInstalledException() },
+                    bundledVersionCode = 202505180
+                )
+            }
+        )
+        AccStateManager.refreshNow()
+        assertTrue(AccStateManager.getCurrentStatus()?.lastError?.isNotBlank() == true)
+
+        AccStateManager.resetForTesting(
+            bridgeFactory = {
+                testBridge(
+                    version = 202505180,
+                    versionName = "2025.5.18-dev",
+                    daemonRunning = { true },
+                    bundledVersionCode = 202505180
+                )
+            }
+        )
+        AccStateManager.refreshNow()
+
+        assertNull(AccStateManager.getCurrentStatus()?.lastError)
     }
 
     private fun testBridge(

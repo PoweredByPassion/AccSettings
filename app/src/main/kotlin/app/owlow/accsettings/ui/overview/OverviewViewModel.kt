@@ -38,14 +38,26 @@ class OverviewViewModel(
 
     fun startService(): Job = viewModelScope.launch {
         _uiState.value = _uiState.value.copy(isLoading = true)
-        val status = overviewRepository.startService()
-        _uiState.value = status.toUiState(context)
+        runCatching { overviewRepository.startService() }
+            .onSuccess { status -> _uiState.value = status.toUiState(context) }
+            .onFailure { error ->
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    warnings = _uiState.value.warnings + (error.localizedMessage ?: "Failed to start service")
+                )
+            }
     }
 
     fun toggleDaemon(enabled: Boolean): Job = viewModelScope.launch {
         _uiState.value = _uiState.value.copy(isLoading = true)
-        val status = overviewRepository.setDaemonRunning(enabled)
-        _uiState.value = status.toUiState(context)
+        runCatching { overviewRepository.setDaemonRunning(enabled) }
+            .onSuccess { status -> _uiState.value = status.toUiState(context) }
+            .onFailure { error ->
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    warnings = _uiState.value.warnings + (error.localizedMessage ?: "Failed to toggle daemon")
+                )
+            }
     }
 
     fun startAutoRefresh(intervalMs: Long = BATTERY_REFRESH_INTERVAL_MS) {
@@ -172,6 +184,7 @@ private fun AccStatus?.toUiState(context: Context): OverviewUiState {
         if (installState == AccInstallState.BROKEN_INSTALL) {
             add(context.getString(R.string.overview_warning_repair_required))
         }
+        lastError?.takeIf { it.isNotBlank() }?.let { add(it) }
     }
 
     val batteryFactsList = batteryInfo?.let { info ->

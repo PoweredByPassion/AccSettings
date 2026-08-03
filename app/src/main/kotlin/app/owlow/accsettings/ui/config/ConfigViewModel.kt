@@ -103,7 +103,18 @@ class ConfigViewModel(
 
     private fun publishSnapshot(block: suspend () -> ConfigDraftSnapshot): Job = viewModelScope.launch {
         _uiState.value = _uiState.value.copy(isLoading = true, applyFeedback = null)
-        _uiState.value = block().toUiState()
+        _uiState.value = runCatching { block().toUiState() }.getOrElse { error ->
+            ConfigUiState(
+                isLoading = false,
+                groups = emptyList(),
+                hasPendingChanges = false,
+                isApplying = false,
+                applyFeedback = ConfigFeedback(
+                    message = error.localizedMessage ?: "Failed to load config",
+                    isError = true
+                )
+            )
+        }
     }
 
     companion object {

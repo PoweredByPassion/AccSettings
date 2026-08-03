@@ -23,7 +23,8 @@ data class AccStatus(
     val canManageDaemon: Boolean,
     val showInstallAction: Boolean,
     val showUninstallAction: Boolean,
-    val batteryInfo: BatteryInfo? = null
+    val batteryInfo: BatteryInfo? = null,
+    val lastError: String? = null
 )
 
 object AccStatusResolver {

@@ -2,12 +2,14 @@ package app.owlow.accsettings.ui.config
 
 import app.owlow.accsettings.MainDispatcherRule
 import app.owlow.accsettings.acc.CapacityConfig
+import app.owlow.accsettings.acc.Command
 import app.owlow.accsettings.acc.ConfigGroupMode
 import app.owlow.accsettings.acc.DraftStatus
 import app.owlow.accsettings.acc.GroupedConfigRead
 import app.owlow.accsettings.acc.TemperatureConfig
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -76,9 +78,21 @@ class ConfigViewModelTest {
         )
     }
 
+    @Test
+    fun init_whenAccUnavailable_exposesErrorFeedbackInsteadOfCrashing() = runTest {
+        val store = FakeConfigRepository()
+        store.failLoads = true
+        val viewModel = ConfigViewModel(store)
+
+        val state = viewModel.uiState.value
+        assertFalse(state.isLoading)
+        assertEquals(ConfigFeedback("ACC is not installed", isError = true), state.applyFeedback)
+    }
+
     private class FakeConfigRepository : ConfigRepository {
         var applyCalls = 0
         var sideEffectCalls = 0
+        var failLoads = false
         private val values = linkedMapOf<String, String>()
         private val applyMessage: String?
 
@@ -90,7 +104,12 @@ class ConfigViewModelTest {
             this.applyMessage = applyMessage
         }
 
-        override suspend fun loadSnapshot(): ConfigDraftSnapshot = snapshotOf(values)
+        override suspend fun loadSnapshot(): ConfigDraftSnapshot {
+            if (failLoads) {
+                throw Command.NotInstalledException()
+            }
+            return snapshotOf(values)
+        }
 
         override suspend fun updateField(key: String, value: String): ConfigDraftSnapshot {
             values[key] = value

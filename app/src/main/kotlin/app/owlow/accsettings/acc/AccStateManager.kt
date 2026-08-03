@@ -7,15 +7,9 @@ import android.os.BatteryManager
 import android.util.Log
 import com.topjohnwu.superuser.Shell
 import app.owlow.accsettings.R
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
 
 enum class AccSettingSummary {
     NOT_INSTALLED,
@@ -35,15 +29,14 @@ data class AccSettingState(
 
 object AccStateManager {
     private const val TAG = "AccStateManager"
-    private const val POLLING_INTERVAL_MS = 5000L
 
     private val _accStatus = MutableStateFlow<AccStatus?>(null)
     val accStatus: StateFlow<AccStatus?> = _accStatus.asStateFlow()
 
-    private var monitoringJob: Job? = null
     private var isMonitoring = false
     private var appContext: Context? = null
     private var bridgeFactoryOverride: (() -> AccBridge)? = null
+    private var cachedBridge: AccBridge? = null
 
     fun startMonitoring(context: Context) {
         if (isMonitoring) {
@@ -53,32 +46,44 @@ object AccStateManager {
 
         appContext = context.applicationContext
         isMonitoring = true
-        monitoringJob = CoroutineScope(Dispatchers.Default).launch {
-            refreshNow()
-            while (isActive) {
-                delay(POLLING_INTERVAL_MS)
-                refreshNow()
-            }
-        }
+        // NOTE: The continuous monitoring job is disabled to reduce background CPU usage (from ~60% to near 0%).
+        // ViewModels and other active components should call refreshStatus() or use the UI-triggered polling.
     }
 
     fun stopMonitoring() {
         if (!isMonitoring) {
             return
         }
-        monitoringJob?.cancel()
-        monitoringJob = null
         isMonitoring = false
     }
 
     suspend fun refreshNow() {
         try {
             val status = bridge().readStatus()
-            _accStatus.value = status
+            _accStatus.value = status.copy(lastError = null)
             logDebug("ACC status updated: installState=${status.installState}, daemonRunning=${status.daemonRunning}")
         } catch (e: Exception) {
             logError("Failed to refresh ACC status", e)
+            val errorMessage = e.toUserFacingMessage()
+            val notInstalled = e is Command.NotInstalledException
+            _accStatus.value = _accStatus.value?.copy(lastError = errorMessage)
+                ?: AccStatus(
+                    installState = if (notInstalled) AccInstallState.NOT_INSTALLED else AccInstallState.UP_TO_DATE,
+                    installedVersionName = null,
+                    daemonRunning = false,
+                    canManageDaemon = false,
+                    showInstallAction = notInstalled,
+                    showUninstallAction = false,
+                    lastError = errorMessage
+                )
         }
+    }
+
+    private fun Throwable.toUserFacingMessage(): String = when (this) {
+        is Command.NotInstalledException -> "ACC is not installed"
+        is Command.NotRootException -> "Root permission required"
+        is Command.AccException -> "ACC command failed"
+        else -> localizedMessage ?: "Failed to refresh ACC status"
     }
 
     suspend fun refreshStatus(): AccStatus? {
@@ -162,6 +167,7 @@ object AccStateManager {
         _accStatus.value = null
         appContext = null
         bridgeFactoryOverride = null
+        cachedBridge = null
     }
 
     internal fun resetForTesting(bridgeFactory: (() -> AccBridge)? = null) {
@@ -171,8 +177,9 @@ object AccStateManager {
 
     private fun bridge(): AccBridge {
         bridgeFactoryOverride?.let { return it() }
+        cachedBridge?.let { return it }
         val context = requireNotNull(appContext) { "AccStateManager requires an application context" }
-        return buildBridge(context)
+        return buildBridge(context).also { cachedBridge = it }
     }
 
     private fun buildBridge(context: Context): AccBridge {
