@@ -12,7 +12,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -28,11 +27,12 @@ fun ToolsScreen(
     onDismissConfirmation: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val colors = MaterialTheme.colorScheme
     state.pendingConfirmation?.let { action ->
         AlertDialog(
             onDismissRequest = onDismissConfirmation,
             shape = RoundedCornerShape(28.dp),
-            containerColor = Color.White,
+            containerColor = colors.surface,
             title = {
                 Text(
                     text = confirmationTitle(action),
@@ -43,13 +43,13 @@ fun ToolsScreen(
                 Text(
                     text = confirmationMessage(action),
                     style = AccTypography.bodyLarge,
-                    color = Zinc600
+                    color = colors.onSurfaceVariant
                 )
             },
             confirmButton = {
                 Button(
                     onClick = onConfirmAction,
-                    colors = ButtonDefaults.buttonColors(containerColor = AccPrimary),
+                    colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(text = stringResource(R.string.continue_action))
@@ -57,7 +57,7 @@ fun ToolsScreen(
             },
             dismissButton = {
                 TextButton(onClick = onDismissConfirmation) {
-                    Text(text = stringResource(R.string.cancel), color = Zinc600)
+                    Text(text = stringResource(R.string.cancel), color = colors.onSurfaceVariant)
                 }
             }
         )
@@ -65,7 +65,7 @@ fun ToolsScreen(
 
     Scaffold(
         modifier = modifier,
-        containerColor = AccBackground
+        containerColor = colors.background
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -82,27 +82,28 @@ fun ToolsScreen(
                     Text(
                         text = stringResource(R.string.tools),
                         style = AccTypography.headlineMedium,
-                        color = Zinc950
+                        color = colors.onSurface
                     )
                     Text(
                         text = stringResource(R.string.tools_intro),
                         style = AccTypography.bodyLarge,
-                        color = Zinc600,
+                        color = colors.onSurfaceVariant,
                         lineHeight = 22.sp
                     )
                 }
             }
-            item { ToolSectionCard(section = state.installSection, isBusy = state.isBusy, onAction = onAction) }
-            item { ToolSectionCard(section = state.serviceSection, isBusy = state.isBusy, onAction = onAction) }
-            item { ToolSectionCard(section = state.diagnosticsSection, isBusy = state.isBusy, onAction = onAction) }
-            item { ToolLogCard(section = state.logsSection) }
-            item { ToolSectionCard(section = state.appInfoSection, isBusy = state.isBusy, onAction = onAction) }
+            item { ToolSectionCard(colors = colors, section = state.installSection, isBusy = state.isBusy, onAction = onAction) }
+            item { ToolSectionCard(colors = colors, section = state.serviceSection, isBusy = state.isBusy, onAction = onAction) }
+            item { ToolSectionCard(colors = colors, section = state.diagnosticsSection, isBusy = state.isBusy, onAction = onAction) }
+            item { ToolLogCard(colors = colors, section = state.logsSection) }
+            item { ToolSectionCard(colors = colors, section = state.appInfoSection, isBusy = state.isBusy, onAction = onAction) }
         }
     }
 }
 
 @Composable
 private fun ToolSectionCard(
+    colors: ColorScheme,
     section: ToolSection,
     isBusy: Boolean,
     onAction: (ToolAction) -> Unit
@@ -114,7 +115,7 @@ private fun ToolSectionCard(
         Text(
             text = section.title,
             style = AccTypography.titleLarge,
-            color = Zinc900,
+            color = colors.onSurface,
             modifier = Modifier.padding(horizontal = 4.dp)
         )
 
@@ -122,15 +123,15 @@ private fun ToolSectionCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(24.dp))
-                .background(Color.White)
-                .border(1.dp, AccDivider, RoundedCornerShape(24.dp))
+                .background(colors.surface)
+                .border(1.dp, colors.outlineVariant, RoundedCornerShape(24.dp))
                 .padding(vertical = 8.dp)
         ) {
             if (section.summary.isNotBlank()) {
                 Text(
                     text = section.summary,
                     style = AccTypography.bodyMedium,
-                    color = Zinc500,
+                    color = colors.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
                 )
             }
@@ -145,7 +146,7 @@ private fun ToolSectionCard(
                     Text(
                         text = detail.label,
                         style = AccTypography.labelMedium,
-                        color = Zinc500
+                        color = colors.onSurfaceVariant
                     )
                     Text(
                         text = detail.value,
@@ -153,15 +154,15 @@ private fun ToolSectionCard(
                             fontFamily = MonospaceNumbers.fontFamily,
                             letterSpacing = MonospaceNumbers.letterSpacing
                         ),
-                        color = Zinc900,
+                        color = colors.onSurface,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
             }
 
             if (section.actions.isNotEmpty()) {
-                HorizontalDivider(color = AccDivider, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
-                
+                HorizontalDivider(color = colors.outlineVariant, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
+
                 section.actions.forEach { action ->
                     Column(
                         modifier = Modifier
@@ -174,25 +175,25 @@ private fun ToolSectionCard(
                             enabled = action.enabled && !isBusy,
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = AccPrimary)
+                            colors = ButtonDefaults.buttonColors(containerColor = colors.primary)
                         ) {
                             Text(text = action.label, style = AccTypography.titleSmall)
                         }
                         Text(
                             text = action.description,
                             style = AccTypography.labelMedium,
-                            color = Zinc500
+                            color = colors.onSurfaceVariant
                         )
                     }
                 }
             }
 
             section.statusMessage?.let { message ->
-                HorizontalDivider(color = AccDivider, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
+                HorizontalDivider(color = colors.outlineVariant, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
                 Text(
                     text = message.message,
                     style = AccTypography.bodyMedium,
-                    color = if (message.isError) AccError else AccAccent,
+                    color = if (message.isError) colors.error else colors.tertiary,
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
                 )
@@ -202,7 +203,7 @@ private fun ToolSectionCard(
 }
 
 @Composable
-private fun ToolLogCard(section: ToolLogSection) {
+private fun ToolLogCard(colors: ColorScheme, section: ToolLogSection) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -210,7 +211,7 @@ private fun ToolLogCard(section: ToolLogSection) {
         Text(
             text = section.title,
             style = AccTypography.titleLarge,
-            color = Zinc900,
+            color = colors.onSurface,
             modifier = Modifier.padding(horizontal = 4.dp)
         )
 

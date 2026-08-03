@@ -9,7 +9,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import app.owlow.accsettings.R
@@ -21,6 +20,7 @@ fun DraftActionBar(
     onDiscard: () -> Unit,
     onApply: () -> Unit
 ) {
+    val colors = MaterialTheme.colorScheme
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -32,8 +32,8 @@ fun DraftActionBar(
                 .fillMaxWidth()
                 .height(80.dp)
                 .clip(RoundedCornerShape(24.dp))
-                .border(1.dp, Color.White.copy(alpha = 0.5f), RoundedCornerShape(24.dp)),
-            color = Color.White.copy(alpha = 0.9f),
+                .border(1.dp, colors.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(24.dp)),
+            color = colors.surface.copy(alpha = 0.9f),
             shadowElevation = 12.dp,
             tonalElevation = 8.dp
         ) {
@@ -50,7 +50,7 @@ fun DraftActionBar(
                         .weight(1f)
                         .height(48.dp),
                     shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.textButtonColors(contentColor = Zinc600),
+                    colors = ButtonDefaults.textButtonColors(contentColor = colors.onSurfaceVariant),
                     enabled = !isApplying
                 ) {
                     Text(
@@ -66,15 +66,15 @@ fun DraftActionBar(
                         .height(48.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = AccPrimary,
-                        contentColor = AccOnPrimary
+                        containerColor = colors.primary,
+                        contentColor = colors.onPrimary
                     ),
                     enabled = !isApplying
                 ) {
                     if (isApplying) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(20.dp),
-                            color = AccOnPrimary,
+                            color = colors.onPrimary,
                             strokeWidth = 2.dp
                         )
                     } else {
