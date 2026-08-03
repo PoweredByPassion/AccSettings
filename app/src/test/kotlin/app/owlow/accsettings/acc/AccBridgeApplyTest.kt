@@ -214,6 +214,84 @@ class AccBridgeApplyTest {
         assertTrue(result is ApplyGroupedPatchResult.VerificationMismatch)
     }
 
+    @Test
+    fun temperature_with_cooldown_above_resume_passes_validation() = runBlocking {
+        // official ACC default: cooldown_temp=45 > resume_temp=40 is legal
+        val validTarget = groupedConfig(
+            temperature = TemperatureConfig(45, 50, 40, 55, false, ConfigGroupMode.NORMAL)
+        )
+        val request = ApplyGroupedPatchRequest(
+            base = groupedConfig(),
+            target = validTarget,
+            groups = setOf(PatchGroup.TEMPERATURE)
+        )
+        val bridge = AccBridge(
+            capabilityProbe = { capability() },
+            versionReader = { Pair(0, null) },
+            daemonReader = { false },
+            currentConfigReader = { Properties() },
+            defaultConfigReader = { Properties() },
+            latestGroupedConfigReader = { groupedConfig() },
+            groupedPatchWriter = { _, _ -> GroupApplyWriteResult.Success },
+            verificationGroupedConfigReader = { validTarget }
+        )
+
+        val result = bridge.applyGroupedPatch(request)
+        assertTrue(result is ApplyGroupedPatchResult.Success)
+    }
+
+    @Test
+    fun temperature_with_shutdown_disabled_passes_validation() = runBlocking {
+        // shutdown=0 disables the cap; resume/pause must still be ordered
+        val validTarget = groupedConfig(
+            temperature = TemperatureConfig(45, 50, 40, 0, false, ConfigGroupMode.NORMAL)
+        )
+        val request = ApplyGroupedPatchRequest(
+            base = groupedConfig(),
+            target = validTarget,
+            groups = setOf(PatchGroup.TEMPERATURE)
+        )
+        val bridge = AccBridge(
+            capabilityProbe = { capability() },
+            versionReader = { Pair(0, null) },
+            daemonReader = { false },
+            currentConfigReader = { Properties() },
+            defaultConfigReader = { Properties() },
+            latestGroupedConfigReader = { groupedConfig() },
+            groupedPatchWriter = { _, _ -> GroupApplyWriteResult.Success },
+            verificationGroupedConfigReader = { validTarget }
+        )
+
+        val result = bridge.applyGroupedPatch(request)
+        assertTrue(result is ApplyGroupedPatchResult.Success)
+    }
+
+    @Test
+    fun temperature_with_resume_above_pause_fails_validation() = runBlocking {
+        // resume > pause violates the remaining ordering rule
+        val invalidTarget = groupedConfig(
+            temperature = TemperatureConfig(45, 40, 50, 55, false, ConfigGroupMode.NORMAL)
+        )
+        val request = ApplyGroupedPatchRequest(
+            base = groupedConfig(),
+            target = invalidTarget,
+            groups = setOf(PatchGroup.TEMPERATURE)
+        )
+        val bridge = AccBridge(
+            capabilityProbe = { capability() },
+            versionReader = { Pair(0, null) },
+            daemonReader = { false },
+            currentConfigReader = { Properties() },
+            defaultConfigReader = { Properties() },
+            latestGroupedConfigReader = { groupedConfig() }
+        )
+
+        assertEquals(
+            ApplyGroupedPatchResult.ValidationFailed(listOf("temperature ordering is invalid")),
+            bridge.applyGroupedPatch(request)
+        )
+    }
+
     private fun capability(): AccCapability = AccCapability.from(
         AccProbeFacts(
             hasRoot = true,

@@ -113,9 +113,7 @@ class AccBridge(
             val temperature = request.target.currentTemperature
             if (temperature != null &&
                 temperature.mode == ConfigGroupMode.NORMAL &&
-                !(temperature.cooldown < temperature.resume &&
-                    temperature.resume < temperature.pause &&
-                    temperature.pause < temperature.shutdown)
+                !isValidTemperatureOrdering(temperature)
             ) {
                 errors += "temperature ordering is invalid"
             }
@@ -131,6 +129,11 @@ class AccBridge(
         return shutdownEffective < capacity.resume &&
             capacity.resume <= capacity.cooldown &&
             capacity.cooldown <= capacity.pause
+    }
+
+    private fun isValidTemperatureOrdering(temperature: TemperatureConfig): Boolean {
+        val shutdownEffective = if (temperature.shutdown < 1) Int.MAX_VALUE else temperature.shutdown
+        return temperature.resume <= temperature.pause && temperature.pause <= shutdownEffective
     }
 
     suspend fun ensureInstalled(): LifecycleActionResult = taskRunner.runSerialized {

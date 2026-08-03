@@ -99,7 +99,7 @@ class OverviewViewModelTest {
         viewModel.refresh().join()
 
         assertEquals(
-            listOf("83%", "Charging", "31.5°C", "1543 mA", "4187 mV", "6.46 W"),
+            listOf("83%", "Charging", "31.5°C", "1.54 A", "4187 mV", "6.46 W"),
             viewModel.uiState.value.batteryFacts.map { it.value }
         )
     }
@@ -134,6 +134,42 @@ class OverviewViewModelTest {
             listOf("83%", "Discharging", "31.5°C", "-65.9 mA", "4197 mV", "-0.28 W"),
             viewModel.uiState.value.batteryFacts.map { it.value }
         )
+    }
+
+    @Test
+    fun refresh_formatsBatteryCurrentWithCorrectUnitScale() = runTest {
+        val cases = listOf(
+            "800" to "800 µA",
+            "1200" to "1.2 mA",
+            "1500000" to "1.5 A"
+        )
+        cases.forEach { (current, expected) ->
+            val viewModel = OverviewViewModel(
+                context = ApplicationProvider.getApplicationContext(),
+                overviewRepository = FakeOverviewRepository(
+                    status = AccStatus(
+                        installState = AccInstallState.UP_TO_DATE,
+                        installedVersionName = "2025.5.18-dev",
+                        daemonRunning = true,
+                        canManageDaemon = true,
+                        showInstallAction = false,
+                        showUninstallAction = true,
+                        batteryInfo = BatteryInfo(
+                            level = null,
+                            status = null,
+                            temp = null,
+                            current = current,
+                            voltage = null,
+                            power = null
+                        )
+                    )
+                )
+            )
+
+            viewModel.refresh().join()
+
+            assertEquals(expected, viewModel.uiState.value.batteryFacts.single().value)
+        }
     }
 
     @Test

@@ -238,8 +238,12 @@ private fun String.formatBatteryTemperature(): String? =
 
 private fun String.formatBatteryCurrent(): String? =
     toDoubleOrNull()?.let { value ->
-        val milliamps = if (kotlin.math.abs(value) >= 10_000) value / 1000.0 else value
-        "${trimTrailingZeros(milliamps)} mA"
+        val abs = kotlin.math.abs(value)
+        when {
+            abs >= 1_000_000 -> "${formatDecimal(value / 1_000_000.0, 2)} A"
+            abs >= 1_000 -> "${trimTrailingZeros(value / 1000.0)} mA"
+            else -> "${trimTrailingZeros(value)} µA"
+        }
     }
 
 private fun String.formatBatteryVoltage(): String? =
