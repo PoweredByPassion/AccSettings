@@ -8,7 +8,7 @@ import androidx.work.WorkManager
 import androidx.work.Worker
 import androidx.work.WorkerParameters
 import com.topjohnwu.superuser.Shell
-import app.owlow.accsettings.acc.AccHandler
+import app.owlow.accsettings.acc.AccStateManager
 import app.owlow.accsettings.acc.Command
 import kotlinx.coroutines.runBlocking
 
@@ -33,7 +33,10 @@ class WorkerReceiver : BroadcastReceiver() {
         override fun doWork(): Result = runBlocking {
             Shell.rootAccess()
             try {
-                AccHandler().initial(context)
+                // Route through AccStateManager.ensureInstalled() so lifecycle decisions and the
+                // capability refresh run inside the shared AccBridge task runner, keeping this
+                // background worker serialized with any UI-triggered ACC operations.
+                AccStateManager.ensureInstalled()
                 Result.success()
             } catch (e: Command.AccException) {
                 Result.failure()
@@ -46,7 +49,12 @@ class WorkerReceiver : BroadcastReceiver() {
         override fun doWork(): Result = runBlocking {
             Shell.rootAccess()
             try {
-                AccHandler().serve()
+                // Route through AccStateManager.ensureInstalled() so the lifecycle decision and the
+                // capability refresh run inside the shared AccBridge task runner, keeping this
+                // background worker serialized with any UI-triggered ACC operations. For an already
+                // installed ACC this resolves to NO_OP; a fresh install implicitly serves the daemon
+                // (AccHandler.install calls serve() internally).
+                AccStateManager.ensureInstalled()
                 Result.success()
             } catch (e: Command.AccException) {
                 Result.failure()

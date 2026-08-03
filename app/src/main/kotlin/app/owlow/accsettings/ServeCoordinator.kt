@@ -3,6 +3,12 @@ package app.owlow.accsettings
 import app.owlow.accsettings.acc.AccInstallState
 import app.owlow.accsettings.acc.AccStatus
 
+/**
+ * Half-finished serve-decision helper. Kept only as a candidate for a future "auto-start ACC on
+ * boot" flow; it is not wired into any screen or worker yet. See AccPresets for the sibling
+ * work-in-progress.
+ */
+@Deprecated("Not wired into any screen or worker yet; pending serve-on-boot feature")
 class ServeCoordinator {
     private var lastServedKey: Pair<AccInstallState, String?>? = null
 

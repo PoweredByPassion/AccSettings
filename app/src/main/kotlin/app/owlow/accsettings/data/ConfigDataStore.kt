@@ -5,13 +5,11 @@ import android.util.Log
 import androidx.preference.PreferenceDataStore
 import app.owlow.accsettings.R
 import app.owlow.accsettings.acc.AccBridge
-import app.owlow.accsettings.acc.AccCapability
 import app.owlow.accsettings.acc.AccDraftState
-import app.owlow.accsettings.acc.AccProbeFacts
+import app.owlow.accsettings.acc.AccStateManager
 import app.owlow.accsettings.acc.ApplyGroupedPatchRequest
 import app.owlow.accsettings.acc.ApplyGroupedPatchResult
 import app.owlow.accsettings.acc.CapacityConfig
-import app.owlow.accsettings.acc.CapacityMode
 import app.owlow.accsettings.acc.Command
 import app.owlow.accsettings.acc.ConfigGroupMode
 import app.owlow.accsettings.acc.DraftStatus
@@ -19,7 +17,6 @@ import app.owlow.accsettings.acc.GroupApplyWriteResult
 import app.owlow.accsettings.acc.GroupedConfigRead
 import app.owlow.accsettings.acc.PatchGroup
 import app.owlow.accsettings.acc.TemperatureConfig
-import app.owlow.accsettings.acc.TemperatureMode
 import app.owlow.accsettings.acc.resolveGroups
 import kotlinx.coroutines.runBlocking
 import java.util.Properties
@@ -273,7 +270,17 @@ open class ConfigDataStore internal constructor(
             resume = resume ?: current.resume,
             pause = pause ?: current.pause,
             maskAsFull = maskAsFull ?: current.maskAsFull,
-            mode = if (supportInVoltage) ConfigGroupMode.VOLTAGE else ConfigGroupMode.NORMAL
+            mode = if (supportInVoltage) {
+                ConfigGroupMode.VOLTAGE
+            } else {
+                // Preserve an existing advanced capacity mode instead of silently downgrading to
+                // NORMAL, which used to discard ADVANCED_CUSTOM/MIXED_LEGACY on every edit.
+                when (current.mode) {
+                    ConfigGroupMode.ADVANCED_CUSTOM,
+                    ConfigGroupMode.MIXED_LEGACY -> current.mode
+                    else -> ConfigGroupMode.NORMAL
+                }
+            }
         )
         draftState = state.updateCapacity(next)
         rebuildCache()
@@ -401,29 +408,10 @@ open class ConfigDataStore internal constructor(
         }
 
         fun buildBridge(): AccBridge = AccBridge(
-            capabilityProbe = {
-                AccCapability.from(
-                    AccProbeFacts(
-                        hasRoot = true,
-                        availableEntrypoints = emptyList(),
-                        selectedEntrypoint = null,
-                        accVersionName = null,
-                        accVersionCode = 0,
-                        daemonRunning = false,
-                        canReadInfo = true,
-                        canReadCurrentConfig = true,
-                        canReadDefaultConfig = true,
-                        canReadLogs = false,
-                        canExportDiagnostics = false,
-                        supportedChargingSwitches = emptyList(),
-                        preferredChargingSwitch = null,
-                        supportsCurrentControl = false,
-                        supportsVoltageControl = false,
-                        supportedCapacityModes = setOf(CapacityMode.PERCENT),
-                        supportedTemperatureModes = setOf(TemperatureMode.CELSIUS)
-                    )
-                )
-            },
+            // Use the real capability probe (root, entrypoints, charging switches, current/voltage
+            // control) instead of a hardcoded no-control AccProbeFacts, so the config UI reflects
+            // actual device support. AccStateManager owns the live probe and caches the bridge.
+            capabilityProbe = { AccStateManager.probeCapabilities() },
             versionReader = { Command.getVersion() },
             daemonReader = { Command.isDaemonRunning() },
             currentConfigReader = { Command.getCurrentConfig() },

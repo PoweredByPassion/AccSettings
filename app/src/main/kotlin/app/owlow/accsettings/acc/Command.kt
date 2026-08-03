@@ -121,12 +121,6 @@ object Command {
         exec("$accPath --set $assignments")
     }
 
-    private fun getPropertyValue(property: String): String =
-        if (property.endsWith('=') || property.endsWith("\"\"")) "" else property.substringAfter('=', property).substringBefore('\n')
-
-    suspend fun getConfig(property: String): String =
-        getPropertyValue(execAcc("set", "print $property"))
-
     /**
      * Lists the charging switches ACC knows about, via `{accPath} -s s:`. Real devices return
      * rc=0 with one `ctrl_file on off` line per switch (the switch list ACC itself maintains).

@@ -142,7 +142,12 @@ private class LiveConfigRepository(
 
     override suspend fun updateField(key: String, value: String): ConfigDraftSnapshot = withContext(Dispatchers.IO) {
         when (key) {
-            in INT_FIELD_KEYS -> configStore.putInt(key, value.toIntOrNull() ?: 0)
+            in INT_FIELD_KEYS -> {
+                // Reject non-numeric input on numeric fields instead of silently coercing it to 0.
+                val intValue = value.toIntOrNull()
+                    ?: return@withContext configStore.currentDraftState().toSnapshot()
+                configStore.putInt(key, intValue)
+            }
             in TOGGLE_FIELD_KEYS -> configStore.putBoolean(key, value.toBoolean())
             else -> configStore.putString(key, value)
         }

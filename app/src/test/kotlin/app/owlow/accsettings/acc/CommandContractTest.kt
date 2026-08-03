@@ -55,12 +55,6 @@ class CommandContractTest {
     }
 
     @Test
-    fun getConfig_uses_print() = runBlocking {
-        Command.getConfig("sc")
-        assertEquals(listOf("/dev/acca --set --print sc"), captured)
-    }
-
-    @Test
     fun getCurrentConfig_uses_print() = runBlocking {
         Command.getCurrentConfig()
         assertEquals(listOf("/dev/acca --set --print"), captured)
@@ -76,32 +70,6 @@ class CommandContractTest {
     fun isDaemonRunning_uses_daemon() = runBlocking {
         Command.isDaemonRunning()
         assertEquals(listOf("/dev/acca --daemon"), captured)
-    }
-
-    @Test
-    fun getPropertyValue_parsesNormalSingleLineValue() = runBlocking {
-        Command.execOverride = { "sc=10\n" }
-        assertEquals("10", Command.getConfig("sc"))
-    }
-
-    @Test
-    fun getPropertyValue_returnsEmptyForBlankValue() = runBlocking {
-        Command.execOverride = { "sc=" }
-        assertEquals("", Command.getConfig("sc"))
-    }
-
-    @Test
-    fun getPropertyValue_returnsEmptyForQuotedEmptyValue() = runBlocking {
-        // Real exec() trims stdout, so getPropertyValue receives "sc=\"\"" (no trailing newline).
-        Command.execOverride = { "sc=\"\"" }
-        assertEquals("", Command.getConfig("sc"))
-    }
-
-    @Test
-    fun getPropertyValue_returnsWholeLineWhenNoEqualsSign() = runBlocking {
-        // BUG-13 regression guard: a line without '=' used to crash with IndexOutOfBounds.
-        Command.execOverride = { "malformed line" }
-        assertEquals("malformed line", Command.getConfig("sc"))
     }
 
     @Test

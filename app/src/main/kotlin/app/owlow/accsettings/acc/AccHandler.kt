@@ -65,20 +65,6 @@ class AccHandler {
     }
 
     @Throws(Command.AccException::class)
-    suspend fun initial(context: Context) {
-        try {
-            val installedVersionCode = Command.getVersion().first
-            val bundledVersionCode = context.resources.getInteger(R.integer.acc_version_code)
-            if (bundledVersionCode <= installedVersionCode) {
-                return
-            }
-        } catch (e: Command.AccException) {
-//            e.printStackTrace()
-        }
-        install(context)
-    }
-
-    @Throws(Command.AccException::class)
     suspend fun uninstall() {
         // Check if ACC is installed
         val accInstalled = try {

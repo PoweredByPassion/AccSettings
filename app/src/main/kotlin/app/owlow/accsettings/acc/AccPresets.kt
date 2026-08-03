@@ -19,6 +19,11 @@ data class PresetDraftCandidate(
     val skippedFeatures: Set<String>
 )
 
+/**
+ * Half-finished preset feature. Kept only as a candidate API for the planned "Apply preset"
+ * UI; it is not wired into any screen yet. See ServeCoordinator for the sibling work-in-progress.
+ */
+@Deprecated("Not wired into the UI yet; pending preset-application feature")
 object AccPresets {
     val presets: List<AccPreset> = listOf(
         AccPreset(

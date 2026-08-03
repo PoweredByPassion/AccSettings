@@ -89,7 +89,7 @@ class OverviewViewModelTest {
                         status = "charging",
                         temp = "315",
                         current = "1543000",
-                        voltage = "4187000",
+                        voltage = "4187",
                         power = "6459000"
                     )
                 )
@@ -173,7 +173,7 @@ class OverviewViewModelTest {
     }
 
     @Test
-    fun autoRefresh_reloadsBatteryStateEveryThreeSecondsUntilStopped() = runTest {
+    fun autoRefresh_reloadsBatteryStateUntilStopped() = runTest {
         val repository = CountingOverviewRepository()
         val viewModel = OverviewViewModel(
             context = ApplicationProvider.getApplicationContext(),

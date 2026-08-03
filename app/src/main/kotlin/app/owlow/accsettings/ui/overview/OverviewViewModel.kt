@@ -37,7 +37,7 @@ class OverviewViewModel(
     }
 
     fun startService(): Job = viewModelScope.launch {
-        _uiState.value = _uiState.value.copy(isLoading = true)
+        // NOTE: no full-screen spinner on service start; keep the UI interactive while ACC starts.
         runCatching { overviewRepository.startService() }
             .onSuccess { status -> _uiState.value = status.toUiState(context) }
             .onFailure { error ->
@@ -49,7 +49,7 @@ class OverviewViewModel(
     }
 
     fun toggleDaemon(enabled: Boolean): Job = viewModelScope.launch {
-        _uiState.value = _uiState.value.copy(isLoading = true)
+        // NOTE: no full-screen spinner on daemon toggle; keep the UI interactive while ACC reacts.
         runCatching { overviewRepository.setDaemonRunning(enabled) }
             .onSuccess { status -> _uiState.value = status.toUiState(context) }
             .onFailure { error ->
@@ -92,7 +92,7 @@ class OverviewViewModel(
     }
 
     companion object {
-        private const val BATTERY_REFRESH_INTERVAL_MS = 3_000L
+        private const val BATTERY_REFRESH_INTERVAL_MS = 15_000L
 
         fun factory(
             context: Context,
@@ -248,8 +248,10 @@ private fun String.formatBatteryCurrent(): String? =
 
 private fun String.formatBatteryVoltage(): String? =
     toDoubleOrNull()?.let { value ->
-        val millivolts = if (kotlin.math.abs(value) >= 10_000) value / 1000.0 else value
-        "${trimTrailingZeros(millivolts)} mV"
+        // Android's EXTRA_VOLTAGE is always reported in millivolts (3000-5000 on real devices),
+        // and official ACC does the same. There is no microvolts/volts encoding to branch on,
+        // so treat the value as millivolts directly.
+        "${trimTrailingZeros(value)} mV"
     }
 
 private fun String.formatBatteryPower(): String? =

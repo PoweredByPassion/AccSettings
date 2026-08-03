@@ -2,7 +2,6 @@
 <resources translatable="false">
     <integer name="acc_version_code">202505180</integer>
     <string name="acc_version_name">2025.5.18-dev</string>
-    <string name="acc_daemon">acc_daemon</string>
     <!--battery info-->
     <string name="info_status">status</string>
     <string name="info_capacity">level</string>

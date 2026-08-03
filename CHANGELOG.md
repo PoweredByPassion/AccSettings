@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-08-03
+
+- Removed the `capacity_sync` config item (the underlying ACC key no longer exists); reverted its UI field and serializer to the 5-element capacity format
+- Cut Overview battery polling from 3s to 15s to reduce root command frequency
+- Removed the full-screen loading spinner from service start and daemon toggle; failures still clear the loading state
+- Fixed capacity edits discarding `ADVANCED_CUSTOM`/`MIXED_LEGACY` modes (mode is now preserved on rebuild)
+- Wired the config store's capability probe to the real ACC device probe (charging switches, current/voltage control)
+- Routed the boot/app-replaced workers through the serialized ACC state manager; deleted the unused `AccDataStore` and the dead `AccHandler.initial()`
+- Rejected non-numeric input on numeric config fields instead of silently converting it to 0
+- Removed the unused `getConfig`/`getPropertyValue` command helpers
+
 ## 2026-06-02
 
 - Fixed `cooldown_capacity=101` (ACC default disable sentinel) being classified as `MIXED_LEGACY`, which silently blocked all capacity edits (resolves #5)

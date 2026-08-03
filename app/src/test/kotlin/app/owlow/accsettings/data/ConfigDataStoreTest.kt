@@ -64,6 +64,36 @@ class ConfigDataStoreTest {
     }
 
     @Test
+    fun capacity_edit_preserves_advanced_custom_mode() {
+        val advancedCapacity = CapacityConfig(0, 0, 0, 0, false, ConfigGroupMode.ADVANCED_CUSTOM)
+        val store = testStore(
+            groupedConfig = groupedConfig(capacity = advancedCapacity)
+        )
+        store.requestProtectedGroupRebuild(PatchGroup.CAPACITY)
+
+        store.putInt("set_pause_capacity", 85)
+
+        assertEquals(
+            ConfigGroupMode.ADVANCED_CUSTOM,
+            store.currentDraftStateForTesting().draft.currentCapacity!!.mode
+        )
+    }
+
+    @Test
+    fun capacity_edit_keeps_normal_mode_without_voltage_support() {
+        val store = testStore(
+            groupedConfig = groupedConfig(capacity = CapacityConfig(5, 70, 72, 80, false, ConfigGroupMode.NORMAL))
+        )
+
+        store.putInt("set_pause_capacity", 85)
+
+        assertEquals(
+            ConfigGroupMode.NORMAL,
+            store.currentDraftStateForTesting().draft.currentCapacity!!.mode
+        )
+    }
+
+    @Test
     fun preloaded_config_avoids_blocking_loader_during_reads() {
         var loaderCalls = 0
         val groupedConfig = groupedConfig()
