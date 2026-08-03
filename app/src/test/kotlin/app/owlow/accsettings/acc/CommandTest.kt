@@ -1,9 +1,15 @@
 package app.owlow.accsettings.acc
 
 import org.junit.Assert.assertEquals
+import org.junit.Before
 import org.junit.Test
 
 class CommandTest {
+    @Before
+    fun setUp() {
+        Command.resetForTesting()
+    }
+
     @Test
     fun requireAccExecutable_prefersOfficialFrontendBinary() {
         assertEquals(

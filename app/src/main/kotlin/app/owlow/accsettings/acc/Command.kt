@@ -34,8 +34,14 @@ object Command {
     class LockFailedException : AccException()
     class ModuleDisabledException : AccException()
 
+    private var cachedAccPath: String? = null
+
+    /** Test-only hook to capture/short-circuit the command line exec would run. */
+    internal var execOverride: (suspend (String) -> String)? = null
+
     suspend fun exec(command: String): String = withContext(Dispatchers.IO) {
-        Log.v(TAG, "exec: $command")
+        runCatching { Log.v(TAG, "exec: $command") }
+        execOverride?.let { return@withContext it(command) }
         val shell = Shell.getShell()
         if (!shell.isRoot) {
             throw NotRootException()
@@ -50,6 +56,9 @@ object Command {
             val errorMsg = stderr.joinToString("\n").trim()
             val details = listOf(outputMsg, errorMsg).filter { it.isNotBlank() }.joinToString("\n")
             Log.e(TAG, "Command failed: $command. Exit code: ${result.code}, Output: $details")
+            if (result.code == 127) {
+                cachedAccPath = null
+            }
             throw when (result.code) {
                 1 -> FailedException(details.ifBlank { "Exit code: 1" })
                 2 -> IncorrectSyntaxException()
@@ -93,11 +102,24 @@ object Command {
         return exec(command)
     }
 
-    suspend fun setConfig(property: String, vararg values: String?) =
-        execAcc("set \"$property=${values.joinToString(" ")}\"")
+    /**
+     * Applies ACC config assignments as `acca --set prop=value ...` (a single `--set` option
+     * followed by space-separated `prop=value` tokens). Individual assignments must NOT carry a
+     * `--` prefix: `acca --set sc=10` works, `acca --set --sc=10` fails with `export: --: unknown
+     * option` on real devices.
+     */
+    suspend fun setConfig(property: String, vararg values: String?) {
+        val args = (listOf(property) + values).filterNotNull()
+        require(args.size % 2 == 0) { "setConfig requires property/value pairs" }
+        val accPath = withContext(Dispatchers.IO) {
+            requireAccExecutable { path -> execTest(path) }
+        }
+        val assignments = args.chunked(2).joinToString(" ") { (prop, value) -> "$prop=$value" }
+        exec("$accPath --set $assignments")
+    }
 
     private fun getPropertyValue(property: String): String =
-        if (property.endsWith('=') || property.endsWith("\"\"")) "" else property.split('=', '\n')[1]
+        if (property.endsWith('=') || property.endsWith("\"\"")) "" else property.substringAfter('=', property).substringBefore('\n')
 
     suspend fun getConfig(property: String): String =
         getPropertyValue(execAcc("set", "print $property"))
@@ -134,7 +156,7 @@ object Command {
         val accPath = withContext(Dispatchers.IO) {
             findAccExecutable { path -> execTest(path) }
         } ?: return Pair(0, null)
-        return parseVersionOutput(exec("$accPath --version"))
+        return parseVersionOutput(exec("$accPath -v"))
     }
 
     private suspend fun setDaemon(option: String) = try {
@@ -163,6 +185,11 @@ object Command {
         buildReinitializeCommand { path -> execTest(path) }
     })
 
+    internal fun resetForTesting() {
+        cachedAccPath = null
+        execOverride = null
+    }
+
     private val VERSION_REGEX = Regex("""v([0-9][0-9A-Za-z.\-]*)\s*\((\d+)\)""")
 
     private fun execTest(path: String): Boolean {
@@ -171,8 +198,12 @@ object Command {
         return shell.newJob().add("test -f \"$path\"").to(mutableListOf(), mutableListOf()).exec().isSuccess
     }
 
-    internal fun findAccExecutable(pathExists: (String) -> Boolean): String? =
-        ACC_EXECUTABLE_CANDIDATES.firstOrNull(pathExists)
+    internal fun findAccExecutable(pathExists: (String) -> Boolean): String? {
+        cachedAccPath?.let { return it }
+        val found = ACC_EXECUTABLE_CANDIDATES.firstOrNull(pathExists)
+        cachedAccPath = found
+        return found
+    }
 
     internal fun listAccExecutables(pathExists: (String) -> Boolean): List<String> =
         ACC_EXECUTABLE_CANDIDATES.filter(pathExists)
