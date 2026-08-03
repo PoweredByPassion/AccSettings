@@ -2,6 +2,7 @@ package app.owlow.accsettings.ui.overview
 
 data class OverviewUiState(
     val isLoading: Boolean = true,
+    val daemonBusy: Boolean = false,
     val statusHeadline: String = "",
     val runtimeFacts: List<OverviewFact> = emptyList(),
     val batteryFacts: List<OverviewFact> = emptyList(),

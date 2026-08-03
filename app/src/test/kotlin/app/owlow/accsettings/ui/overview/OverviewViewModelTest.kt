@@ -6,6 +6,7 @@ import app.owlow.accsettings.acc.AccStatus
 import app.owlow.accsettings.acc.BatteryInfo
 import app.owlow.accsettings.acc.Command
 import androidx.test.core.app.ApplicationProvider
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
@@ -245,6 +246,93 @@ class OverviewViewModelTest {
     }
 
     @Test
+    fun toggleDaemon_marksDaemonBusyWhileRepositoryCallIsInFlight() = runTest {
+        val repository = GatedOverviewRepository(
+            status = AccStatus(
+                installState = AccInstallState.UP_TO_DATE,
+                installedVersionName = "2025.5.18-dev",
+                daemonRunning = false,
+                canManageDaemon = true,
+                showInstallAction = false,
+                showUninstallAction = true
+            )
+        )
+        val viewModel = OverviewViewModel(
+            context = ApplicationProvider.getApplicationContext(),
+            overviewRepository = repository
+        )
+
+        val job = viewModel.toggleDaemon(enabled = true)
+        runCurrent()
+
+        assertTrue(viewModel.uiState.value.daemonBusy)
+        assertTrue(viewModel.uiState.value.runtimeFacts.none { it.actionId == "toggle_daemon" })
+
+        repository.releaseDaemonToggle()
+        job.join()
+
+        assertFalse(viewModel.uiState.value.daemonBusy)
+        assertTrue(
+            viewModel.uiState.value.runtimeFacts
+                .first { it.actionId == "toggle_daemon" }
+                .actionValue == true
+        )
+    }
+
+    @Test
+    fun toggleDaemon_clearsDaemonBusyWhenRepositoryCallFails() = runTest {
+        val viewModel = OverviewViewModel(
+            context = ApplicationProvider.getApplicationContext(),
+            overviewRepository = FakeOverviewRepository(
+                status = AccStatus(
+                    installState = AccInstallState.UP_TO_DATE,
+                    installedVersionName = "2025.5.18-dev",
+                    daemonRunning = false,
+                    canManageDaemon = true,
+                    showInstallAction = false,
+                    showUninstallAction = true
+                )
+            ).apply { failDaemonToggle = true }
+        )
+
+        viewModel.toggleDaemon(enabled = true).join()
+
+        val state = viewModel.uiState.value
+        assertFalse(state.isLoading)
+        assertFalse(state.daemonBusy)
+        assertTrue(state.warnings.any { it == "Failed to toggle daemon" })
+    }
+
+    @Test
+    fun startService_marksDaemonBusyWhileRepositoryCallIsInFlight() = runTest {
+        val repository = GatedOverviewRepository(
+            status = AccStatus(
+                installState = AccInstallState.UP_TO_DATE,
+                installedVersionName = "2025.5.18-dev",
+                daemonRunning = false,
+                canManageDaemon = true,
+                showInstallAction = false,
+                showUninstallAction = true
+            )
+        )
+        val viewModel = OverviewViewModel(
+            context = ApplicationProvider.getApplicationContext(),
+            overviewRepository = repository
+        )
+
+        val job = viewModel.startService()
+        runCurrent()
+
+        assertTrue(viewModel.uiState.value.daemonBusy)
+
+        repository.releaseStartService()
+        job.join()
+
+        assertFalse(viewModel.uiState.value.daemonBusy)
+        assertTrue(viewModel.uiState.value.primaryActions.none { it.id == "start" })
+    }
+
+    @Test
     fun refresh_exposesLastErrorAsWarning() = runTest {
         val viewModel = OverviewViewModel(
             context = ApplicationProvider.getApplicationContext(),
@@ -337,5 +425,32 @@ class OverviewViewModelTest {
         override suspend fun startService(): AccStatus = loadStatus().copy(daemonRunning = true)
 
         override suspend fun setDaemonRunning(enabled: Boolean): AccStatus = loadStatus().copy(daemonRunning = enabled)
+    }
+
+    private class GatedOverviewRepository(
+        private val status: AccStatus
+    ) : OverviewRepository {
+        private var startGate = CompletableDeferred<Unit>()
+        private var daemonToggleGate = CompletableDeferred<Unit>()
+
+        fun releaseStartService() {
+            startGate.complete(Unit)
+        }
+
+        fun releaseDaemonToggle() {
+            daemonToggleGate.complete(Unit)
+        }
+
+        override suspend fun loadStatus(): AccStatus = status
+
+        override suspend fun startService(): AccStatus {
+            startGate.await()
+            return status.copy(daemonRunning = true)
+        }
+
+        override suspend fun setDaemonRunning(enabled: Boolean): AccStatus {
+            daemonToggleGate.await()
+            return status.copy(daemonRunning = enabled)
+        }
     }
 }

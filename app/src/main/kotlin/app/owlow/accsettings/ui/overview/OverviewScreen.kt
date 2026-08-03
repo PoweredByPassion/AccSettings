@@ -66,6 +66,7 @@ fun OverviewScreen(
         item {
             FactsGrid(
                 facts = uiState.runtimeFacts,
+                daemonBusy = uiState.daemonBusy,
                 onToggleAction = onToggleAction
             )
         }
@@ -90,6 +91,7 @@ fun OverviewScreen(
         item {
             ActionsSection(
                 actions = uiState.primaryActions,
+                actionsEnabled = !uiState.daemonBusy,
                 onAction = onAction
             )
         }
@@ -123,6 +125,7 @@ private fun OverviewHeader(
 @Composable
 private fun FactsGrid(
     facts: List<OverviewFact>,
+    daemonBusy: Boolean = false,
     onToggleAction: (String, Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -136,6 +139,7 @@ private fun FactsGrid(
         facts.forEachIndexed { index, fact ->
             FactRow(
                 fact = fact,
+                daemonBusy = daemonBusy,
                 isLast = index == facts.size - 1,
                 onToggleAction = onToggleAction
             )
@@ -146,6 +150,7 @@ private fun FactsGrid(
 @Composable
 private fun FactRow(
     fact: OverviewFact,
+    daemonBusy: Boolean,
     isLast: Boolean,
     onToggleAction: (String, Boolean) -> Unit
 ) {
@@ -176,18 +181,26 @@ private fun FactRow(
                 fontWeight = FontWeight.SemiBold
             )
             if (fact.actionId != null && fact.actionValue != null) {
-                Switch(
-                    checked = fact.actionValue,
-                    onCheckedChange = { onToggleAction(fact.actionId, it) },
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = Color.White,
-                        checkedTrackColor = AccPrimary,
-                        uncheckedThumbColor = Zinc400,
-                        uncheckedTrackColor = Zinc100,
-                        uncheckedBorderColor = Color.Transparent
-                    ),
-                    modifier = Modifier.scale(0.8f)
-                )
+                if (daemonBusy) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 2.dp,
+                        color = AccPrimary
+                    )
+                } else {
+                    Switch(
+                        checked = fact.actionValue,
+                        onCheckedChange = { onToggleAction(fact.actionId, it) },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = AccPrimary,
+                            uncheckedThumbColor = Zinc400,
+                            uncheckedTrackColor = Zinc100,
+                            uncheckedBorderColor = Color.Transparent
+                        ),
+                        modifier = Modifier.scale(0.8f)
+                    )
+                }
             }
         }
     }
@@ -221,6 +234,7 @@ private fun WarningCard(text: String) {
 @Composable
 private fun ActionsSection(
     actions: List<OverviewAction>,
+    actionsEnabled: Boolean,
     onAction: (String) -> Unit
 ) {
     Column(
@@ -229,6 +243,7 @@ private fun ActionsSection(
         actions.forEach { action ->
             AccActionButton(
                 label = action.label,
+                enabled = actionsEnabled,
                 onClick = { onAction(action.id) }
             )
         }
@@ -238,6 +253,7 @@ private fun ActionsSection(
 @Composable
 private fun AccActionButton(
     label: String,
+    enabled: Boolean,
     onClick: () -> Unit
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "breathing")
@@ -253,10 +269,11 @@ private fun AccActionButton(
 
     Button(
         onClick = onClick,
+        enabled = enabled,
         modifier = Modifier
             .fillMaxWidth()
             .height(56.dp)
-            .scale(scale),
+            .scale(if (enabled) scale else 1f),
         shape = RoundedCornerShape(16.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = AccPrimary,

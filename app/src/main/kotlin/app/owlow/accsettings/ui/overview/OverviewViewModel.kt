@@ -38,11 +38,14 @@ class OverviewViewModel(
 
     fun startService(): Job = viewModelScope.launch {
         // NOTE: no full-screen spinner on service start; keep the UI interactive while ACC starts.
+        // A focused `daemonBusy` flag gives the daemon control busy feedback while the root command runs.
+        _uiState.value = _uiState.value.copy(daemonBusy = true)
         runCatching { overviewRepository.startService() }
-            .onSuccess { status -> _uiState.value = status.toUiState(context) }
+            .onSuccess { status -> _uiState.value = status.toUiState(context).copy(daemonBusy = false) }
             .onFailure { error ->
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
+                    daemonBusy = false,
                     warnings = _uiState.value.warnings + (error.localizedMessage ?: "Failed to start service")
                 )
             }
@@ -50,11 +53,13 @@ class OverviewViewModel(
 
     fun toggleDaemon(enabled: Boolean): Job = viewModelScope.launch {
         // NOTE: no full-screen spinner on daemon toggle; keep the UI interactive while ACC reacts.
+        _uiState.value = _uiState.value.copy(daemonBusy = true)
         runCatching { overviewRepository.setDaemonRunning(enabled) }
-            .onSuccess { status -> _uiState.value = status.toUiState(context) }
+            .onSuccess { status -> _uiState.value = status.toUiState(context).copy(daemonBusy = false) }
             .onFailure { error ->
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
+                    daemonBusy = false,
                     warnings = _uiState.value.warnings + (error.localizedMessage ?: "Failed to toggle daemon")
                 )
             }
@@ -83,7 +88,7 @@ class OverviewViewModel(
             _uiState.value = _uiState.value.copy(isLoading = true)
         }
         val status = overviewRepository.loadStatus()
-        _uiState.value = status.toUiState(context)
+        _uiState.value = status.toUiState(context, daemonBusy = _uiState.value.daemonBusy)
     }
 
     override fun onCleared() {
@@ -120,10 +125,11 @@ private object LiveOverviewRepository : OverviewRepository {
     }
 }
 
-private fun AccStatus?.toUiState(context: Context): OverviewUiState {
+private fun AccStatus?.toUiState(context: Context, daemonBusy: Boolean = false): OverviewUiState {
     if (this == null) {
         return OverviewUiState(
             isLoading = false,
+            daemonBusy = daemonBusy,
             statusHeadline = context.getString(R.string.overview_status_unavailable),
             primaryActions = listOf(OverviewAction("refresh", context.getString(R.string.overview_action_refresh))),
             warnings = listOf(context.getString(R.string.overview_warning_unavailable))
@@ -212,6 +218,7 @@ private fun AccStatus?.toUiState(context: Context): OverviewUiState {
 
     return OverviewUiState(
         isLoading = false,
+        daemonBusy = daemonBusy,
         statusHeadline = headline,
         runtimeFacts = facts,
         batteryFacts = batteryFactsList,
