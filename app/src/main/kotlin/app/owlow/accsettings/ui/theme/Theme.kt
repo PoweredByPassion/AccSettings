@@ -22,6 +22,7 @@ private val LightColors = lightColorScheme(
     outline = AccDivider,
     outlineVariant = AccDivider,
     secondaryContainer = Zinc100,
+    onSecondaryContainer = Zinc700,
     tertiary = AccAccent,
     onTertiary = Color.White
 )
@@ -41,6 +42,7 @@ private val DarkColors = darkColorScheme(
     outline = Zinc700,
     outlineVariant = Zinc700,
     secondaryContainer = Zinc800,
+    onSecondaryContainer = Zinc300,
     tertiary = AccAccentDark,
     onTertiary = Zinc950
 )
