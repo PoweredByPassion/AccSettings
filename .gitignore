@@ -11,6 +11,7 @@ local.properties
 .claude/
 .learning/
 .learnings/
+.superpowers/
 docs/
 dist/
 tests/
