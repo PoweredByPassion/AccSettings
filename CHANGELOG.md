@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-04
+
+**New**
+
+- **Dark theme support**: the app now follows the Android system dark mode. All screens (Overview / Config / Tools / About) and the bottom navigation switch between light and dark palettes automatically; the dark palette reuses the existing Zinc-based scheme with a brighter Emerald accent for switches and success states. Startup no longer flashes white in dark mode (`values-night` window background). The terminal-style log card keeps its fixed dark look in both modes.
+
 ## 2026-08-03
 
 **Fixes (cross-checked against official ACC command syntax + real-device testing)**
