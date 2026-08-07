@@ -208,10 +208,10 @@ object AccStateManager {
         )
     }
 
-    private suspend fun fetchBatteryInfo(): BatteryInfo? =
+    private suspend fun fetchBatteryInfo(): ChargingInfo? =
         appContext
             ?.let(::readSystemBatteryInfo)
-            ?.toBatteryInfo()
+            ?.toChargingInfo()
 
     private suspend fun collectProbeFacts(): AccProbeFacts {
         val hasRoot = try {
@@ -373,21 +373,21 @@ object AccStateManager {
         )
     }
 
-    private fun SystemBatteryInfo.toBatteryInfo(): BatteryInfo? = BatteryInfo(
+    private fun SystemBatteryInfo.toChargingInfo(): ChargingInfo? = ChargingInfo(
         level = level,
         status = status,
         temp = temperature,
         current = current,
         voltage = voltage,
         power = power
-    ).takeIf { batteryInfo ->
+    ).takeIf { chargingInfo ->
         listOf(
-            batteryInfo.level,
-            batteryInfo.status,
-            batteryInfo.temp,
-            batteryInfo.current,
-            batteryInfo.voltage,
-            batteryInfo.power
+            chargingInfo.level,
+            chargingInfo.status,
+            chargingInfo.temp,
+            chargingInfo.current,
+            chargingInfo.voltage,
+            chargingInfo.power
         ).any { !it.isNullOrBlank() }
     }
 }

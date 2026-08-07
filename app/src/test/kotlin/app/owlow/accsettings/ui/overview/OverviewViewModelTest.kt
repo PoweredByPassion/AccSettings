@@ -3,7 +3,7 @@ package app.owlow.accsettings.ui.overview
 import app.owlow.accsettings.MainDispatcherRule
 import app.owlow.accsettings.acc.AccInstallState
 import app.owlow.accsettings.acc.AccStatus
-import app.owlow.accsettings.acc.BatteryInfo
+import app.owlow.accsettings.acc.ChargingInfo
 import app.owlow.accsettings.acc.Command
 import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.CompletableDeferred
@@ -85,7 +85,7 @@ class OverviewViewModelTest {
                     canManageDaemon = true,
                     showInstallAction = false,
                     showUninstallAction = true,
-                    batteryInfo = BatteryInfo(
+                    chargingInfo = ChargingInfo(
                         level = "83",
                         status = "charging",
                         temp = "315",
@@ -117,7 +117,7 @@ class OverviewViewModelTest {
                     canManageDaemon = true,
                     showInstallAction = false,
                     showUninstallAction = true,
-                    batteryInfo = BatteryInfo(
+                    chargingInfo = ChargingInfo(
                         level = "83",
                         status = "discharging",
                         temp = "315",
@@ -155,7 +155,7 @@ class OverviewViewModelTest {
                         canManageDaemon = true,
                         showInstallAction = false,
                         showUninstallAction = true,
-                        batteryInfo = BatteryInfo(
+                        chargingInfo = ChargingInfo(
                             level = null,
                             status = null,
                             temp = null,
@@ -411,7 +411,7 @@ class OverviewViewModelTest {
                 canManageDaemon = true,
                 showInstallAction = false,
                 showUninstallAction = true,
-                batteryInfo = BatteryInfo(
+                chargingInfo = ChargingInfo(
                     level = "83",
                     status = "charging",
                     temp = "315",

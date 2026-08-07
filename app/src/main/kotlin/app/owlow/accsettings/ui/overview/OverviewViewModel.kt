@@ -193,7 +193,7 @@ private fun AccStatus?.toUiState(context: Context, daemonBusy: Boolean = false):
         lastError?.takeIf { it.isNotBlank() }?.let { add(it) }
     }
 
-    val batteryFactsList = batteryInfo?.let { info ->
+    val batteryFactsList = chargingInfo?.let { info ->
         buildList {
             info.level?.formatBatteryPercent()?.let {
                 add(OverviewFact(context.getString(R.string.battery_level), it))
