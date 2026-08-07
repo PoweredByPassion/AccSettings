@@ -152,6 +152,29 @@ class AccStateManagerTest {
         assertNull(AccStateManager.getCurrentStatus()?.lastError)
     }
 
+    @Test
+    fun charging_info_wires_through_bridge() = runBlocking {
+        val info = ChargingInfo(
+            level = "34", status = "Charging", chargeType = "pc_port",
+            protocol = "USB_PD", negotiatedPower = "2.5 W"
+        )
+        AccStateManager.resetForTesting(
+            bridgeFactory = {
+                testBridge(
+                    version = 202505180,
+                    versionName = "2025.5.18-dev",
+                    daemonRunning = { true },
+                    bundledVersionCode = 202505180,
+                    chargingInfo = info
+                )
+            }
+        )
+
+        AccStateManager.refreshNow()
+
+        assertEquals(info, AccStateManager.getCurrentStatus()?.chargingInfo)
+    }
+
     private fun testBridge(
         version: Int = 0,
         versionName: String? = null,
@@ -159,7 +182,8 @@ class AccStateManagerTest {
         bundledVersionCode: Int = 0,
         onSetDaemonRunning: suspend (Boolean) -> DaemonActionResult = {
             DaemonActionResult(success = true, daemonRunning = it)
-        }
+        },
+        chargingInfo: ChargingInfo? = null
     ): AccBridge = AccBridge(
         capabilityProbe = { unsupportedCapability() },
         versionReader = { version to versionName },
@@ -167,7 +191,8 @@ class AccStateManagerTest {
         currentConfigReader = { java.util.Properties() },
         defaultConfigReader = { java.util.Properties() },
         daemonToggleAction = { enabled -> onSetDaemonRunning(enabled).success },
-        bundledVersionCodeProvider = { bundledVersionCode }
+        bundledVersionCodeProvider = { bundledVersionCode },
+        chargingInfoReader = { chargingInfo }
     )
 
     private fun unsupportedCapability(): AccCapability = AccCapability.from(

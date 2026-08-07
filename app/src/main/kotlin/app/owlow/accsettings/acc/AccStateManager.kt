@@ -193,7 +193,7 @@ object AccStateManager {
             daemonReader = { Command.isDaemonRunning() },
             currentConfigReader = { Command.getCurrentConfig() },
             defaultConfigReader = { Command.getDefaultConfig() },
-            batteryInfoReader = { fetchBatteryInfo() },
+            chargingInfoReader = { fetchChargingInfo() },
             installAction = { handler.install(context) },
             upgradeAction = { handler.upgrade(context) },
             repairAction = { handler.repair() },
@@ -208,10 +208,27 @@ object AccStateManager {
         )
     }
 
-    private suspend fun fetchBatteryInfo(): ChargingInfo? =
-        appContext
-            ?.let(::readSystemBatteryInfo)
-            ?.toChargingInfo()
+    private suspend fun fetchChargingInfo(): ChargingInfo? {
+        val context = appContext ?: return null
+        val root = try {
+            Shell.rootAccess()
+        } catch (_: Exception) {
+            false
+        }
+        if (root) {
+            val accInfo = runCatching { Command.getInfoRaw() }.getOrNull()
+            val base = accInfo?.takeIf { it.isNotBlank() }?.let { ChargingInfoParser.parseAccInfo(it) }
+            if (base != null) {
+                val handshake = SysfsChargingReader.read(::readSysfsNode)
+                return ChargingInfoParser.mergeChargingInfo(base, handshake)
+            }
+        }
+        // Fallback: system API for base fields, handshake stays null.
+        return readSystemBatteryInfo(context)?.toChargingInfo()
+    }
+
+    private suspend fun readSysfsNode(path: String): String? =
+        runCatching { Command.exec("cat \"$path\"").ifBlank { "" } }.getOrNull()
 
     private suspend fun collectProbeFacts(): AccProbeFacts {
         val hasRoot = try {

@@ -187,6 +187,9 @@ object Command {
         return properties
     }
 
+    /** Raw `acc --info` output, used by the charging-info reader. */
+    suspend fun getInfoRaw(): String = execAcc("info")
+
     internal fun parseVersionOutput(version: String): Pair<Int, String?> {
         val match = VERSION_REGEX.find(version.trim()) ?: return Pair(0, null)
         val versionName = match.groupValues[1]
