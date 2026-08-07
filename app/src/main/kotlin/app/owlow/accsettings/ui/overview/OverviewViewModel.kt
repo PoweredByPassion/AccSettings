@@ -65,7 +65,7 @@ class OverviewViewModel(
             }
     }
 
-    fun startAutoRefresh(intervalMs: Long = BATTERY_REFRESH_INTERVAL_MS) {
+    fun startAutoRefresh(intervalMs: Long = CHARGING_REFRESH_INTERVAL_MS) {
         if (autoRefreshJob?.isActive == true) {
             return
         }
@@ -97,7 +97,7 @@ class OverviewViewModel(
     }
 
     companion object {
-        private const val BATTERY_REFRESH_INTERVAL_MS = 15_000L
+        private const val CHARGING_REFRESH_INTERVAL_MS = 3_000L
 
         fun factory(
             context: Context,
