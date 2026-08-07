@@ -3,10 +3,12 @@ package app.owlow.accsettings.data
 import app.owlow.accsettings.acc.ApplyGroupedPatchRequest
 import app.owlow.accsettings.acc.ApplyGroupedPatchResult
 import app.owlow.accsettings.acc.CapacityConfig
+import app.owlow.accsettings.acc.Command
 import app.owlow.accsettings.acc.ConfigGroupMode
 import app.owlow.accsettings.acc.GroupedConfigRead
 import app.owlow.accsettings.acc.PatchGroup
 import app.owlow.accsettings.acc.TemperatureConfig
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -174,6 +176,100 @@ class ConfigDataStoreTest {
         assertEquals(72, store.getInt("set_resume_capacity", 0))
         assertEquals(40, store.getInt("set_resume_temp", 0))
         assertEquals(55, store.getInt("set_shutdown_temp", 0))
+    }
+
+    @Test
+    fun capacity_apply_emits_single_atomic_set_command() = runBlocking {
+        Command.resetForTesting()
+        val pathExists = { path: String -> path == "/dev/acca" }
+        Command.execTestOverride = pathExists
+        Command.findAccExecutable(pathExists)
+
+        // Stateful fake ACC: `--set --print` returns the current config, `--set key=val` updates it.
+        val state = Properties().apply {
+            setProperty("shutdown_capacity", "5")
+            setProperty("cooldown_capacity", "70")
+            setProperty("resume_capacity", "72")
+            setProperty("pause_capacity", "80")
+            setProperty("capacity_mask", "false")
+            setProperty("cooldown_temp", "45")
+            setProperty("max_temp", "50")
+            setProperty("resume_temp", "40")
+            setProperty("shutdown_temp", "55")
+        }
+        val setCommands = mutableListOf<String>()
+        // Fake ACC maps shorthand args (sc/cc/rc/pc/cm) onto the full config keys.
+        val abbrevToFull = mapOf(
+            "sc" to "shutdown_capacity",
+            "cc" to "cooldown_capacity",
+            "rc" to "resume_capacity",
+            "pc" to "pause_capacity",
+            "cm" to "capacity_mask"
+        )
+        Command.execOverride = { cmd ->
+            when {
+                cmd == "/dev/acca --set --print-default" -> state.entries.joinToString("\n") { (k, v) -> "$k=$v" }
+                cmd.startsWith("/dev/acca --set --print ") -> state.getProperty(cmd.removePrefix("/dev/acca --set --print "))
+                cmd == "/dev/acca --set --print" -> state.entries.joinToString("\n") { (k, v) -> "$k=$v" }
+                cmd.startsWith("/dev/acca --set ") -> {
+                    setCommands += cmd
+                    val assignments = cmd.removePrefix("/dev/acca --set ")
+                    assignments.split(" ").forEach { pair ->
+                        if (pair.contains("=")) {
+                            val (key, value) = pair.split("=", limit = 2)
+                            val fullKey = abbrevToFull[key] ?: key
+                            state.setProperty(fullKey, value)
+                        }
+                    }
+                    ""
+                }
+                else -> ""
+            }
+        }
+
+        val store = ConfigDataStore.buildBridge()
+        val deviceBase = ConfigDataStore.readGroupedConfigDirect()
+        val targetCurrent = Properties().apply {
+            setProperty("shutdown_capacity", "5")
+            setProperty("cooldown_capacity", "101")
+            setProperty("resume_capacity", "30")
+            setProperty("pause_capacity", "55")
+            setProperty("capacity_mask", "false")
+            setProperty("cooldown_temp", "45")
+            setProperty("max_temp", "50")
+            setProperty("resume_temp", "40")
+            setProperty("shutdown_temp", "55")
+        }
+        val request = ApplyGroupedPatchRequest(
+            base = deviceBase,
+            target = GroupedConfigRead(
+                current = targetCurrent,
+                defaults = Properties().apply { putAll(targetCurrent) },
+                currentCapacity = CapacityConfig(5, 101, 30, 55, false, ConfigGroupMode.NORMAL),
+                defaultCapacity = CapacityConfig(5, 101, 30, 55, false, ConfigGroupMode.NORMAL),
+                currentTemperature = deviceBase.currentTemperature,
+                defaultTemperature = deviceBase.defaultTemperature
+            ),
+            groups = setOf(PatchGroup.CAPACITY)
+        )
+        val result = store.applyGroupedPatch(request)
+
+        // All 5 capacity fields must be merged into a single --set command, not 5 separate ones.
+        assertEquals(1, setCommands.size)
+        assertEquals(
+            "/dev/acca --set sc=5 cc=101 rc=30 pc=55 cm=false",
+            setCommands.single()
+        )
+        // Readback after the write must reflect the new values (frontend/backend in sync,
+        // not a VerificationMismatch).
+        assertTrue(
+            "expected Success with resume=30/pause=55, got $result",
+            result is ApplyGroupedPatchResult.Success
+        )
+        val verified = (result as ApplyGroupedPatchResult.Success).verifiedConfig.currentCapacity
+        assertEquals(30, verified!!.resume)
+        assertEquals(55, verified.pause)
+        assertEquals(101, verified.cooldown)
     }
 
     @Test
