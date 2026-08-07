@@ -37,13 +37,26 @@
     <string name="acc">ACC</string>
 
     <string name="battery">电池</string>
-    <string name="battery_info_title">电池信息</string>
+    <string name="battery_info_title">充电信息</string>
     <string name="battery_level">电量</string>
     <string name="battery_charging_status">充电状态</string>
     <string name="battery_temperature">温度</string>
     <string name="battery_current">电流</string>
     <string name="battery_voltage">电压</string>
     <string name="battery_power">功率</string>
+    <string name="battery_charge_type">充电类型</string>
+    <string name="battery_protocol">充电协议</string>
+    <string name="battery_pd_active">PD 协商</string>
+    <string name="battery_negotiated_current">协商电流</string>
+    <string name="battery_negotiated_voltage">协商电压</string>
+    <string name="battery_negotiated_power">协商功率</string>
+    <string name="battery_cc_mode">CC 模式</string>
+    <string name="battery_yes">是</string>
+    <string name="battery_no">否</string>
+    <string name="battery_charge_type_pc_port">PC 端口</string>
+    <string name="battery_charge_type_usb">USB</string>
+    <string name="battery_charge_type_dc">无线充电</string>
+    <string name="battery_charge_type_unknown">未知</string>
     <string name="battery_status_charging">充电中</string>
     <string name="battery_status_discharging">放电中</string>
     <string name="battery_status_full">已充满</string>

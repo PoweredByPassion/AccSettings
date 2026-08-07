@@ -101,7 +101,7 @@ class OverviewViewModelTest {
 
         assertEquals(
             listOf("83%", "Charging", "31.5°C", "1.54 A", "4187 mV", "6.46 W"),
-            viewModel.uiState.value.batteryFacts.map { it.value }
+            viewModel.uiState.value.chargingFacts.map { it.value }
         )
     }
 
@@ -133,7 +133,7 @@ class OverviewViewModelTest {
 
         assertEquals(
             listOf("83%", "Discharging", "31.5°C", "-65.9 mA", "4197 mV", "-0.28 W"),
-            viewModel.uiState.value.batteryFacts.map { it.value }
+            viewModel.uiState.value.chargingFacts.map { it.value }
         )
     }
 
@@ -169,8 +169,41 @@ class OverviewViewModelTest {
 
             viewModel.refresh().join()
 
-            assertEquals(expected, viewModel.uiState.value.batteryFacts.single().value)
+            assertEquals(expected, viewModel.uiState.value.chargingFacts.single().value)
         }
+    }
+
+    @Test
+    fun refresh_renders_handshake_rows_from_charging_info() = runTest {
+        val viewModel = OverviewViewModel(
+            context = ApplicationProvider.getApplicationContext(),
+            overviewRepository = FakeOverviewRepository(
+                status = AccStatus(
+                    installState = AccInstallState.UP_TO_DATE,
+                    installedVersionName = "2025.5.18-dev",
+                    daemonRunning = true,
+                    canManageDaemon = true,
+                    showInstallAction = false,
+                    showUninstallAction = true,
+                    chargingInfo = ChargingInfo(
+                        level = "34", status = "Charging", temp = "340",
+                        current = "20000", voltage = "3810", power = "80000",
+                        chargeType = "pc_port",
+                        protocol = "USB_PD", realProtocol = "USB", pdActive = false,
+                        negotiatedCurrent = "500", negotiatedVoltage = "5000",
+                        negotiatedPower = "2.5 W", ccMode = "0"
+                    )
+                )
+            )
+        )
+
+        viewModel.refresh().join()
+
+        val rows = viewModel.uiState.value.chargingFacts
+        assertTrue(rows.any { it.label == "Charge type" && it.value == "PC port" })
+        assertTrue(rows.any { it.label == "Protocol" && it.value == "USB_PD" })
+        assertTrue(rows.any { it.label == "PD negotiation" && it.value == "No" })
+        assertTrue(rows.any { it.label == "Negotiated power" && it.value == "2.5 W" })
     }
 
     @Test

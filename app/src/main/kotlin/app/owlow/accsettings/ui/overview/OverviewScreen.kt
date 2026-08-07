@@ -75,7 +75,7 @@ fun OverviewScreen(
             )
         }
 
-        if (uiState.batteryFacts.isNotEmpty()) {
+        if (uiState.chargingFacts.isNotEmpty()) {
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     Text(
@@ -85,7 +85,7 @@ fun OverviewScreen(
                         modifier = Modifier.padding(horizontal = 4.dp)
                     )
                     FactsGrid(
-                        facts = uiState.batteryFacts,
+                        facts = uiState.chargingFacts,
                         colors = colors,
                         onToggleAction = onToggleAction
                     )

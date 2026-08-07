@@ -70,7 +70,7 @@ class OverviewViewModel(
             return
         }
         autoRefreshJob = viewModelScope.launch {
-            reloadStatus(showLoading = _uiState.value.runtimeFacts.isEmpty() && _uiState.value.batteryFacts.isEmpty())
+            reloadStatus(showLoading = _uiState.value.runtimeFacts.isEmpty() && _uiState.value.chargingFacts.isEmpty())
             while (isActive) {
                 delay(intervalMs)
                 reloadStatus(showLoading = false)
@@ -193,7 +193,7 @@ private fun AccStatus?.toUiState(context: Context, daemonBusy: Boolean = false):
         lastError?.takeIf { it.isNotBlank() }?.let { add(it) }
     }
 
-    val batteryFactsList = chargingInfo?.let { info ->
+    val chargingFactsList = chargingInfo?.let { info ->
         buildList {
             info.level?.formatBatteryPercent()?.let {
                 add(OverviewFact(context.getString(R.string.battery_level), it))
@@ -213,6 +213,32 @@ private fun AccStatus?.toUiState(context: Context, daemonBusy: Boolean = false):
             info.power?.formatBatteryPower()?.let {
                 add(OverviewFact(context.getString(R.string.battery_power), it))
             }
+            info.chargeType?.let { type ->
+                add(OverviewFact(context.getString(R.string.battery_charge_type), formatChargeType(type, context)))
+            }
+            info.protocol?.let {
+                add(OverviewFact(context.getString(R.string.battery_protocol), it))
+            }
+            info.pdActive?.let { active ->
+                add(
+                    OverviewFact(
+                        context.getString(R.string.battery_pd_active),
+                        context.getString(if (active) R.string.battery_yes else R.string.battery_no)
+                    )
+                )
+            }
+            info.negotiatedCurrent?.let {
+                add(OverviewFact(context.getString(R.string.battery_negotiated_current), "$it mA"))
+            }
+            info.negotiatedVoltage?.let {
+                add(OverviewFact(context.getString(R.string.battery_negotiated_voltage), "$it mV"))
+            }
+            info.negotiatedPower?.let {
+                add(OverviewFact(context.getString(R.string.battery_negotiated_power), it))
+            }
+            info.ccMode?.let {
+                add(OverviewFact(context.getString(R.string.battery_cc_mode), it))
+            }
         }
     } ?: emptyList()
 
@@ -221,10 +247,17 @@ private fun AccStatus?.toUiState(context: Context, daemonBusy: Boolean = false):
         daemonBusy = daemonBusy,
         statusHeadline = headline,
         runtimeFacts = facts,
-        batteryFacts = batteryFactsList,
+        chargingFacts = chargingFactsList,
         primaryActions = actions,
         warnings = warnings
     )
+}
+
+private fun formatChargeType(raw: String, context: Context): String = when (raw) {
+    "pc_port" -> context.getString(R.string.battery_charge_type_pc_port)
+    "usb" -> context.getString(R.string.battery_charge_type_usb)
+    "dc" -> context.getString(R.string.battery_charge_type_dc)
+    else -> context.getString(R.string.battery_charge_type_unknown)
 }
 
 private fun AccInstallState.label(context: Context): String = when (this) {

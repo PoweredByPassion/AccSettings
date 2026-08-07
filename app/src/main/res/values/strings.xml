@@ -37,13 +37,26 @@
     <string name="acc">ACC</string>
 
     <string name="battery">Battery</string>
-    <string name="battery_info_title">Battery Information</string>
+    <string name="battery_info_title">Charging Information</string>
     <string name="battery_level">Level</string>
     <string name="battery_charging_status">Charging status</string>
     <string name="battery_temperature">Temperature</string>
     <string name="battery_current">Current</string>
     <string name="battery_voltage">Voltage</string>
     <string name="battery_power">Power</string>
+    <string name="battery_charge_type">Charge type</string>
+    <string name="battery_protocol">Protocol</string>
+    <string name="battery_pd_active">PD negotiation</string>
+    <string name="battery_negotiated_current">Negotiated current</string>
+    <string name="battery_negotiated_voltage">Negotiated voltage</string>
+    <string name="battery_negotiated_power">Negotiated power</string>
+    <string name="battery_cc_mode">CC mode</string>
+    <string name="battery_yes">Yes</string>
+    <string name="battery_no">No</string>
+    <string name="battery_charge_type_pc_port">PC port</string>
+    <string name="battery_charge_type_usb">USB</string>
+    <string name="battery_charge_type_dc">Wireless</string>
+    <string name="battery_charge_type_unknown">Unknown</string>
     <string name="battery_status_charging">Charging</string>
     <string name="battery_status_discharging">Discharging</string>
     <string name="battery_status_full">Full</string>
