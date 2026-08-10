@@ -43,7 +43,7 @@ object Command {
     internal var execTestOverride: ((String) -> Boolean)? = null
 
     suspend fun exec(command: String): String = withContext(Dispatchers.IO) {
-        runCatching { Log.v(TAG, "exec: $command") }
+        runCatching { Log.d(TAG, "exec: $command") }
         execOverride?.let { return@withContext it(command) }
         val shell = Shell.getShell()
         if (!shell.isRoot) {
@@ -51,14 +51,18 @@ object Command {
         }
         val stdout = mutableListOf<String>()
         val stderr = mutableListOf<String>()
+        val startNanos = System.nanoTime()
         val result = shell.newJob().add(command).to(stdout, stderr).exec()
+        val elapsedMs = (System.nanoTime() - startNanos) / 1_000_000
         if (result.isSuccess) {
-            return@withContext stdout.joinToString("\n").trim()
+            val out = stdout.joinToString("\n").trim()
+            runCatching { Log.d(TAG, "exec OK (${elapsedMs}ms): $command => ${out.take(200)}") }
+            return@withContext out
         } else {
             val outputMsg = stdout.joinToString("\n").trim()
             val errorMsg = stderr.joinToString("\n").trim()
             val details = listOf(outputMsg, errorMsg).filter { it.isNotBlank() }.joinToString("\n")
-            Log.e(TAG, "Command failed: $command. Exit code: ${result.code}, Output: $details")
+            Log.e(TAG, "Command FAILED (${elapsedMs}ms): $command. Exit code: ${result.code}, Output: ${details.take(500)}")
             if (result.code == 127) {
                 cachedAccPath = null
             }
