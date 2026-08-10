@@ -161,7 +161,10 @@ class OverviewViewModel(
         }
         val status = overviewRepository.loadStatus()
         _uiState.value = status.toUiState(context, daemonBusy = _uiState.value.daemonBusy)
-            .copy(forceStop = _uiState.value.forceStop)
+            .copy(
+                forceStop = _uiState.value.forceStop,
+                showForceStopDialog = _uiState.value.showForceStopDialog
+            )
     }
 
     override fun onCleared() {

@@ -280,7 +280,7 @@ class OverviewViewModelTest {
     }
 
     @Test
-    fun toggleForceStopCharging_reflectsStoppedState() = runTest {
+    fun enableForceStopCharging_reflectsActiveState() = runTest {
         val viewModel = OverviewViewModel(
             context = ApplicationProvider.getApplicationContext(),
             overviewRepository = FakeOverviewRepository(
@@ -311,6 +311,31 @@ class OverviewViewModelTest {
         // Cancel => restored.
         assertEquals(false, viewModel.uiState.value.forceStop.active)
         assertNull(viewModel.uiState.value.forceStop.condition)
+    }
+
+    @Test
+    fun refresh_keepsForceStopDialogOpen() = runTest {
+        val viewModel = OverviewViewModel(
+            context = ApplicationProvider.getApplicationContext(),
+            overviewRepository = FakeOverviewRepository(
+                status = AccStatus(
+                    installState = AccInstallState.UP_TO_DATE,
+                    installedVersionName = "2025.5.18-dev",
+                    daemonRunning = true,
+                    canManageDaemon = true,
+                    showInstallAction = false,
+                    showUninstallAction = true
+                )
+            )
+        )
+
+        viewModel.showForceStopDialog()
+        assertEquals(true, viewModel.uiState.value.showForceStopDialog)
+
+        // A status refresh (e.g. the 3s auto-refresh) must not dismiss the open dialog.
+        viewModel.refresh().join()
+
+        assertEquals(true, viewModel.uiState.value.showForceStopDialog)
     }
 
     @Test
