@@ -39,6 +39,7 @@ fun OverviewRoute(
         onToggleAction = { actionId, enabled ->
             when (actionId) {
                 "toggle_daemon" -> overviewViewModel.toggleDaemon(enabled)
+                "toggle_force_stop" -> overviewViewModel.toggleForceStopCharging(enabled)
             }
         },
         modifier = modifier

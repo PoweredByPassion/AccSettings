@@ -97,6 +97,12 @@ object AccStateManager {
         return result.success
     }
 
+    suspend fun setForceStopCharging(enabled: Boolean): Boolean {
+        val result = bridge().setForceStopCharging(enabled)
+        refreshNow()
+        return result.success
+    }
+
     suspend fun ensureInstalled(): LifecycleActionResult {
         val result = bridge().ensureInstalled()
         refreshNow()
@@ -200,6 +206,14 @@ object AccStateManager {
             uninstallAction = { handler.uninstall() },
             daemonToggleAction = { enabled ->
                 handler.setDaemonRunning(enabled)
+                true
+            },
+            forceStopChargingAction = { enabled ->
+                if (enabled) {
+                    handler.disableCharging()
+                } else {
+                    handler.startDaemon()
+                }
                 true
             },
             reinitializeAction = { handler.reinitialize() },

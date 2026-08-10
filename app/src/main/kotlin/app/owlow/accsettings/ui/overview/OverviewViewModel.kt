@@ -21,6 +21,7 @@ interface OverviewRepository {
     suspend fun loadStatus(): AccStatus?
     suspend fun startService(): AccStatus?
     suspend fun setDaemonRunning(enabled: Boolean): AccStatus?
+    suspend fun setForceStopCharging(enabled: Boolean): AccStatus?
 }
 
 class OverviewViewModel(
@@ -61,6 +62,19 @@ class OverviewViewModel(
                     isLoading = false,
                     daemonBusy = false,
                     warnings = _uiState.value.warnings + (error.localizedMessage ?: "Failed to toggle daemon")
+                )
+            }
+    }
+
+    fun toggleForceStopCharging(enabled: Boolean): Job = viewModelScope.launch {
+        _uiState.value = _uiState.value.copy(daemonBusy = true)
+        runCatching { overviewRepository.setForceStopCharging(enabled) }
+            .onSuccess { status -> _uiState.value = status.toUiState(context).copy(daemonBusy = false) }
+            .onFailure { error ->
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    daemonBusy = false,
+                    warnings = _uiState.value.warnings + (error.localizedMessage ?: "Failed to force stop charging")
                 )
             }
     }
@@ -123,6 +137,11 @@ private object LiveOverviewRepository : OverviewRepository {
         AccStateManager.setDaemonRunning(enabled)
         return AccStateManager.refreshStatus()
     }
+
+    override suspend fun setForceStopCharging(enabled: Boolean): AccStatus? {
+        AccStateManager.setForceStopCharging(enabled)
+        return AccStateManager.refreshStatus()
+    }
 }
 
 private fun AccStatus?.toUiState(context: Context, daemonBusy: Boolean = false): OverviewUiState {
@@ -149,6 +168,10 @@ private fun AccStatus?.toUiState(context: Context, daemonBusy: Boolean = false):
         }
     }
 
+    // A stopped daemon means charging is being force-paused (or the service is off); the
+    // force-stop toggle reflects that the daemon is not running.
+    val forceChargingDisabled = !daemonRunning && canManageDaemon
+
     val facts = buildList {
         add(
             OverviewFact(
@@ -160,6 +183,18 @@ private fun AccStatus?.toUiState(context: Context, daemonBusy: Boolean = false):
                 },
                 actionId = if (canManageDaemon) "toggle_daemon" else null,
                 actionValue = if (canManageDaemon) daemonRunning else null
+            )
+        )
+        add(
+            OverviewFact(
+                label = context.getString(R.string.overview_fact_force_stop),
+                value = if (forceChargingDisabled) {
+                    context.getString(R.string.overview_value_force_stopped)
+                } else {
+                    context.getString(R.string.overview_value_charging)
+                },
+                actionId = if (canManageDaemon) "toggle_force_stop" else null,
+                actionValue = if (canManageDaemon) forceChargingDisabled else null
             )
         )
         add(OverviewFact(context.getString(R.string.overview_fact_install_state), installState.label(context)))

@@ -279,6 +279,37 @@ class OverviewViewModelTest {
     }
 
     @Test
+    fun toggleForceStopCharging_reflectsStoppedState() = runTest {
+        val viewModel = OverviewViewModel(
+            context = ApplicationProvider.getApplicationContext(),
+            overviewRepository = FakeOverviewRepository(
+                status = AccStatus(
+                    installState = AccInstallState.UP_TO_DATE,
+                    installedVersionName = "2025.5.18-dev",
+                    daemonRunning = true,
+                    canManageDaemon = true,
+                    showInstallAction = false,
+                    showUninstallAction = true
+                )
+            )
+        )
+
+        viewModel.refresh().join()
+        // Daemon running => force-stop off.
+        val forceStopFact = viewModel.uiState.value.runtimeFacts
+            .first { it.actionId == "toggle_force_stop" }
+        assertEquals(false, forceStopFact.actionValue)
+
+        viewModel.toggleForceStopCharging(enabled = true).join()
+
+        // Force-stop on => daemon stopped.
+        val afterFact = viewModel.uiState.value.runtimeFacts
+            .first { it.actionId == "toggle_force_stop" }
+        assertEquals(true, afterFact.actionValue)
+        assertEquals(false, viewModel.uiState.value.runtimeFacts.first { it.actionId == "toggle_daemon" }.actionValue)
+    }
+
+    @Test
     fun toggleDaemon_marksDaemonBusyWhileRepositoryCallIsInFlight() = runTest {
         val repository = GatedOverviewRepository(
             status = AccStatus(
@@ -430,6 +461,13 @@ class OverviewViewModelTest {
             }
             return status?.copy(daemonRunning = enabled)
         }
+
+        override suspend fun setForceStopCharging(enabled: Boolean): AccStatus? {
+            if (failDaemonToggle) {
+                throw Command.NotRootException()
+            }
+            return status?.copy(daemonRunning = !enabled)
+        }
     }
 
     private class CountingOverviewRepository : OverviewRepository {
@@ -458,6 +496,8 @@ class OverviewViewModelTest {
         override suspend fun startService(): AccStatus = loadStatus().copy(daemonRunning = true)
 
         override suspend fun setDaemonRunning(enabled: Boolean): AccStatus = loadStatus().copy(daemonRunning = enabled)
+
+        override suspend fun setForceStopCharging(enabled: Boolean): AccStatus = loadStatus().copy(daemonRunning = !enabled)
     }
 
     private class GatedOverviewRepository(
@@ -485,5 +525,8 @@ class OverviewViewModelTest {
             daemonToggleGate.await()
             return status.copy(daemonRunning = enabled)
         }
+
+        override suspend fun setForceStopCharging(enabled: Boolean): AccStatus =
+            status.copy(daemonRunning = !enabled)
     }
 }

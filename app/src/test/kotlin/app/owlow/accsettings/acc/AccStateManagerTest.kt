@@ -175,6 +175,32 @@ class AccStateManagerTest {
         assertEquals(info, AccStateManager.getCurrentStatus()?.chargingInfo)
     }
 
+    @Test
+    fun force_stop_charging_wires_through_bridge() = runBlocking {
+        var forceStopCalls = mutableListOf<Boolean>()
+        var running = true
+        AccStateManager.resetForTesting(
+            bridgeFactory = {
+                testBridge(
+                    version = 202505180,
+                    versionName = "2025.5.18-dev",
+                    daemonRunning = { running },
+                    bundledVersionCode = 202505180,
+                    onForceStopCharging = { enabled ->
+                        forceStopCalls += enabled
+                        running = !enabled
+                        true
+                    }
+                )
+            }
+        )
+
+        AccStateManager.setForceStopCharging(true)
+
+        assertEquals(listOf(true), forceStopCalls)
+        assertFalse(AccStateManager.isDaemonRunning())
+    }
+
     private fun testBridge(
         version: Int = 0,
         versionName: String? = null,
@@ -183,7 +209,8 @@ class AccStateManagerTest {
         onSetDaemonRunning: suspend (Boolean) -> DaemonActionResult = {
             DaemonActionResult(success = true, daemonRunning = it)
         },
-        chargingInfo: ChargingInfo? = null
+        chargingInfo: ChargingInfo? = null,
+        onForceStopCharging: suspend (Boolean) -> Boolean = { it }
     ): AccBridge = AccBridge(
         capabilityProbe = { unsupportedCapability() },
         versionReader = { version to versionName },
@@ -192,7 +219,8 @@ class AccStateManagerTest {
         defaultConfigReader = { java.util.Properties() },
         daemonToggleAction = { enabled -> onSetDaemonRunning(enabled).success },
         bundledVersionCodeProvider = { bundledVersionCode },
-        chargingInfoReader = { chargingInfo }
+        chargingInfoReader = { chargingInfo },
+        forceStopChargingAction = onForceStopCharging
     )
 
     private fun unsupportedCapability(): AccCapability = AccCapability.from(

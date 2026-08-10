@@ -239,6 +239,9 @@
     <string name="overview_headline_running">ACC is running</string>
     <string name="overview_fact_install_state">Install state</string>
     <string name="overview_fact_daemon">Daemon</string>
+    <string name="overview_fact_force_stop">Force stop charging</string>
+    <string name="overview_value_force_stopped">Stopped</string>
+    <string name="overview_value_charging">Charging enabled</string>
     <string name="overview_fact_version">Version</string>
     <string name="overview_install_state_not_installed">not installed</string>
     <string name="overview_install_state_broken">broken install</string>

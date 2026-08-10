@@ -116,6 +116,16 @@ class AccHandler {
     }
 
     @Throws(Command.AccException::class)
+    suspend fun disableCharging() {
+        Command.disableCharging()
+    }
+
+    @Throws(Command.AccException::class)
+    suspend fun startDaemon() {
+        Command.startDaemon()
+    }
+
+    @Throws(Command.AccException::class)
     suspend fun reinitialize() {
         Command.reinitialize()
     }
