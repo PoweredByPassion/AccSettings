@@ -29,6 +29,7 @@ data class AccSettingState(
 
 object AccStateManager {
     private const val TAG = "AccStateManager"
+    private const val APP_PKG = "app.owlow.accsettings"
 
     private val _accStatus = MutableStateFlow<AccStatus?>(null)
     val accStatus: StateFlow<AccStatus?> = _accStatus.asStateFlow()
@@ -337,12 +338,15 @@ object AccStateManager {
     }
 
     private fun logDebug(message: String) {
-        runCatching { Log.d(TAG, message) }
+        runCatching { Log.d(TAG, fmt(message)) }
     }
 
     private fun logError(message: String, throwable: Throwable) {
-        runCatching { Log.e(TAG, message, throwable) }
+        runCatching { Log.e(TAG, fmt(message), throwable) }
     }
+
+    /** Standard `[pkg] tag:` prefix so every line is identifiable in logcat. */
+    private fun fmt(message: String): String = "[$APP_PKG] $TAG: $message"
 
     private data class SystemBatteryInfo(
         val level: String?,
