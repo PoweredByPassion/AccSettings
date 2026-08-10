@@ -91,21 +91,6 @@ object Command {
         }
     }
 
-    /**
-     * Runs a root command without waiting for it to finish. Used for long-running commands such as
-     * `sh -c "acc -d 1h; accd"` whose chained `acc -d` blocks until the recovery condition is met.
-     * The command is submitted to the root shell asynchronously and this returns immediately.
-     */
-    suspend fun execAsync(command: String): Unit = withContext(Dispatchers.IO) {
-        runCatching { Log.v(TAG, "execAsync: $command") }
-        execOverride?.let { it(command); return@withContext }
-        val shell = Shell.getShell()
-        if (!shell.isRoot) {
-            throw NotRootException()
-        }
-        shell.newJob().add(command).submit()
-    }
-
     private suspend fun execAcc(vararg options: String): String {
         val accPath = withContext(Dispatchers.IO) {
             requireAccExecutable { path -> execTest(path) }
@@ -259,11 +244,13 @@ object Command {
             exec("$accPath -d")
         } else {
             // The chained `acc -d <condition>; accd` blocks until the recovery condition is met
-            // (e.g. acc -d 1h sleeps for an hour). Run it asynchronously so the UI never waits.
+            // (e.g. acc -d 1h sleeps for an hour). Run it via `nohup ... &` so it is detached
+            // from the shared libsu root shell — otherwise the blocking command would stall every
+            // subsequent root command (the 3s overview polling) until the condition is met.
             val daemon = withContext(Dispatchers.IO) {
                 findAccDaemon { path -> execTest(path) } ?: accPath
             }
-            execAsync("sh -c \"$accPath -d $condition; $daemon\"")
+            exec("nohup sh -c \"$accPath -d $condition; $daemon\" > /dev/null 2>&1 &")
         }
     }
 

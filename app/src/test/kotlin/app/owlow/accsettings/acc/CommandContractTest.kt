@@ -79,15 +79,15 @@ class CommandContractTest {
     }
 
     @Test
-    fun disableCharging_with_duration_uses_chained_command() = runBlocking {
+    fun disableCharging_with_duration_uses_detached_chained_command() = runBlocking {
         Command.disableCharging("1h")
-        assertEquals(listOf("sh -c \"/dev/acca -d 1h; /dev/accd\""), captured)
+        assertEquals(listOf("nohup sh -c \"/dev/acca -d 1h; /dev/accd\" > /dev/null 2>&1 &"), captured)
     }
 
     @Test
-    fun disableCharging_with_capacity_uses_chained_command() = runBlocking {
+    fun disableCharging_with_capacity_uses_detached_chained_command() = runBlocking {
         Command.disableCharging("50%")
-        assertEquals(listOf("sh -c \"/dev/acca -d 50%; /dev/accd\""), captured)
+        assertEquals(listOf("nohup sh -c \"/dev/acca -d 50%; /dev/accd\" > /dev/null 2>&1 &"), captured)
     }
 
     @Test
