@@ -116,8 +116,8 @@ class AccHandler {
     }
 
     @Throws(Command.AccException::class)
-    suspend fun disableCharging() {
-        Command.disableCharging()
+    suspend fun disableCharging(condition: String? = null) {
+        Command.disableCharging(condition)
     }
 
     @Throws(Command.AccException::class)

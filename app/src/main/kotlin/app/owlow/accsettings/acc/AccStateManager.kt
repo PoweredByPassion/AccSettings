@@ -97,8 +97,8 @@ object AccStateManager {
         return result.success
     }
 
-    suspend fun setForceStopCharging(enabled: Boolean): Boolean {
-        val result = bridge().setForceStopCharging(enabled)
+    suspend fun setForceStopCharging(enabled: Boolean, condition: String? = null): Boolean {
+        val result = bridge().setForceStopCharging(enabled, condition)
         refreshNow()
         return result.success
     }
@@ -208,9 +208,9 @@ object AccStateManager {
                 handler.setDaemonRunning(enabled)
                 true
             },
-            forceStopChargingAction = { enabled ->
+            forceStopChargingAction = { enabled, condition ->
                 if (enabled) {
-                    handler.disableCharging()
+                    handler.disableCharging(condition)
                 } else {
                     handler.startDaemon()
                 }

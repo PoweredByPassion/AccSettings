@@ -34,7 +34,9 @@ class OverviewScreenTest {
                         )
                     ),
                     onAction = { tappedActions += it },
-                    onToggleAction = { _, _ -> }
+                    onToggleAction = { _, _ -> },
+                    onForceStopAction = {},
+                    onForceStopCondition = {}
                 )
             }
         }
@@ -58,7 +60,9 @@ class OverviewScreenTest {
                         statusHeadline = "status"
                     ),
                     onAction = {},
-                    onToggleAction = { _, _ -> }
+                    onToggleAction = { _, _ -> },
+                    onForceStopAction = {},
+                    onForceStopCondition = {}
                 )
             }
         }

@@ -22,7 +22,7 @@ class AccBridge(
     private val repairAction: suspend () -> Unit = {},
     private val uninstallAction: suspend () -> Unit = {},
     private val daemonToggleAction: suspend (Boolean) -> Boolean = { it },
-    private val forceStopChargingAction: suspend (Boolean) -> Boolean = { it },
+    private val forceStopChargingAction: suspend (Boolean, String?) -> Boolean = { _, _ -> false },
     private val reinitializeAction: suspend () -> Unit = {},
     private val lifecycleCapabilityRefresh: suspend () -> AccCapability = {
         capabilityProbe()
@@ -185,8 +185,8 @@ class AccBridge(
         DaemonActionResult(success = success, daemonRunning = if (success) daemonRunning else daemonReader())
     }
 
-    suspend fun setForceStopCharging(enabled: Boolean): DaemonActionResult = taskRunner.runSerialized {
-        val success = forceStopChargingAction(enabled)
+    suspend fun setForceStopCharging(enabled: Boolean, condition: String?): DaemonActionResult = taskRunner.runSerialized {
+        val success = forceStopChargingAction(enabled, condition)
         DaemonActionResult(success = success, daemonRunning = if (success) !enabled else daemonReader())
     }
 }

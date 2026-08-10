@@ -27,6 +27,8 @@ fun OverviewScreen(
     uiState: OverviewUiState,
     onAction: (String) -> Unit,
     onToggleAction: (String, Boolean) -> Unit,
+    onForceStopAction: (ForceStopAction) -> Unit,
+    onForceStopCondition: (String?) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
@@ -73,6 +75,25 @@ fun OverviewScreen(
                 colors = colors,
                 onToggleAction = onToggleAction
             )
+        }
+
+        item {
+            ForceStopChargingCard(
+                forceStop = uiState.forceStop,
+                daemonBusy = uiState.daemonBusy,
+                colors = colors,
+                onAction = onForceStopAction
+            )
+        }
+
+        if (uiState.showForceStopDialog) {
+            item {
+                ForceStopConditionDialog(
+                    colors = colors,
+                    onDismiss = { onForceStopAction(ForceStopAction.DISMISS_DIALOG) },
+                    onCondition = onForceStopCondition
+                )
+            }
         }
 
         if (uiState.chargingFacts.isNotEmpty()) {
@@ -221,6 +242,149 @@ private fun FactRow(
             thickness = 1.dp
         )
     }
+}
+
+/**
+ * Force-stop-charging card. When inactive it shows a switch that opens the condition dialog;
+ * when active it shows a status card with the recovery target and a cancel button.
+ */
+@Composable
+private fun ForceStopChargingCard(
+    forceStop: ForceStopUiState,
+    daemonBusy: Boolean,
+    colors: ColorScheme,
+    onAction: (ForceStopAction) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .background(colors.surface)
+            .padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        if (!forceStop.active) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = stringResource(R.string.overview_fact_force_stop),
+                        style = AccTypography.labelMedium,
+                        color = colors.onSurfaceVariant,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        text = stringResource(R.string.overview_force_stop_hint),
+                        style = AccTypography.bodySmall,
+                        color = colors.onSurfaceVariant
+                    )
+                }
+                if (daemonBusy) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 2.dp,
+                        color = colors.primary
+                    )
+                } else {
+                    Switch(
+                        checked = false,
+                        onCheckedChange = { onAction(ForceStopAction.REQUEST_ENABLE) },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = colors.onPrimary,
+                            checkedTrackColor = colors.primary,
+                            uncheckedThumbColor = colors.onSurfaceVariant,
+                            uncheckedTrackColor = colors.surfaceVariant,
+                            uncheckedBorderColor = Color.Transparent
+                        ),
+                        modifier = Modifier.scale(0.8f)
+                    )
+                }
+            }
+        } else {
+            Text(
+                text = stringResource(R.string.overview_force_stop_active),
+                style = AccTypography.titleMedium,
+                color = colors.onSurface,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = forceStopRecoveryLabel(forceStop),
+                style = AccTypography.bodyMedium,
+                color = colors.onSurfaceVariant
+            )
+            Button(
+                onClick = { onAction(ForceStopAction.CANCEL) },
+                enabled = !daemonBusy,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = colors.secondaryContainer,
+                    contentColor = colors.onSecondaryContainer
+                )
+            ) {
+                Text(stringResource(R.string.overview_force_stop_cancel))
+            }
+        }
+    }
+}
+
+@Composable
+private fun forceStopRecoveryLabel(forceStop: ForceStopUiState): String {
+    val target = when (forceStop.condition) {
+        "30m" -> R.string.overview_force_stop_recover_30m
+        "1h" -> R.string.overview_force_stop_recover_1h
+        "2h" -> R.string.overview_force_stop_recover_2h
+        "50%" -> R.string.overview_force_stop_recover_50
+        "60%" -> R.string.overview_force_stop_recover_60
+        "70%" -> R.string.overview_force_stop_recover_70
+        else -> R.string.overview_force_stop_recover_manual
+    }
+    return stringResource(target)
+}
+
+/** Dialog asking which recovery condition to use when enabling force-stop charging. */
+@Composable
+private fun ForceStopConditionDialog(
+    colors: ColorScheme,
+    onDismiss: () -> Unit,
+    onCondition: (String?) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = colors.surface,
+        titleContentColor = colors.onSurface,
+        textContentColor = colors.onSurfaceVariant,
+        title = { Text(stringResource(R.string.overview_force_stop_dialog_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                listOf(
+                    null to R.string.overview_force_stop_cond_none,
+                    "30m" to R.string.overview_force_stop_cond_30m,
+                    "1h" to R.string.overview_force_stop_cond_1h,
+                    "2h" to R.string.overview_force_stop_cond_2h,
+                    "50%" to R.string.overview_force_stop_cond_50,
+                    "60%" to R.string.overview_force_stop_cond_60,
+                    "70%" to R.string.overview_force_stop_cond_70
+                ).forEach { (condition, labelRes) ->
+                    TextButton(
+                        onClick = { onCondition(condition) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = stringResource(labelRes),
+                            modifier = Modifier.fillMaxWidth(),
+                            color = colors.onSurface
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {}
+    )
 }
 
 @Composable

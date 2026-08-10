@@ -13,6 +13,7 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -295,18 +296,21 @@ class OverviewViewModelTest {
         )
 
         viewModel.refresh().join()
-        // Daemon running => force-stop off.
-        val forceStopFact = viewModel.uiState.value.runtimeFacts
-            .first { it.actionId == "toggle_force_stop" }
-        assertEquals(false, forceStopFact.actionValue)
+        // Daemon running => force-stop not active.
+        assertEquals(false, viewModel.uiState.value.forceStop.active)
 
-        viewModel.toggleForceStopCharging(enabled = true).join()
+        viewModel.enableForceStopCharging(condition = "1h").join()
 
-        // Force-stop on => daemon stopped.
-        val afterFact = viewModel.uiState.value.runtimeFacts
-            .first { it.actionId == "toggle_force_stop" }
-        assertEquals(true, afterFact.actionValue)
+        // Force-stop on => active with the recovery condition.
+        assertEquals(true, viewModel.uiState.value.forceStop.active)
+        assertEquals("1h", viewModel.uiState.value.forceStop.condition)
         assertEquals(false, viewModel.uiState.value.runtimeFacts.first { it.actionId == "toggle_daemon" }.actionValue)
+
+        viewModel.cancelForceStopCharging().join()
+
+        // Cancel => restored.
+        assertEquals(false, viewModel.uiState.value.forceStop.active)
+        assertNull(viewModel.uiState.value.forceStop.condition)
     }
 
     @Test
@@ -462,7 +466,7 @@ class OverviewViewModelTest {
             return status?.copy(daemonRunning = enabled)
         }
 
-        override suspend fun setForceStopCharging(enabled: Boolean): AccStatus? {
+        override suspend fun setForceStopCharging(enabled: Boolean, condition: String?): AccStatus? {
             if (failDaemonToggle) {
                 throw Command.NotRootException()
             }
@@ -497,7 +501,7 @@ class OverviewViewModelTest {
 
         override suspend fun setDaemonRunning(enabled: Boolean): AccStatus = loadStatus().copy(daemonRunning = enabled)
 
-        override suspend fun setForceStopCharging(enabled: Boolean): AccStatus = loadStatus().copy(daemonRunning = !enabled)
+        override suspend fun setForceStopCharging(enabled: Boolean, condition: String?): AccStatus = loadStatus().copy(daemonRunning = !enabled)
     }
 
     private class GatedOverviewRepository(
@@ -526,7 +530,7 @@ class OverviewViewModelTest {
             return status.copy(daemonRunning = enabled)
         }
 
-        override suspend fun setForceStopCharging(enabled: Boolean): AccStatus =
+        override suspend fun setForceStopCharging(enabled: Boolean, condition: String?): AccStatus =
             status.copy(daemonRunning = !enabled)
     }
 }

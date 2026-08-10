@@ -8,6 +8,8 @@ import app.owlow.accsettings.R
 import app.owlow.accsettings.acc.AccInstallState
 import app.owlow.accsettings.acc.AccStateManager
 import app.owlow.accsettings.acc.AccStatus
+import app.owlow.accsettings.data.ForceStopChargingStore
+import app.owlow.accsettings.data.ForceStopState
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -21,17 +23,33 @@ interface OverviewRepository {
     suspend fun loadStatus(): AccStatus?
     suspend fun startService(): AccStatus?
     suspend fun setDaemonRunning(enabled: Boolean): AccStatus?
-    suspend fun setForceStopCharging(enabled: Boolean): AccStatus?
+    suspend fun setForceStopCharging(enabled: Boolean, condition: String?): AccStatus?
 }
 
 class OverviewViewModel(
     private val context: Context,
-    private val overviewRepository: OverviewRepository
+    private val overviewRepository: OverviewRepository,
+    private val forceStopStore: ForceStopChargingStore = ForceStopChargingStore.from(context)
 ) : ViewModel() {
     private var autoRefreshJob: Job? = null
 
     private val _uiState = MutableStateFlow(OverviewUiState())
     val uiState: StateFlow<OverviewUiState> = _uiState.asStateFlow()
+
+    init {
+        // Restore the persisted force-stop state so the UI shows the correct toggle/card after
+        // a process restart.
+        val persisted = forceStopStore.load()
+        if (persisted.active) {
+            _uiState.value = _uiState.value.copy(
+                forceStop = ForceStopUiState(
+                    active = true,
+                    condition = persisted.condition,
+                    startedAt = persisted.startedAt
+                )
+            )
+        }
+    }
 
     fun refresh(): Job = viewModelScope.launch {
         reloadStatus(showLoading = true)
@@ -42,7 +60,7 @@ class OverviewViewModel(
         // A focused `daemonBusy` flag gives the daemon control busy feedback while the root command runs.
         _uiState.value = _uiState.value.copy(daemonBusy = true)
         runCatching { overviewRepository.startService() }
-            .onSuccess { status -> _uiState.value = status.toUiState(context).copy(daemonBusy = false) }
+            .onSuccess { status -> _uiState.value = status.toUiState(context).copy(daemonBusy = false, forceStop = _uiState.value.forceStop) }
             .onFailure { error ->
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
@@ -56,7 +74,7 @@ class OverviewViewModel(
         // NOTE: no full-screen spinner on daemon toggle; keep the UI interactive while ACC reacts.
         _uiState.value = _uiState.value.copy(daemonBusy = true)
         runCatching { overviewRepository.setDaemonRunning(enabled) }
-            .onSuccess { status -> _uiState.value = status.toUiState(context).copy(daemonBusy = false) }
+            .onSuccess { status -> _uiState.value = status.toUiState(context).copy(daemonBusy = false, forceStop = _uiState.value.forceStop) }
             .onFailure { error ->
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
@@ -66,15 +84,55 @@ class OverviewViewModel(
             }
     }
 
-    fun toggleForceStopCharging(enabled: Boolean): Job = viewModelScope.launch {
-        _uiState.value = _uiState.value.copy(daemonBusy = true)
-        runCatching { overviewRepository.setForceStopCharging(enabled) }
-            .onSuccess { status -> _uiState.value = status.toUiState(context).copy(daemonBusy = false) }
+    fun showForceStopDialog() {
+        _uiState.value = _uiState.value.copy(showForceStopDialog = true)
+    }
+
+    fun dismissForceStopDialog() {
+        _uiState.value = _uiState.value.copy(showForceStopDialog = false)
+    }
+
+    /** Enables force-stop charging with the chosen recovery [condition] (ACC arg or null). */
+    fun enableForceStopCharging(condition: String?): Job = viewModelScope.launch {
+        _uiState.value = _uiState.value.copy(daemonBusy = true, showForceStopDialog = false)
+        runCatching { overviewRepository.setForceStopCharging(true, condition) }
+            .onSuccess { status ->
+                val forceStop = ForceStopUiState(
+                    active = true,
+                    condition = condition,
+                    startedAt = System.currentTimeMillis()
+                )
+                forceStopStore.save(
+                    ForceStopState(
+                        active = true,
+                        condition = condition,
+                        startedAt = forceStop.startedAt
+                    )
+                )
+                _uiState.value = status.toUiState(context).copy(daemonBusy = false, forceStop = forceStop)
+            }
             .onFailure { error ->
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     daemonBusy = false,
                     warnings = _uiState.value.warnings + (error.localizedMessage ?: "Failed to force stop charging")
+                )
+            }
+    }
+
+    /** Cancels force-stop charging and restores the regular settings. */
+    fun cancelForceStopCharging(): Job = viewModelScope.launch {
+        _uiState.value = _uiState.value.copy(daemonBusy = true)
+        runCatching { overviewRepository.setForceStopCharging(false, null) }
+            .onSuccess { status ->
+                forceStopStore.clear()
+                _uiState.value = status.toUiState(context).copy(daemonBusy = false, forceStop = ForceStopUiState())
+            }
+            .onFailure { error ->
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    daemonBusy = false,
+                    warnings = _uiState.value.warnings + (error.localizedMessage ?: "Failed to restore charging")
                 )
             }
     }
@@ -103,6 +161,7 @@ class OverviewViewModel(
         }
         val status = overviewRepository.loadStatus()
         _uiState.value = status.toUiState(context, daemonBusy = _uiState.value.daemonBusy)
+            .copy(forceStop = _uiState.value.forceStop)
     }
 
     override fun onCleared() {
@@ -119,7 +178,11 @@ class OverviewViewModel(
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return OverviewViewModel(context.applicationContext, overviewRepository) as T
+                return OverviewViewModel(
+                    context.applicationContext,
+                    overviewRepository,
+                    ForceStopChargingStore.from(context.applicationContext)
+                ) as T
             }
         }
     }
@@ -138,8 +201,8 @@ private object LiveOverviewRepository : OverviewRepository {
         return AccStateManager.refreshStatus()
     }
 
-    override suspend fun setForceStopCharging(enabled: Boolean): AccStatus? {
-        AccStateManager.setForceStopCharging(enabled)
+    override suspend fun setForceStopCharging(enabled: Boolean, condition: String?): AccStatus? {
+        AccStateManager.setForceStopCharging(enabled, condition)
         return AccStateManager.refreshStatus()
     }
 }
@@ -168,10 +231,6 @@ private fun AccStatus?.toUiState(context: Context, daemonBusy: Boolean = false):
         }
     }
 
-    // A stopped daemon means charging is being force-paused (or the service is off); the
-    // force-stop toggle reflects that the daemon is not running.
-    val forceChargingDisabled = !daemonRunning && canManageDaemon
-
     val facts = buildList {
         add(
             OverviewFact(
@@ -183,18 +242,6 @@ private fun AccStatus?.toUiState(context: Context, daemonBusy: Boolean = false):
                 },
                 actionId = if (canManageDaemon) "toggle_daemon" else null,
                 actionValue = if (canManageDaemon) daemonRunning else null
-            )
-        )
-        add(
-            OverviewFact(
-                label = context.getString(R.string.overview_fact_force_stop),
-                value = if (forceChargingDisabled) {
-                    context.getString(R.string.overview_value_force_stopped)
-                } else {
-                    context.getString(R.string.overview_value_charging)
-                },
-                actionId = if (canManageDaemon) "toggle_force_stop" else null,
-                actionValue = if (canManageDaemon) forceChargingDisabled else null
             )
         )
         add(OverviewFact(context.getString(R.string.overview_fact_install_state), installState.label(context)))

@@ -186,7 +186,7 @@ class AccStateManagerTest {
                     versionName = "2025.5.18-dev",
                     daemonRunning = { running },
                     bundledVersionCode = 202505180,
-                    onForceStopCharging = { enabled ->
+                    onForceStopCharging = { enabled, _ ->
                         forceStopCalls += enabled
                         running = !enabled
                         true
@@ -210,7 +210,7 @@ class AccStateManagerTest {
             DaemonActionResult(success = true, daemonRunning = it)
         },
         chargingInfo: ChargingInfo? = null,
-        onForceStopCharging: suspend (Boolean) -> Boolean = { it }
+        onForceStopCharging: suspend (Boolean, String?) -> Boolean = { it, _ -> it }
     ): AccBridge = AccBridge(
         capabilityProbe = { unsupportedCapability() },
         versionReader = { version to versionName },
