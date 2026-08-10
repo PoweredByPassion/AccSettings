@@ -79,6 +79,18 @@ class CommandContractTest {
     }
 
     @Test
+    fun disableCharging_with_duration_uses_chained_command() = runBlocking {
+        Command.disableCharging("1h")
+        assertEquals(listOf("sh -c \"/dev/acca -d 1h; /dev/accd\""), captured)
+    }
+
+    @Test
+    fun disableCharging_with_capacity_uses_chained_command() = runBlocking {
+        Command.disableCharging("50%")
+        assertEquals(listOf("sh -c \"/dev/acca -d 50%; /dev/accd\""), captured)
+    }
+
+    @Test
     fun startDaemon_uses_accd_command() = runBlocking {
         Command.startDaemon()
         assertEquals(listOf("/dev/accd"), captured)

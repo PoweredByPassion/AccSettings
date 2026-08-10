@@ -227,14 +227,27 @@ object Command {
     suspend fun restartDaemon() = setDaemon("restart")
 
     /**
-     * Force-disables charging on demand via `acc -d`. This stops accd and pauses charging;
-     * restore the regular settings with [startDaemon].
+     * Force-disables charging on demand via `acc -d`.
+     *
+     * @param condition Optional recovery condition, passed straight through to ACC:
+     *   - `null` → unconditional (`acc -d`), restore with [startDaemon]
+     *   - a duration (`"30m"`, `"1h"`) or capacity threshold (`"50%"`) → runs ACC's
+     *     recommended chained form `acc -d <condition>; accd`, so when the condition is met
+     *     ACC re-enables charging AND restarts the daemon (regular settings return) —
+     *     all automatically, no app-side timer needed.
      */
-    suspend fun disableCharging() {
+    suspend fun disableCharging(condition: String? = null) {
         val accPath = withContext(Dispatchers.IO) {
             requireAccExecutable { path -> execTest(path) }
         }
-        exec("$accPath -d")
+        if (condition == null) {
+            exec("$accPath -d")
+        } else {
+            val daemon = withContext(Dispatchers.IO) {
+                findAccDaemon { path -> execTest(path) } ?: accPath
+            }
+            exec("sh -c \"$accPath -d $condition; $daemon\"")
+        }
     }
 
     /**
