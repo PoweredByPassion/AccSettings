@@ -15,6 +15,7 @@ data class ChargingInfo(
     val voltage: String? = null,
     val power: String? = null,
     val chargeType: String? = null,
+    val powerConnected: Boolean? = null,
     val protocol: String? = null,
     val realProtocol: String? = null,
     val pdActive: Boolean? = null,

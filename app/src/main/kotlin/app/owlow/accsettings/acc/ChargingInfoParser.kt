@@ -22,6 +22,7 @@ object ChargingInfoParser {
         var voltage: String? = null
         var power: String? = null
         var chargeType: String? = null
+        var powerConnected: Boolean? = null
         raw.lineSequence().forEach { line ->
             val trimmed = line.trim()
             if (trimmed.isBlank()) return@forEach
@@ -37,12 +38,15 @@ object ChargingInfoParser {
                 "voltage_now" -> voltage = normalizeVolts(value)
                 "power_now" -> power = normalizeWatts(value)
                 "charge_type" -> chargeType = value
+                "dc/online", "pc_port/online", "usb/online" ->
+                    if (value == "1") powerConnected = true
             }
         }
         return ChargingInfo(
             level = level, status = status, temp = temp,
             current = current, voltage = voltage, power = power,
-            chargeType = chargeType
+            chargeType = chargeType,
+            powerConnected = powerConnected
         )
     }
 

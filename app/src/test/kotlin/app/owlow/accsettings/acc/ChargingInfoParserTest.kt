@@ -30,6 +30,23 @@ class ChargingInfoParserTest {
         assertEquals("3810", info.voltage)      // mV
         assertEquals("80000", info.power)       // µW
         assertEquals("pc_port", info.chargeType)
+        assertEquals(true, info.powerConnected) // pc_port/online 1
+    }
+
+    @Test
+    fun power_connected_is_false_when_all_offline() {
+        val info = ChargingInfoParser.parseAccInfo(
+            "dc/online 0\npc_port/online 0\nusb/online 0\n"
+        )
+        assertEquals(null, info.powerConnected)
+    }
+
+    @Test
+    fun power_connected_is_true_when_any_online() {
+        val info = ChargingInfoParser.parseAccInfo(
+            "dc/online 0\npc_port/online 0\nusb/online 1\n"
+        )
+        assertEquals(true, info.powerConnected)
     }
 
     @Test

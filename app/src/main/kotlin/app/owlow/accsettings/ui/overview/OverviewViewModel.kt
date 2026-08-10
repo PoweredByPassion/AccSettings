@@ -298,31 +298,35 @@ private fun AccStatus?.toUiState(context: Context, daemonBusy: Boolean = false):
             info.power?.formatBatteryPower()?.let {
                 add(OverviewFact(context.getString(R.string.battery_power), it))
             }
-            info.chargeType?.let { type ->
-                add(OverviewFact(context.getString(R.string.battery_charge_type), formatChargeType(type, context)))
-            }
-            info.protocol?.let {
-                add(OverviewFact(context.getString(R.string.battery_protocol), it))
-            }
-            info.pdActive?.let { active ->
-                add(
-                    OverviewFact(
-                        context.getString(R.string.battery_pd_active),
-                        context.getString(if (active) R.string.battery_yes else R.string.battery_no)
+            // Handshake fields and the charge type are only meaningful while a power source is
+            // connected; when unplugged the USB driver keeps stale values, so hide them.
+            if (info.powerConnected == true) {
+                info.chargeType?.let { type ->
+                    add(OverviewFact(context.getString(R.string.battery_charge_type), formatChargeType(type, context)))
+                }
+                info.protocol?.let {
+                    add(OverviewFact(context.getString(R.string.battery_protocol), it))
+                }
+                info.pdActive?.let { active ->
+                    add(
+                        OverviewFact(
+                            context.getString(R.string.battery_pd_active),
+                            context.getString(if (active) R.string.battery_yes else R.string.battery_no)
+                        )
                     )
-                )
-            }
-            info.negotiatedCurrent?.let {
-                add(OverviewFact(context.getString(R.string.battery_negotiated_current), "$it mA"))
-            }
-            info.negotiatedVoltage?.let {
-                add(OverviewFact(context.getString(R.string.battery_negotiated_voltage), "$it mV"))
-            }
-            info.negotiatedPower?.let {
-                add(OverviewFact(context.getString(R.string.battery_negotiated_power), it))
-            }
-            info.ccMode?.let {
-                add(OverviewFact(context.getString(R.string.battery_cc_mode), it))
+                }
+                info.negotiatedCurrent?.let {
+                    add(OverviewFact(context.getString(R.string.battery_negotiated_current), "$it mA"))
+                }
+                info.negotiatedVoltage?.let {
+                    add(OverviewFact(context.getString(R.string.battery_negotiated_voltage), "$it mV"))
+                }
+                info.negotiatedPower?.let {
+                    add(OverviewFact(context.getString(R.string.battery_negotiated_power), it))
+                }
+                info.ccMode?.let {
+                    add(OverviewFact(context.getString(R.string.battery_cc_mode), it))
+                }
             }
         }
     } ?: emptyList()

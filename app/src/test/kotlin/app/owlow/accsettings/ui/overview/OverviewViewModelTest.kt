@@ -189,7 +189,7 @@ class OverviewViewModelTest {
                     chargingInfo = ChargingInfo(
                         level = "34", status = "Charging", temp = "340",
                         current = "20000", voltage = "3810", power = "80000",
-                        chargeType = "pc_port",
+                        chargeType = "pc_port", powerConnected = true,
                         protocol = "USB_PD", realProtocol = "USB", pdActive = false,
                         negotiatedCurrent = "500", negotiatedVoltage = "5000",
                         negotiatedPower = "2.5 W", ccMode = "0"
@@ -205,6 +205,39 @@ class OverviewViewModelTest {
         assertTrue(rows.any { it.label == "Protocol" && it.value == "USB_PD" })
         assertTrue(rows.any { it.label == "PD negotiation" && it.value == "No" })
         assertTrue(rows.any { it.label == "Negotiated power" && it.value == "2.5 W" })
+    }
+
+    @Test
+    fun refresh_hidesHandshakeRows_whenNoPowerConnected() = runTest {
+        val viewModel = OverviewViewModel(
+            context = ApplicationProvider.getApplicationContext(),
+            overviewRepository = FakeOverviewRepository(
+                status = AccStatus(
+                    installState = AccInstallState.UP_TO_DATE,
+                    installedVersionName = "2025.5.18-dev",
+                    daemonRunning = true,
+                    canManageDaemon = true,
+                    showInstallAction = false,
+                    showUninstallAction = true,
+                    chargingInfo = ChargingInfo(
+                        level = "70", status = "Discharging", temp = "360",
+                        current = "-590000", voltage = "3980", power = "-2350000",
+                        chargeType = "pc_port", powerConnected = null,
+                        protocol = "USB_PD", negotiatedPower = "2.5 W"
+                    )
+                )
+            )
+        )
+
+        viewModel.refresh().join()
+
+        val rows = viewModel.uiState.value.chargingFacts
+        // Base discharge fields remain.
+        assertTrue(rows.any { it.label == "Level" })
+        // Handshake + charge type hidden when unplugged.
+        assertTrue(rows.none { it.label == "Charge type" })
+        assertTrue(rows.none { it.label == "Protocol" })
+        assertTrue(rows.none { it.label == "Negotiated power" })
     }
 
     @Test
