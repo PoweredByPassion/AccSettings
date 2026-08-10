@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-08-10
+
+**New**
+
+- **Charging Information section**: the home screen now reads live charging data from ACC (`acc --info`) instead of the Android system API, so it reflects the same root-side values AccSetting manages. When ACC/root is unavailable it falls back to the system battery API. Refresh interval dropped from 15s to 3s.
+- **Fast-charging handshake details**: new rows show the negotiated USB protocol (`usb/type`, e.g. USB_PD), PD negotiation state, negotiated voltage/current and computed power (`voltage_max × current_max`), and CC mode — read from sysfs under `/sys/class/power_supply/` with automatic port discovery (`usb` / `main`).
+- **Friendly charge-type labels**: `pc_port`/`usb`/`dc` are localized (e.g. "PC port", "USB", "Wireless") instead of shown raw.
+- Section title renamed from "Battery Information" to "Charging Information" (en + zh).
+
+**Fixes**
+
+- **Config writes are now atomic**: the five capacity fields (sc/cc/rc/pc/cm) are merged into a single `acc --set sc=.. cc=.. rc=.. pc=.. cm=..` command instead of five separate writes, so ACC's `write-config.sh` linkage fallback can no longer rewrite intermediate states and cause frontend/backend config divergence (the "config changed on device" error).
+- English-only code comments (all Chinese comments translated).
+
 ## 2026-08-04
 
 **New**
