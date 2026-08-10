@@ -226,6 +226,30 @@ object Command {
 
     suspend fun restartDaemon() = setDaemon("restart")
 
+    /**
+     * Force-disables charging on demand via `acc -d`. This stops accd and pauses charging;
+     * restore the regular settings with [startDaemon].
+     */
+    suspend fun disableCharging() {
+        val accPath = withContext(Dispatchers.IO) {
+            requireAccExecutable { path -> execTest(path) }
+        }
+        exec("$accPath -d")
+    }
+
+    /**
+     * Starts/restarts the ACC daemon via the `accd` command, which is ACC's documented way to
+     * restore the regular pause/resume charging settings after a forced disable.
+     */
+    suspend fun startDaemon() {
+        val daemonPath = withContext(Dispatchers.IO) {
+            findAccDaemon { path -> execTest(path) }
+                ?: findAccExecutable { path -> execTest(path) }
+                ?: throw NotInstalledException()
+        }
+        exec(daemonPath)
+    }
+
     suspend fun reinitialize() = exec(withContext(Dispatchers.IO) {
         buildReinitializeCommand { path -> execTest(path) }
     })

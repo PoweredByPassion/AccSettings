@@ -29,7 +29,7 @@ class CommandContractTest {
         // without calling execTest() (which would hit the real Shell). The cache-revalidation
         // step re-checks pathExists on every call, so the path check is stubbed to keep the
         // whole resolution path off the Shell.
-        val pathExists = { path: String -> path == "/dev/acca" }
+        val pathExists = { path: String -> path == "/dev/acca" || path == "/dev/accd" }
         Command.execTestOverride = pathExists
         Command.findAccExecutable(pathExists)
         Command.execOverride = { cmd ->
@@ -70,6 +70,18 @@ class CommandContractTest {
     fun isDaemonRunning_uses_daemon() = runBlocking {
         Command.isDaemonRunning()
         assertEquals(listOf("/dev/acca --daemon"), captured)
+    }
+
+    @Test
+    fun disableCharging_uses_dash_d() = runBlocking {
+        Command.disableCharging()
+        assertEquals(listOf("/dev/acca -d"), captured)
+    }
+
+    @Test
+    fun startDaemon_uses_accd_command() = runBlocking {
+        Command.startDaemon()
+        assertEquals(listOf("/dev/accd"), captured)
     }
 
     @Test
