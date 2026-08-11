@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-08-11
+
+**New**
+
+- **Force-stop charging now shows a live countdown**: while charging is paused, the Overview card shows the remaining time (e.g. "Charging resumes in 23m 41s") for duration-based recovery conditions instead of a static label.
+
+**Fixes**
+
+- **Force-stop charging state now reconciles with the real ACC state**: the card no longer stays stuck on "Charging resumes in 30 minutes" after ACC has already restored charging. On every status refresh the app derives the true device state from ACC's charging status/level — a duration condition that has elapsed, a capacity threshold that has been reached, or the battery reporting `Charging` again all clear the card automatically. This covers all three recovery condition types (duration, capacity, unconditional).
+- **Reboot no longer leaves a stale force-stop card**: a force-stop started before the last boot is detected (via `SystemClock.elapsedRealtime()`) and cleared immediately, since ACC's detached timer and the sysfs charging switch both die on reboot and ACC's boot service restarts the daemon with the normal config.
+
 ## 2026-08-10
 
 **New**
