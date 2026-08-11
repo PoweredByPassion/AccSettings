@@ -304,6 +304,7 @@ private fun ForceStopChargingCard(
                 }
             }
         } else {
+            val now = System.currentTimeMillis()
             Text(
                 text = stringResource(R.string.overview_force_stop_active),
                 style = AccTypography.titleMedium,
@@ -311,7 +312,7 @@ private fun ForceStopChargingCard(
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                text = forceStopRecoveryLabel(forceStop),
+                text = forceStopRecoveryLabel(forceStop, now),
                 style = AccTypography.bodyMedium,
                 color = colors.onSurfaceVariant
             )
@@ -332,7 +333,24 @@ private fun ForceStopChargingCard(
 }
 
 @Composable
-private fun forceStopRecoveryLabel(forceStop: ForceStopUiState): String {
+private fun forceStopRecoveryLabel(forceStop: ForceStopUiState, now: Long): String {
+    // Duration conditions show a live remaining-time countdown; capacity/manual conditions and
+    // an unknown start time fall back to the static recovery description.
+    val remainingSeconds = when (forceStop.condition) {
+        "30m" -> 30 * 60L
+        "1h" -> 60 * 60L
+        "2h" -> 2 * 60 * 60L
+        else -> null
+    }?.let { total ->
+        val startedAt = forceStop.startedAt ?: return@let null
+        (total - (now - startedAt) / 1000L).coerceAtLeast(0L)
+    }
+    if (remainingSeconds != null) {
+        return stringResource(
+            R.string.overview_force_stop_remaining,
+            formatRemainingTime(remainingSeconds)
+        )
+    }
     val target = when (forceStop.condition) {
         "30m" -> R.string.overview_force_stop_recover_30m
         "1h" -> R.string.overview_force_stop_recover_1h
@@ -343,6 +361,18 @@ private fun forceStopRecoveryLabel(forceStop: ForceStopUiState): String {
         else -> R.string.overview_force_stop_recover_manual
     }
     return stringResource(target)
+}
+
+/** Formats a remaining countdown as `Hh Mm Ss`, `Mm Ss`, or `Ss`. */
+private fun formatRemainingTime(remainingSeconds: Long): String {
+    val hours = remainingSeconds / 3600
+    val minutes = (remainingSeconds % 3600) / 60
+    val seconds = remainingSeconds % 60
+    return when {
+        hours > 0 -> "%dh %dm %ds".format(hours, minutes, seconds)
+        minutes > 0 -> "%dm %ds".format(minutes, seconds)
+        else -> "%ds".format(seconds)
+    }
 }
 
 /** Dialog asking which recovery condition to use when enabling force-stop charging. */

@@ -244,6 +244,7 @@
     <string name="overview_value_charging">Charging enabled</string>
     <string name="overview_force_stop_hint">Pause charging regardless of settings</string>
     <string name="overview_force_stop_active">Charging stopped</string>
+    <string name="overview_force_stop_remaining">Charging resumes in %1$s</string>
     <string name="overview_force_stop_cancel">Cancel and restore</string>
     <string name="overview_force_stop_recover_30m">Charging resumes in 30 minutes</string>
     <string name="overview_force_stop_recover_1h">Charging resumes in 1 hour</string>

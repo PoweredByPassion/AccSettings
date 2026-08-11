@@ -1,10 +1,13 @@
 package app.owlow.accsettings.ui.overview
 
+import android.content.Context
 import app.owlow.accsettings.MainDispatcherRule
 import app.owlow.accsettings.acc.AccInstallState
 import app.owlow.accsettings.acc.AccStatus
 import app.owlow.accsettings.acc.ChargingInfo
 import app.owlow.accsettings.acc.Command
+import app.owlow.accsettings.data.ForceStopChargingStore
+import app.owlow.accsettings.data.ForceStopState
 import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -369,6 +372,251 @@ class OverviewViewModelTest {
         viewModel.refresh().join()
 
         assertEquals(true, viewModel.uiState.value.showForceStopDialog)
+    }
+
+    @Test
+    fun refresh_recomputesElapsedWhileForceStopActive() = runTest {
+        val startedAt = System.currentTimeMillis() - 5_000L
+        val viewModel = OverviewViewModel(
+            context = ApplicationProvider.getApplicationContext(),
+            overviewRepository = FakeOverviewRepository(
+                status = AccStatus(
+                    installState = AccInstallState.UP_TO_DATE,
+                    installedVersionName = "2025.5.18-dev",
+                    daemonRunning = true,
+                    canManageDaemon = true,
+                    showInstallAction = false,
+                    showUninstallAction = true,
+                    chargingInfo = ChargingInfo(
+                        level = "40", status = "not_charging", temp = null,
+                        current = null, voltage = null, power = null
+                    )
+                )
+            ),
+            forceStopStore = prefsStore(
+                ForceStopState(active = true, condition = "30m", startedAt = startedAt)
+            ),
+            bootTimestampMs = { 0L }
+        )
+
+        viewModel.refresh().join()
+
+        val forceStop = viewModel.uiState.value.forceStop
+        assertTrue(forceStop.active)
+        assertEquals("30m", forceStop.condition)
+        // Elapsed is recomputed from the wall clock (>= 5s).
+        assertTrue(forceStop.elapsedSeconds >= 5L)
+    }
+
+    @Test
+    fun refresh_clearsForceStop_whenDurationExpired() = runTest {
+        // Force-stop started 31 minutes ago, well past the 30m recovery condition.
+        val startedAt = System.currentTimeMillis() - (31 * 60 * 1000L)
+        val viewModel = OverviewViewModel(
+            context = ApplicationProvider.getApplicationContext(),
+            overviewRepository = FakeOverviewRepository(
+                status = AccStatus(
+                    installState = AccInstallState.UP_TO_DATE,
+                    installedVersionName = "2025.5.18-dev",
+                    daemonRunning = true,
+                    canManageDaemon = true,
+                    showInstallAction = false,
+                    showUninstallAction = true,
+                    chargingInfo = ChargingInfo(
+                        level = "40", status = "not_charging", temp = null,
+                        current = null, voltage = null, power = null
+                    )
+                )
+            ),
+            forceStopStore = prefsStore(
+                ForceStopState(active = true, condition = "30m", startedAt = startedAt)
+            ),
+            bootTimestampMs = { 0L }
+        )
+
+        viewModel.refresh().join()
+
+        // The duration condition has been met (ACC sleeps on the wall clock), so the card returns
+        // to inactive even though the poll caught the status before it flipped back to Charging.
+        assertFalse(viewModel.uiState.value.forceStop.active)
+        assertNull(viewModel.uiState.value.forceStop.condition)
+    }
+
+    @Test
+    fun refresh_clearsForceStop_whenCapacityThresholdReached() = runTest {
+        val startedAt = System.currentTimeMillis()
+        val viewModel = OverviewViewModel(
+            context = ApplicationProvider.getApplicationContext(),
+            overviewRepository = FakeOverviewRepository(
+                status = AccStatus(
+                    installState = AccInstallState.UP_TO_DATE,
+                    installedVersionName = "2025.5.18-dev",
+                    daemonRunning = true,
+                    canManageDaemon = true,
+                    showInstallAction = false,
+                    showUninstallAction = true,
+                    chargingInfo = ChargingInfo(
+                        level = "50", status = "not_charging", temp = null,
+                        current = null, voltage = null, power = null
+                    )
+                )
+            ),
+            forceStopStore = prefsStore(
+                ForceStopState(active = true, condition = "50%", startedAt = startedAt)
+            ),
+            bootTimestampMs = { 0L }
+        )
+
+        viewModel.refresh().join()
+
+        // Level dropped to the 50% threshold => ACC's until-loop has ended and charging restarted.
+        assertFalse(viewModel.uiState.value.forceStop.active)
+    }
+
+    @Test
+    fun refresh_clearsForceStop_whenChargingResumed() = runTest {
+        // Started 20s ago (past the 15s grace) and ACC reports Charging again => recovered.
+        val startedAt = System.currentTimeMillis() - 20_000L
+        val viewModel = OverviewViewModel(
+            context = ApplicationProvider.getApplicationContext(),
+            overviewRepository = FakeOverviewRepository(
+                status = AccStatus(
+                    installState = AccInstallState.UP_TO_DATE,
+                    installedVersionName = "2025.5.18-dev",
+                    daemonRunning = true,
+                    canManageDaemon = true,
+                    showInstallAction = false,
+                    showUninstallAction = true,
+                    chargingInfo = ChargingInfo(
+                        level = "40", status = "charging", temp = null,
+                        current = null, voltage = null, power = null
+                    )
+                )
+            ),
+            forceStopStore = prefsStore(
+                ForceStopState(active = true, condition = null, startedAt = startedAt)
+            ),
+            bootTimestampMs = { 0L }
+        )
+
+        viewModel.refresh().join()
+
+        // Unconditional restore (or any condition that re-enabled charging).
+        assertFalse(viewModel.uiState.value.forceStop.active)
+    }
+
+    @Test
+    fun refresh_keepsForceStop_whenChargingWithinGracePeriod() = runTest {
+        val startedAt = System.currentTimeMillis()
+        val viewModel = OverviewViewModel(
+            context = ApplicationProvider.getApplicationContext(),
+            overviewRepository = FakeOverviewRepository(
+                status = AccStatus(
+                    installState = AccInstallState.UP_TO_DATE,
+                    installedVersionName = "2025.5.18-dev",
+                    daemonRunning = true,
+                    canManageDaemon = true,
+                    showInstallAction = false,
+                    showUninstallAction = true,
+                    chargingInfo = ChargingInfo(
+                        level = "40", status = "charging", temp = null,
+                        current = null, voltage = null, power = null
+                    )
+                )
+            ),
+            forceStopStore = prefsStore(
+                ForceStopState(active = true, condition = "1h", startedAt = startedAt)
+            ),
+            bootTimestampMs = { 0L }
+        )
+
+        viewModel.refresh().join()
+
+        // Just enabled (elapsed < grace): the status may still read Charging before the detached
+        // acc -d command cuts the switch, so the card must stay active.
+        assertTrue(viewModel.uiState.value.forceStop.active)
+    }
+
+    @Test
+    fun refresh_clearsForceStop_whenStartedBeforeReboot() = runTest {
+        // Force-stop was started before the most recent boot. ACC's timer and the sysfs charging
+        // switch both die on reboot, and ACC's boot service restarts the daemon with the normal
+        // config, so the stored state is stale regardless of current charging status.
+        val now = System.currentTimeMillis()
+        val bootTime = now - 10 * 60 * 1000L // device booted 10 minutes ago
+        val startedAt = bootTime - 5 * 60 * 1000L // force-stop started 5 min before boot
+        val viewModel = OverviewViewModel(
+            context = ApplicationProvider.getApplicationContext(),
+            overviewRepository = FakeOverviewRepository(
+                status = AccStatus(
+                    installState = AccInstallState.UP_TO_DATE,
+                    installedVersionName = "2025.5.18-dev",
+                    daemonRunning = true,
+                    canManageDaemon = true,
+                    showInstallAction = false,
+                    showUninstallAction = true,
+                    chargingInfo = ChargingInfo(
+                        level = "40", status = "not_charging", temp = null,
+                        current = null, voltage = null, power = null
+                    )
+                )
+            ),
+            forceStopStore = prefsStore(
+                ForceStopState(active = true, condition = "1h", startedAt = startedAt)
+            ),
+            bootTimestampMs = { bootTime }
+        )
+
+        viewModel.refresh().join()
+
+        // Reboot invalidates the force-stop: cleared even though status is still not_charging.
+        assertFalse(viewModel.uiState.value.forceStop.active)
+        assertNull(viewModel.uiState.value.forceStop.condition)
+    }
+
+    @Test
+    fun refresh_keepsForceStop_whenStartedAfterReboot() = runTest {
+        // Force-stop started after the last boot, still within its duration and not charging.
+        val now = System.currentTimeMillis()
+        val bootTime = now - 10 * 60 * 1000L
+        val startedAt = bootTime + 60 * 1000L // started 1 minute after boot
+        val viewModel = OverviewViewModel(
+            context = ApplicationProvider.getApplicationContext(),
+            overviewRepository = FakeOverviewRepository(
+                status = AccStatus(
+                    installState = AccInstallState.UP_TO_DATE,
+                    installedVersionName = "2025.5.18-dev",
+                    daemonRunning = true,
+                    canManageDaemon = true,
+                    showInstallAction = false,
+                    showUninstallAction = true,
+                    chargingInfo = ChargingInfo(
+                        level = "40", status = "not_charging", temp = null,
+                        current = null, voltage = null, power = null
+                    )
+                )
+            ),
+            forceStopStore = prefsStore(
+                ForceStopState(active = true, condition = "1h", startedAt = startedAt)
+            ),
+            bootTimestampMs = { bootTime }
+        )
+
+        viewModel.refresh().join()
+
+        // Started after boot and not yet recovered => still active.
+        assertTrue(viewModel.uiState.value.forceStop.active)
+        assertEquals("1h", viewModel.uiState.value.forceStop.condition)
+    }
+
+    private fun prefsStore(state: ForceStopState): ForceStopChargingStore {
+        val name = "force_stop_test_${System.nanoTime()}"
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val store = ForceStopChargingStore(
+            context.getSharedPreferences(name, Context.MODE_PRIVATE)
+        )
+        store.save(state)
+        return store
     }
 
     @Test

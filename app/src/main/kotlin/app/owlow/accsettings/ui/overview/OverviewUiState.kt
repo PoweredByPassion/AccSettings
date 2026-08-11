@@ -16,7 +16,9 @@ data class OverviewUiState(
 data class ForceStopUiState(
     val active: Boolean = false,
     val condition: String? = null,
-    val startedAt: Long? = null
+    val startedAt: Long? = null,
+    /** Seconds since [startedAt], derived from the wall clock on each status refresh. */
+    val elapsedSeconds: Long = 0L
 )
 
 data class OverviewFact(

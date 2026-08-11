@@ -243,6 +243,7 @@
     <string name="overview_value_charging">充电已启用</string>
     <string name="overview_force_stop_hint">忽略设置暂停充电</string>
     <string name="overview_force_stop_active">已停止充电</string>
+    <string name="overview_force_stop_remaining">%1$s 后恢复充电</string>
     <string name="overview_force_stop_cancel">取消并恢复</string>
     <string name="overview_force_stop_recover_30m">30 分钟后恢复充电</string>
     <string name="overview_force_stop_recover_1h">1 小时后恢复充电</string>
