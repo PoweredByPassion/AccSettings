@@ -3,10 +3,12 @@ package app.owlow.accsettings.quickaction
 import android.content.Context
 import androidx.annotation.StringRes
 import app.owlow.accsettings.R
+import app.owlow.accsettings.acc.ChargingControlMode
+import app.owlow.accsettings.data.ForceStopState
 
 /**
- * Shared helpers for formatting charging-control labels used by both the in-app Overview card
- * and the foreground-service notification.
+ * Shared helpers for formatting charging-control labels used by the notification, QS tile,
+ * and in-app Overview card.
  */
 object ChargeControlLabels {
 
@@ -46,4 +48,80 @@ object ChargeControlLabels {
     /** Human-readable label for a charge-to (`acc -e`) condition arg. */
     fun chargeToConditionLabel(condition: String?, context: Context): String =
         context.getString(chargeToConditionLabelRes(condition))
+
+    // ---- Active-operation title / description -----------------------------------------
+
+    /** Mode-specific title for the active charging-control operation. */
+    fun activeTitle(context: Context, state: ForceStopState): String = when (state.mode) {
+        ChargingControlMode.STOP -> context.getString(R.string.quick_action_notif_title_active)
+        ChargingControlMode.CHARGE_TO -> context.getString(
+            R.string.overview_charge_to_active,
+            chargeToConditionLabel(state.condition, context)
+        )
+        ChargingControlMode.FORCE_FULL -> context.getString(
+            R.string.overview_force_full_active,
+            state.condition ?: "100"
+        )
+    }
+
+    /** Description / subtitle for the active charging-control operation. */
+    fun activeDescription(
+        context: Context,
+        state: ForceStopState,
+        now: Long = System.currentTimeMillis()
+    ): String = when (state.mode) {
+        ChargingControlMode.STOP -> stopModeDescription(context, state, now)
+        ChargingControlMode.CHARGE_TO -> chargeToModeDescription(context, state, now)
+        ChargingControlMode.FORCE_FULL -> context.getString(R.string.overview_force_full_progress)
+    }
+
+    // ---- Private helpers ---------------------------------------------------------------
+
+    private fun stopModeDescription(
+        context: Context,
+        state: ForceStopState,
+        now: Long
+    ): String {
+        val remainingSeconds = durationTotalSeconds(state.condition)?.let { total ->
+            val startedAt = state.startedAt ?: return@let null
+            (total - (now - startedAt) / 1000L).coerceAtLeast(0L)
+        }
+        if (remainingSeconds != null) {
+            return context.getString(
+                R.string.overview_force_stop_remaining,
+                formatRemainingTime(remainingSeconds)
+            )
+        }
+        val fallbackRes = when (state.condition) {
+            "30m" -> R.string.overview_force_stop_recover_30m
+            "1h" -> R.string.overview_force_stop_recover_1h
+            "2h" -> R.string.overview_force_stop_recover_2h
+            "50%" -> R.string.overview_force_stop_recover_50
+            "60%" -> R.string.overview_force_stop_recover_60
+            "70%" -> R.string.overview_force_stop_recover_70
+            else -> R.string.overview_force_stop_recover_manual
+        }
+        return context.getString(fallbackRes)
+    }
+
+    private fun chargeToModeDescription(
+        context: Context,
+        state: ForceStopState,
+        now: Long
+    ): String {
+        val remainingSeconds = durationTotalSeconds(state.condition)?.let { total ->
+            val startedAt = state.startedAt ?: return@let null
+            (total - (now - startedAt) / 1000L).coerceAtLeast(0L)
+        }
+        if (remainingSeconds != null) {
+            return context.getString(
+                R.string.overview_charge_to_remaining,
+                formatRemainingTime(remainingSeconds)
+            )
+        }
+        return context.getString(
+            R.string.overview_charge_to_target,
+            chargeToConditionLabel(state.condition, context)
+        )
+    }
 }

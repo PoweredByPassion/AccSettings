@@ -4,15 +4,11 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.os.SystemClock
 import android.widget.Toast
 import app.owlow.accsettings.R
-import app.owlow.accsettings.data.ForceStopChargingStore
-import app.owlow.accsettings.data.LiveOverviewRepository
 import app.owlow.accsettings.quickaction.ChargingControlCoordinator
 import app.owlow.accsettings.quickaction.FeedbackSink
 import app.owlow.accsettings.quickaction.QuickAction
-import app.owlow.accsettings.quickaction.ServiceControllerImpl
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -40,7 +36,7 @@ class QuickActionReceiver : BroadcastReceiver() {
 
         val pendingResult = goAsync()
         val appContext = context.applicationContext
-        val coordinator = buildCoordinator(appContext)
+        val coordinator = ChargingControlCoordinator.forContext(appContext)
         val sink = ToastSink(appContext)
 
         CoroutineScope(Dispatchers.IO).launch {
@@ -66,18 +62,6 @@ class QuickActionReceiver : BroadcastReceiver() {
             "pause/1h" -> QuickAction.Pause("1h")
             "charge-to/85" -> QuickAction.ChargeTo("85%")
             else -> null
-        }
-    }
-
-    private companion object {
-        fun buildCoordinator(context: Context): ChargingControlCoordinator {
-            val store = ForceStopChargingStore.from(context)
-            return ChargingControlCoordinator(
-                repository = LiveOverviewRepository,
-                store = store,
-                serviceController = ServiceControllerImpl(context),
-                bootTimestampMs = { System.currentTimeMillis() - SystemClock.elapsedRealtime() }
-            )
         }
     }
 }

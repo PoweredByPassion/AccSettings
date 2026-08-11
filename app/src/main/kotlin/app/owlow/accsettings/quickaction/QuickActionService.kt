@@ -11,7 +11,6 @@ import android.content.pm.ServiceInfo
 import android.net.Uri
 import android.os.Build
 import android.os.IBinder
-import android.os.SystemClock
 import androidx.core.app.NotificationCompat
 import app.owlow.accsettings.R
 import app.owlow.accsettings.QuickActionReceiver
@@ -19,7 +18,6 @@ import app.owlow.accsettings.acc.AccStateManager
 import app.owlow.accsettings.acc.ChargingControlMode
 import app.owlow.accsettings.data.ForceStopChargingStore
 import app.owlow.accsettings.data.ForceStopState
-import app.owlow.accsettings.data.LiveOverviewRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -50,19 +48,12 @@ class QuickActionService : Service() {
     private lateinit var store: ForceStopChargingStore
     private lateinit var coordinator: ChargingControlCoordinator
     private lateinit var notificationManager: NotificationManager
-    private lateinit var serviceController: ServiceControllerImpl
 
     override fun onCreate() {
         super.onCreate()
         val appCtx = applicationContext
         store = ForceStopChargingStore.from(appCtx)
-        serviceController = ServiceControllerImpl(appCtx)
-        coordinator = ChargingControlCoordinator(
-            repository = LiveOverviewRepository,
-            store = store,
-            serviceController = serviceController,
-            bootTimestampMs = { System.currentTimeMillis() - SystemClock.elapsedRealtime() }
-        )
+        coordinator = ChargingControlCoordinator.forContext(appCtx)
         notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         createNotificationChannel()
     }
@@ -139,8 +130,8 @@ class QuickActionService : Service() {
         level: String?,
         now: Long
     ): Notification {
-        val title = activeTitle(state)
-        val description = activeDescription(state, now)
+        val title = ChargeControlLabels.activeTitle(this, state)
+        val description = ChargeControlLabels.activeDescription(this, state, now)
         val body = buildNotificationBody(description, level)
 
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
@@ -173,70 +164,6 @@ class QuickActionService : Service() {
         } else {
             description
         }
-    }
-
-    // ---- Titles and descriptions (mirror OverviewScreen.kt logic) ------------------------
-
-    private fun activeTitle(state: ForceStopState): String = when (state.mode) {
-        ChargingControlMode.STOP -> getString(R.string.quick_action_notif_title_active)
-        ChargingControlMode.CHARGE_TO -> getString(
-            R.string.overview_charge_to_active,
-            ChargeControlLabels.chargeToConditionLabel(state.condition, this)
-        )
-        ChargingControlMode.FORCE_FULL -> getString(
-            R.string.overview_force_full_active,
-            state.condition ?: "100"
-        )
-    }
-
-    private fun activeDescription(state: ForceStopState, now: Long): String = when (state.mode) {
-        ChargingControlMode.STOP -> stopModeDescription(state, now)
-        ChargingControlMode.CHARGE_TO -> chargeToModeDescription(state, now)
-        ChargingControlMode.FORCE_FULL -> getString(R.string.overview_force_full_progress)
-    }
-
-    // ---- STOP mode: duration countdown or static recovery label -------------------------
-
-    private fun stopModeDescription(state: ForceStopState, now: Long): String {
-        val remainingSeconds = ChargeControlLabels.durationTotalSeconds(state.condition)?.let { total ->
-            val startedAt = state.startedAt ?: return@let null
-            (total - (now - startedAt) / 1000L).coerceAtLeast(0L)
-        }
-        if (remainingSeconds != null) {
-            return getString(
-                R.string.overview_force_stop_remaining,
-                ChargeControlLabels.formatRemainingTime(remainingSeconds)
-            )
-        }
-        val fallbackRes = when (state.condition) {
-            "30m" -> R.string.overview_force_stop_recover_30m
-            "1h" -> R.string.overview_force_stop_recover_1h
-            "2h" -> R.string.overview_force_stop_recover_2h
-            "50%" -> R.string.overview_force_stop_recover_50
-            "60%" -> R.string.overview_force_stop_recover_60
-            "70%" -> R.string.overview_force_stop_recover_70
-            else -> R.string.overview_force_stop_recover_manual
-        }
-        return getString(fallbackRes)
-    }
-
-    // ---- CHARGE_TO mode: duration countdown or target text ------------------------------
-
-    private fun chargeToModeDescription(state: ForceStopState, now: Long): String {
-        val remainingSeconds = ChargeControlLabels.durationTotalSeconds(state.condition)?.let { total ->
-            val startedAt = state.startedAt ?: return@let null
-            (total - (now - startedAt) / 1000L).coerceAtLeast(0L)
-        }
-        if (remainingSeconds != null) {
-            return getString(
-                R.string.overview_charge_to_remaining,
-                ChargeControlLabels.formatRemainingTime(remainingSeconds)
-            )
-        }
-        return getString(
-            R.string.overview_charge_to_target,
-            ChargeControlLabels.chargeToConditionLabel(state.condition, this)
-        )
     }
 
     // ---- Action buttons -----------------------------------------------------------------

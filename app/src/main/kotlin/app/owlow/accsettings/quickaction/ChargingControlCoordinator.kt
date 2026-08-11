@@ -1,8 +1,11 @@
 package app.owlow.accsettings.quickaction
 
+import android.content.Context
+import android.os.SystemClock
 import app.owlow.accsettings.acc.ChargingControlMode
 import app.owlow.accsettings.data.ForceStopChargingStore
 import app.owlow.accsettings.data.ForceStopState
+import app.owlow.accsettings.data.LiveOverviewRepository
 import app.owlow.accsettings.data.OverviewRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -103,5 +106,15 @@ class ChargingControlCoordinator(
             _state.value = current
         }
         return _state.value
+    }
+
+    companion object {
+        /** Standard surface wiring: live repository + SharedPreferences store + real service controller. */
+        fun forContext(context: Context) = ChargingControlCoordinator(
+            repository = LiveOverviewRepository,
+            store = ForceStopChargingStore.from(context.applicationContext),
+            serviceController = ServiceControllerImpl(context.applicationContext),
+            bootTimestampMs = { System.currentTimeMillis() - SystemClock.elapsedRealtime() }
+        )
     }
 }
