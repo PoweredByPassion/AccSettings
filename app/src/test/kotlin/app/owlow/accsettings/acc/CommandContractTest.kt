@@ -97,6 +97,98 @@ class CommandContractTest {
     }
 
     @Test
+    fun enableCharging_without_condition_delegates_to_startDaemon() = runBlocking {
+        Command.enableCharging()
+        assertEquals(listOf("/dev/accd"), captured)
+    }
+
+    @Test
+    fun enableCharging_with_capacity_uses_detached_chained_command() = runBlocking {
+        Command.enableCharging("75%")
+        assertEquals(listOf("nohup sh -c \"/dev/acca -e 75%; /dev/accd\" > /dev/null 2>&1 &"), captured)
+    }
+
+    @Test
+    fun enableCharging_with_duration_uses_detached_chained_command() = runBlocking {
+        Command.enableCharging("30m")
+        assertEquals(listOf("nohup sh -c \"/dev/acca -e 30m; /dev/accd\" > /dev/null 2>&1 &"), captured)
+    }
+
+    @Test
+    fun forceFullCharge_uses_detached_dash_f_with_capacity() = runBlocking {
+        Command.forceFullCharge(90)
+        assertEquals(listOf("nohup sh -c \"/dev/acca -f 90; /dev/accd\" > /dev/null 2>&1 &"), captured)
+    }
+
+    @Test
+    fun forceFullCharge_defaults_to_100() = runBlocking {
+        Command.forceFullCharge()
+        assertEquals(listOf("nohup sh -c \"/dev/acca -f 100; /dev/accd\" > /dev/null 2>&1 &"), captured)
+    }
+
+    @Test
+    fun readBatteryHealth_uses_dash_H() = runBlocking {
+        Command.execOverride = { cmd ->
+            captured += cmd
+            "87.3%"
+        }
+        assertEquals("87.3%", Command.readBatteryHealth(4000))
+        assertEquals(listOf("/dev/acca -H 4000"), captured)
+    }
+
+    @Test
+    fun readBatteryHealth_returnsExclamationOnEmptyOutput() = runBlocking {
+        Command.execOverride = { "" }
+        assertEquals("!", Command.readBatteryHealth(4000))
+    }
+
+    @Test
+    fun resetBatteryStats_uses_dash_R() = runBlocking {
+        Command.resetBatteryStats()
+        assertEquals(listOf("/dev/acca -R"), captured)
+    }
+
+    @Test
+    fun exportLogs_uses_dash_l_dash_e() = runBlocking {
+        Command.execOverride = { cmd ->
+            captured += cmd
+            "/sdcard/Download/acc-logs-device_20260811.tgz"
+        }
+        assertEquals(
+            "/sdcard/Download/acc-logs-device_20260811.tgz",
+            Command.exportLogs()
+        )
+        assertEquals(listOf("/dev/acca -l -e"), captured)
+    }
+
+    @Test
+    fun cancelChargeAction_stop_pkills_then_restarts_daemon() = runBlocking {
+        Command.cancelChargeAction(ChargingControlMode.STOP)
+        assertEquals(
+            listOf("pkill -f \"/dev/acca -d\" > /dev/null 2>&1; true", "/dev/accd"),
+            captured
+        )
+    }
+
+    @Test
+    fun cancelChargeAction_chargeTo_pkills_dash_e() = runBlocking {
+        Command.cancelChargeAction(ChargingControlMode.CHARGE_TO)
+        assertEquals(
+            listOf("pkill -f \"/dev/acca -e\" > /dev/null 2>&1; true", "/dev/accd"),
+            captured
+        )
+    }
+
+    @Test
+    fun cancelChargeAction_forceFull_pkills_dash_f() = runBlocking {
+        Command.cancelChargeAction(ChargingControlMode.FORCE_FULL)
+        assertEquals(
+            listOf("pkill -f \"/dev/acca -f\" > /dev/null 2>&1; true", "/dev/accd"),
+            captured
+        )
+    }
+
+    @Test
     fun setConfig_rejectsOddNumberOfArguments() = runBlocking {
         try {
             Command.setConfig("sc", "10", "cc")

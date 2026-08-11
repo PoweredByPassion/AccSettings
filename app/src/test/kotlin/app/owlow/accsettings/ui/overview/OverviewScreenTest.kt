@@ -1,8 +1,11 @@
 package app.owlow.accsettings.ui.overview
 
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import androidx.test.core.app.ApplicationProvider
 import app.owlow.accsettings.ui.theme.AccSettingTheme
 import org.junit.Assert.assertEquals
@@ -36,12 +39,15 @@ class OverviewScreenTest {
                     onAction = { tappedActions += it },
                     onToggleAction = { _, _ -> },
                     onForceStopAction = {},
-                    onForceStopCondition = {}
+                    onForceStopCondition = {},
+                    onForceFullCapacity = {}
                 )
             }
         }
 
+        composeRule.onAllNodes(hasScrollAction())[0].performScrollToNode(hasText("Refresh state"))
         composeRule.onNodeWithText("Refresh state").performClick()
+        composeRule.onAllNodes(hasScrollAction())[0].performScrollToNode(hasText("Open configuration"))
         composeRule.onNodeWithText("Open configuration").performClick()
 
         assertEquals(listOf("refresh", "configuration"), tappedActions)
@@ -62,7 +68,8 @@ class OverviewScreenTest {
                     onAction = {},
                     onToggleAction = { _, _ -> },
                     onForceStopAction = {},
-                    onForceStopCondition = {}
+                    onForceStopCondition = {},
+                    onForceFullCapacity = {}
                 )
             }
         }

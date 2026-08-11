@@ -1,7 +1,10 @@
 package app.owlow.accsettings.ui.tools
 
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performScrollToNode
 import androidx.test.core.app.ApplicationProvider
 import app.owlow.accsettings.ui.theme.AccSettingTheme
 import org.junit.Rule
@@ -35,6 +38,7 @@ class ToolsScreenTest {
             }
         }
 
+        composeRule.onAllNodes(hasScrollAction())[0].performScrollToNode(hasText("Runtime Logs"))
         composeRule.onNodeWithText("Runtime Logs").assertExists()
     }
 

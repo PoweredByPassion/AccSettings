@@ -23,6 +23,12 @@ class AccBridge(
     private val uninstallAction: suspend () -> Unit = {},
     private val daemonToggleAction: suspend (Boolean) -> Boolean = { it },
     private val forceStopChargingAction: suspend (Boolean, String?) -> Boolean = { _, _ -> false },
+    private val enableChargingAction: suspend (String?) -> Boolean = { _ -> false },
+    private val forceFullChargeAction: suspend (Int) -> Boolean = { _ -> false },
+    private val batteryHealthReader: suspend (Int) -> String = { "!" },
+    private val resetBatteryStatsAction: suspend () -> Boolean = { false },
+    private val exportLogsAction: suspend () -> String = { "" },
+    private val cancelChargeActionImpl: suspend (ChargingControlMode) -> Boolean = { _ -> false },
     private val reinitializeAction: suspend () -> Unit = {},
     private val lifecycleCapabilityRefresh: suspend () -> AccCapability = {
         capabilityProbe()
@@ -188,5 +194,35 @@ class AccBridge(
     suspend fun setForceStopCharging(enabled: Boolean, condition: String?): DaemonActionResult = taskRunner.runSerialized {
         val success = forceStopChargingAction(enabled, condition)
         DaemonActionResult(success = success, daemonRunning = if (success) !enabled else daemonReader())
+    }
+
+    /** Enables charging, optionally to a target condition (ACC blocks until met, detached via nohup). */
+    suspend fun enableCharging(condition: String?): DaemonActionResult = taskRunner.runSerialized {
+        val success = enableChargingAction(condition)
+        DaemonActionResult(success = success, daemonRunning = if (success) true else daemonReader())
+    }
+
+    /** One-shot force-full charge to [capacity]%. Fire-and-forget; ACC handles completion. */
+    suspend fun forceFullCharge(capacity: Int): DaemonActionResult = taskRunner.runSerialized {
+        val success = forceFullChargeAction(capacity)
+        DaemonActionResult(success = success, daemonRunning = daemonReader())
+    }
+
+    /** Estimates battery health for a design capacity (mAh). */
+    suspend fun readBatteryHealth(designCapacityMah: Int): String = batteryHealthReader(designCapacityMah)
+
+    /** Resets Android battery statistics via ACC. */
+    suspend fun resetBatteryStats(): Boolean = taskRunner.runSerialized {
+        resetBatteryStatsAction()
+    }
+
+    /** Exports ACC logs, returning the destination path. */
+    suspend fun exportLogs(): String = taskRunner.runSerialized {
+        exportLogsAction()
+    }
+
+    /** Cancels the in-effect charging-control operation and restores the normal charging config. */
+    suspend fun cancelChargeAction(mode: ChargingControlMode): Boolean = taskRunner.runSerialized {
+        cancelChargeActionImpl(mode)
     }
 }

@@ -104,6 +104,35 @@ object AccStateManager {
         return result.success
     }
 
+    suspend fun enableCharging(condition: String? = null): Boolean {
+        val result = bridge().enableCharging(condition)
+        refreshNow()
+        return result.success
+    }
+
+    suspend fun forceFullCharge(capacity: Int = 100): Boolean {
+        val result = bridge().forceFullCharge(capacity)
+        refreshNow()
+        return result.success
+    }
+
+    suspend fun readBatteryHealth(designCapacityMah: Int): String =
+        bridge().readBatteryHealth(designCapacityMah)
+
+    suspend fun resetBatteryStats(): Boolean {
+        val result = bridge().resetBatteryStats()
+        refreshNow()
+        return result
+    }
+
+    suspend fun exportLogs(): String = bridge().exportLogs()
+
+    suspend fun cancelChargeAction(mode: ChargingControlMode): Boolean {
+        val result = bridge().cancelChargeAction(mode)
+        refreshNow()
+        return result
+    }
+
     suspend fun ensureInstalled(): LifecycleActionResult {
         val result = bridge().ensureInstalled()
         refreshNow()
@@ -215,6 +244,24 @@ object AccStateManager {
                 } else {
                     handler.startDaemon()
                 }
+                true
+            },
+            enableChargingAction = { condition ->
+                handler.enableCharging(condition)
+                true
+            },
+            forceFullChargeAction = { capacity ->
+                handler.forceFullCharge(capacity)
+                true
+            },
+            batteryHealthReader = { mAh -> handler.readBatteryHealth(mAh) },
+            resetBatteryStatsAction = {
+                handler.resetBatteryStats()
+                true
+            },
+            exportLogsAction = { handler.exportLogs() },
+            cancelChargeActionImpl = { mode ->
+                handler.cancelChargeAction(mode)
                 true
             },
             reinitializeAction = { handler.reinitialize() },

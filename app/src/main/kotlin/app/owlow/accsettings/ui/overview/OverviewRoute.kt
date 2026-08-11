@@ -46,10 +46,23 @@ fun OverviewRoute(
                 ForceStopAction.REQUEST_ENABLE -> overviewViewModel.showForceStopDialog()
                 ForceStopAction.DISMISS_DIALOG -> overviewViewModel.dismissForceStopDialog()
                 ForceStopAction.CANCEL -> overviewViewModel.cancelForceStopCharging()
+                ForceStopAction.REQUEST_CHARGE_TO -> overviewViewModel.showChargeToDialog()
+                ForceStopAction.DISMISS_CHARGE_TO_DIALOG -> overviewViewModel.dismissChargeToDialog()
+                ForceStopAction.REQUEST_FORCE_FULL -> overviewViewModel.showForceFullDialog()
+                ForceStopAction.DISMISS_FORCE_FULL_DIALOG -> overviewViewModel.dismissForceFullDialog()
             }
         },
         onForceStopCondition = { condition ->
-            overviewViewModel.enableForceStopCharging(condition)
+            // The condition dialog is shared by force-stop (-d) and resume-charge-to (-e);
+            // which one it targets is decided by which dialog is open.
+            if (uiState.showForceStopDialog) {
+                overviewViewModel.enableForceStopCharging(condition)
+            } else if (uiState.showChargeToDialog) {
+                overviewViewModel.resumeChargingTo(condition)
+            }
+        },
+        onForceFullCapacity = { capacity ->
+            overviewViewModel.forceFullCharge(capacity)
         },
         modifier = modifier
     )
