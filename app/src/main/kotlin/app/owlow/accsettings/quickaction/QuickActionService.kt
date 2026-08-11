@@ -181,7 +181,7 @@ class QuickActionService : Service() {
         ChargingControlMode.STOP -> getString(R.string.quick_action_notif_title_active)
         ChargingControlMode.CHARGE_TO -> getString(
             R.string.overview_charge_to_active,
-            chargeToConditionLabel(state.condition)
+            ChargeControlLabels.chargeToConditionLabel(state.condition, this)
         )
         ChargingControlMode.FORCE_FULL -> getString(
             R.string.overview_force_full_active,
@@ -198,12 +198,15 @@ class QuickActionService : Service() {
     // ---- STOP mode: duration countdown or static recovery label -------------------------
 
     private fun stopModeDescription(state: ForceStopState, now: Long): String {
-        val remainingSeconds = durationTotal(state.condition)?.let { total ->
+        val remainingSeconds = ChargeControlLabels.durationTotalSeconds(state.condition)?.let { total ->
             val startedAt = state.startedAt ?: return@let null
             (total - (now - startedAt) / 1000L).coerceAtLeast(0L)
         }
         if (remainingSeconds != null) {
-            return getString(R.string.overview_force_stop_remaining, formatRemainingTime(remainingSeconds))
+            return getString(
+                R.string.overview_force_stop_remaining,
+                ChargeControlLabels.formatRemainingTime(remainingSeconds)
+            )
         }
         val fallbackRes = when (state.condition) {
             "30m" -> R.string.overview_force_stop_recover_30m
@@ -220,14 +223,20 @@ class QuickActionService : Service() {
     // ---- CHARGE_TO mode: duration countdown or target text ------------------------------
 
     private fun chargeToModeDescription(state: ForceStopState, now: Long): String {
-        val remainingSeconds = durationTotal(state.condition)?.let { total ->
+        val remainingSeconds = ChargeControlLabels.durationTotalSeconds(state.condition)?.let { total ->
             val startedAt = state.startedAt ?: return@let null
             (total - (now - startedAt) / 1000L).coerceAtLeast(0L)
         }
         if (remainingSeconds != null) {
-            return getString(R.string.overview_charge_to_remaining, formatRemainingTime(remainingSeconds))
+            return getString(
+                R.string.overview_charge_to_remaining,
+                ChargeControlLabels.formatRemainingTime(remainingSeconds)
+            )
         }
-        return getString(R.string.overview_charge_to_target, chargeToConditionLabel(state.condition))
+        return getString(
+            R.string.overview_charge_to_target,
+            ChargeControlLabels.chargeToConditionLabel(state.condition, this)
+        )
     }
 
     // ---- Action buttons -----------------------------------------------------------------
@@ -260,40 +269,6 @@ class QuickActionService : Service() {
         buttons.add(getString(R.string.quick_action_cancel) to "quickaction:cancel")
 
         return buttons
-    }
-
-    // ---- Helpers copied/adapted from OverviewScreen.kt -----------------------------------
-
-    /** Returns the total duration in seconds for known duration conditions, or null. */
-    private fun durationTotal(condition: String?): Long? = when (condition) {
-        "30m" -> 30 * 60L
-        "1h" -> 60 * 60L
-        "2h" -> 2 * 60 * 60L
-        else -> null
-    }
-
-    /** Formats a remaining countdown as `Hh Mm Ss`, `Mm Ss`, or `Ss`. */
-    private fun formatRemainingTime(remainingSeconds: Long): String {
-        val hours = remainingSeconds / 3600
-        val minutes = (remainingSeconds % 3600) / 60
-        val seconds = remainingSeconds % 60
-        return when {
-            hours > 0 -> "%dh %dm %ds".format(hours, minutes, seconds)
-            minutes > 0 -> "%dm %ds".format(minutes, seconds)
-            else -> "%ds".format(seconds)
-        }
-    }
-
-    /** Human-readable label for a charge-to (acc -e) condition arg. */
-    private fun chargeToConditionLabel(condition: String?): String = when (condition) {
-        "75%" -> getString(R.string.overview_charge_to_target_75)
-        "80%" -> getString(R.string.overview_charge_to_target_80)
-        "85%" -> getString(R.string.overview_charge_to_target_85)
-        "90%" -> getString(R.string.overview_charge_to_target_90)
-        "95%" -> getString(R.string.overview_charge_to_target_95)
-        "30m" -> getString(R.string.overview_charge_to_target_30m)
-        "1h" -> getString(R.string.overview_charge_to_target_1h)
-        else -> getString(R.string.overview_charge_to_target_now)
     }
 
     // ---- Utility ------------------------------------------------------------------------

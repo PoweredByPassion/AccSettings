@@ -6,6 +6,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.SystemClock
 import android.widget.Toast
+import app.owlow.accsettings.R
 import app.owlow.accsettings.data.ForceStopChargingStore
 import app.owlow.accsettings.data.LiveOverviewRepository
 import app.owlow.accsettings.quickaction.ChargingControlCoordinator
@@ -81,9 +82,14 @@ class QuickActionReceiver : BroadcastReceiver() {
     }
 }
 
-/** A [FeedbackSink] that shows the result as a short [Toast]. */
+/** A [FeedbackSink] that shows the result as a short [Toast] using localized strings. */
 private class ToastSink(private val context: Context) : FeedbackSink {
     override fun show(message: String) {
-        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        val resId = when (message) {
+            "Done" -> R.string.toast_started
+            "Charging restored" -> R.string.toast_cancelled
+            else -> R.string.toast_error
+        }
+        Toast.makeText(context, context.getString(resId), Toast.LENGTH_SHORT).show()
     }
 }

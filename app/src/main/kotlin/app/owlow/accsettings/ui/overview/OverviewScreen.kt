@@ -16,11 +16,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.owlow.accsettings.R
 import app.owlow.accsettings.acc.ChargingControlMode
+import app.owlow.accsettings.quickaction.ChargeControlLabels
 import app.owlow.accsettings.ui.theme.*
 
 @Composable
@@ -366,16 +368,12 @@ private fun chargeControlActiveTitle(forceStop: ForceStopUiState): String = when
 private fun chargeControlActiveDescription(forceStop: ForceStopUiState, now: Long): String = when (forceStop.mode) {
     ChargingControlMode.STOP -> forceStopRecoveryLabel(forceStop, now)
     ChargingControlMode.CHARGE_TO -> {
-        val remainingSeconds = when (forceStop.condition) {
-            "30m" -> 30 * 60L
-            "1h" -> 60 * 60L
-            else -> null
-        }?.let { total ->
+        val remainingSeconds = ChargeControlLabels.durationTotalSeconds(forceStop.condition)?.let { total ->
             val startedAt = forceStop.startedAt ?: return@let null
             (total - (now - startedAt) / 1000L).coerceAtLeast(0L)
         }
         if (remainingSeconds != null) {
-            stringResource(R.string.overview_charge_to_remaining, formatRemainingTime(remainingSeconds))
+            stringResource(R.string.overview_charge_to_remaining, ChargeControlLabels.formatRemainingTime(remainingSeconds))
         } else {
             stringResource(R.string.overview_charge_to_target, chargeToConditionLabel(forceStop.condition))
         }
@@ -385,16 +383,8 @@ private fun chargeControlActiveDescription(forceStop: ForceStopUiState, now: Lon
 
 /** Human label for a charge-to (`acc -e`) condition arg. */
 @Composable
-private fun chargeToConditionLabel(condition: String?): String = when (condition) {
-    "75%" -> stringResource(R.string.overview_charge_to_target_75)
-    "80%" -> stringResource(R.string.overview_charge_to_target_80)
-    "85%" -> stringResource(R.string.overview_charge_to_target_85)
-    "90%" -> stringResource(R.string.overview_charge_to_target_90)
-    "95%" -> stringResource(R.string.overview_charge_to_target_95)
-    "30m" -> stringResource(R.string.overview_charge_to_target_30m)
-    "1h" -> stringResource(R.string.overview_charge_to_target_1h)
-    else -> stringResource(R.string.overview_charge_to_target_now)
-}
+private fun chargeToConditionLabel(condition: String?): String =
+    ChargeControlLabels.chargeToConditionLabel(condition, LocalContext.current)
 
 @Composable
 private fun ChargeActionButton(
@@ -446,19 +436,14 @@ private fun ChargeActionButton(
 private fun forceStopRecoveryLabel(forceStop: ForceStopUiState, now: Long): String {
     // Duration conditions show a live remaining-time countdown; capacity/manual conditions and
     // an unknown start time fall back to the static recovery description.
-    val remainingSeconds = when (forceStop.condition) {
-        "30m" -> 30 * 60L
-        "1h" -> 60 * 60L
-        "2h" -> 2 * 60 * 60L
-        else -> null
-    }?.let { total ->
+    val remainingSeconds = ChargeControlLabels.durationTotalSeconds(forceStop.condition)?.let { total ->
         val startedAt = forceStop.startedAt ?: return@let null
         (total - (now - startedAt) / 1000L).coerceAtLeast(0L)
     }
     if (remainingSeconds != null) {
         return stringResource(
             R.string.overview_force_stop_remaining,
-            formatRemainingTime(remainingSeconds)
+            ChargeControlLabels.formatRemainingTime(remainingSeconds)
         )
     }
     val target = when (forceStop.condition) {
@@ -471,18 +456,6 @@ private fun forceStopRecoveryLabel(forceStop: ForceStopUiState, now: Long): Stri
         else -> R.string.overview_force_stop_recover_manual
     }
     return stringResource(target)
-}
-
-/** Formats a remaining countdown as `Hh Mm Ss`, `Mm Ss`, or `Ss`. */
-private fun formatRemainingTime(remainingSeconds: Long): String {
-    val hours = remainingSeconds / 3600
-    val minutes = (remainingSeconds % 3600) / 60
-    val seconds = remainingSeconds % 60
-    return when {
-        hours > 0 -> "%dh %dm %ds".format(hours, minutes, seconds)
-        minutes > 0 -> "%dm %ds".format(minutes, seconds)
-        else -> "%ds".format(seconds)
-    }
 }
 
 /** Dialog asking which recovery condition to use when enabling force-stop charging. */
