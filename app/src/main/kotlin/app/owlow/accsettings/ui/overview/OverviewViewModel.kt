@@ -14,7 +14,7 @@ import app.owlow.accsettings.data.LiveOverviewRepository
 import app.owlow.accsettings.data.OverviewRepository
 import app.owlow.accsettings.quickaction.ChargingControlCoordinator
 import app.owlow.accsettings.quickaction.QuickAction
-import app.owlow.accsettings.quickaction.ServiceController
+import app.owlow.accsettings.quickaction.ServiceControllerImpl
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -39,7 +39,7 @@ class OverviewViewModel(
     private val coordinator: ChargingControlCoordinator = ChargingControlCoordinator(
         repository = overviewRepository,
         store = forceStopStore,
-        serviceController = NoOpServiceController,
+        serviceController = ServiceControllerImpl(context),
         bootTimestampMs = bootTimestampMs
     )
 
@@ -216,11 +216,6 @@ class OverviewViewModel(
 
     companion object {
         private const val CHARGING_REFRESH_INTERVAL_MS = 3_000L
-
-        private object NoOpServiceController : ServiceController {
-            override fun start() {}
-            override fun stop() {}
-        }
 
         fun factory(
             context: Context,

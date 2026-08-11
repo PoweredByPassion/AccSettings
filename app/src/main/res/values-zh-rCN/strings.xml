@@ -333,4 +333,17 @@
 
     <string name="config_error_capacity_ordering">电量阈值顺序无效：关机 &lt; 恢复 &lt;= 冷却 &lt;= 停止</string>
     <string name="config_error_temperature_ordering">温度阈值顺序无效：冷却 &lt; 恢复 &lt; 停止 &lt; 关机</string>
+
+    <!-- Quick action foreground service -->
+    <string name="quick_action_service_channel_name">充电控制</string>
+    <string name="quick_action_service_channel_desc">活跃充电操作的实时状态与控制</string>
+    <string name="quick_action_notif_title_active">充电已停止</string>
+    <string name="quick_action_cancel">取消</string>
+    <string name="quick_action_pause_30m">暂停 30 分钟</string>
+    <string name="quick_action_pause_1h">暂停 1 小时</string>
+    <string name="quick_action_force_full">强制充满</string>
+    <string name="quick_action_charge_to_85">充电至 85%</string>
+    <string name="toast_started">完成</string>
+    <string name="toast_cancelled">已恢复充电</string>
+    <string name="toast_error">操作失败</string>
     </resources>

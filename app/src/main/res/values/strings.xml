@@ -334,4 +334,17 @@
 
     <string name="config_error_capacity_ordering">Capacity ordering is invalid: shutdown &lt; resume &lt;= cooldown &lt;= pause</string>
     <string name="config_error_temperature_ordering">Temperature ordering is invalid: cooldown &lt; resume &lt; pause &lt; shutdown</string>
+
+    <!-- Quick action foreground service -->
+    <string name="quick_action_service_channel_name">Charging control</string>
+    <string name="quick_action_service_channel_desc">Live status and controls for the active charging operation</string>
+    <string name="quick_action_notif_title_active">Charging stopped</string>
+    <string name="quick_action_cancel">Cancel</string>
+    <string name="quick_action_pause_30m">Pause 30m</string>
+    <string name="quick_action_pause_1h">Pause 1h</string>
+    <string name="quick_action_force_full">Force full</string>
+    <string name="quick_action_charge_to_85">Charge to 85%</string>
+    <string name="toast_started">Done</string>
+    <string name="toast_cancelled">Charging restored</string>
+    <string name="toast_error">Action failed</string>
 </resources>
