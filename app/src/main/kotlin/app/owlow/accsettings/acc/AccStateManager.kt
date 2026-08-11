@@ -119,6 +119,22 @@ object AccStateManager {
     suspend fun readBatteryHealth(designCapacityMah: Int): String =
         bridge().readBatteryHealth(designCapacityMah)
 
+    /**
+     * Reads the battery design capacity (µAh) from sysfs, converted to mAh, or null when no
+     * readable node exists. Battery node names vary by device, so common candidates are probed
+     * in order; the first with a positive `charge_full_design` wins.
+     */
+    suspend fun readChargeFullDesign(): Int? {
+        val candidates = listOf("battery", "main", "bms", "qcom_battery", "BAT0", "BAT1")
+        for (name in candidates) {
+            val path = "/sys/class/power_supply/$name/charge_full_design"
+            val raw = readSysfsNode(path) ?: continue
+            val uah = raw.trim().toLongOrNull() ?: continue
+            if (uah > 0) return (uah / 1000).toInt() // µAh -> mAh
+        }
+        return null
+    }
+
     suspend fun resetBatteryStats(): Boolean {
         val result = bridge().resetBatteryStats()
         refreshNow()

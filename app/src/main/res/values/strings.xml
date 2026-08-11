@@ -233,7 +233,7 @@
     <string name="tools_section_battery_title">Battery Tools</string>
     <string name="tools_section_battery_summary">Battery diagnostics and maintenance.</string>
     <string name="tools_action_estimate_health">Estimate battery health</string>
-    <string name="tools_action_estimate_health_desc">Calculate health percentage from design capacity in mAh.</string>
+    <string name="tools_action_estimate_health_desc">Reads the design capacity from the battery and estimates health.</string>
     <string name="tools_action_reset_stats">Reset battery stats</string>
     <string name="tools_action_reset_stats_desc">Clear Android battery statistics via ACC.</string>
     <string name="tools_action_export_logs">Export logs</string>
@@ -243,9 +243,6 @@
     <string name="tools_export_logs_empty">No ACC logs to export</string>
     <string name="tools_health_result">Estimated health: %1$s</string>
     <string name="tools_health_unavailable">Cannot estimate: battery data unavailable</string>
-    <string name="tools_health_dialog_title">Estimate Battery Health</string>
-    <string name="tools_health_dialog_hint">Enter the design (rated) capacity printed on your battery in mAh.</string>
-    <string name="tools_health_design_capacity_label">Design capacity (mAh)</string>
     <string name="tools_confirm_reset_stats_title">Reset battery statistics?</string>
     <string name="tools_confirm_reset_stats_message">This clears Android battery usage history.</string>
     <string name="tools_confirm_export_logs_title">Export ACC logs?</string>

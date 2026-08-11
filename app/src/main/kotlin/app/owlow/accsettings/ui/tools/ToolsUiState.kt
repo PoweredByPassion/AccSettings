@@ -51,8 +51,5 @@ data class ToolsUiState(
     val appInfoSection: ToolSection = ToolSection(),
     val batterySection: ToolSection = ToolSection(),
     val isBusy: Boolean = false,
-    val pendingConfirmation: ToolAction? = null,
-    val showHealthDialog: Boolean = false,
-    val healthInputMah: String = "",
-    val healthResult: String? = null
+    val pendingConfirmation: ToolAction? = null
 )

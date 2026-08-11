@@ -37,7 +37,7 @@ interface ToolsRepository {
     suspend fun forceRedetect(): String
     suspend fun resetBatteryStats(): String
     suspend fun exportLogs(): String
-    suspend fun estimateHealth(designCapacityMah: Int): String
+    suspend fun estimateHealth(): String
 }
 
 class ToolsViewModel(
@@ -88,33 +88,6 @@ class ToolsViewModel(
         _uiState.value = _uiState.value.copy(pendingConfirmation = null)
     }
 
-    fun showHealthDialog() {
-        _uiState.value = _uiState.value.copy(showHealthDialog = true, healthResult = null)
-    }
-
-    fun dismissHealthDialog() {
-        _uiState.value = _uiState.value.copy(showHealthDialog = false, healthInputMah = "")
-    }
-
-    fun updateHealthInput(mah: String) {
-        _uiState.value = _uiState.value.copy(healthInputMah = mah.filter { it.isDigit() })
-    }
-
-    fun estimateHealth(): Job = viewModelScope.launch {
-        val mah = _uiState.value.healthInputMah.toIntOrNull() ?: return@launch
-        _uiState.value = _uiState.value.copy(isBusy = true, showHealthDialog = false)
-        val result = runCatching {
-            toolsRepository.estimateHealth(mah)
-        }.getOrElse { error ->
-            error.toToolsMessage(context, R.string.tools_action_failed)
-        }
-        _uiState.value = _uiState.value.copy(
-            isBusy = false,
-            healthInputMah = "",
-            healthResult = result
-        )
-    }
-
     fun confirmPendingAction() {
         val action = _uiState.value.pendingConfirmation ?: return
         _uiState.value = _uiState.value.copy(pendingConfirmation = null)
@@ -134,7 +107,7 @@ class ToolsViewModel(
                 ToolAction.REFRESH -> null
                 ToolAction.RESET_BATTERY_STATS -> toolsRepository.resetBatteryStats()
                 ToolAction.EXPORT_LOGS -> toolsRepository.exportLogs()
-                ToolAction.ESTIMATE_HEALTH -> null
+                ToolAction.ESTIMATE_HEALTH -> toolsRepository.estimateHealth()
             }
         }.getOrElse { error ->
             val message = ToolStatusMessage(
@@ -255,12 +228,17 @@ private class LiveToolsRepository(
         }
     }
 
-    override suspend fun estimateHealth(designCapacityMah: Int): String = withContext(Dispatchers.IO) {
-        val health = AccStateManager.readBatteryHealth(designCapacityMah)
-        if (health == "!") {
+    override suspend fun estimateHealth(): String = withContext(Dispatchers.IO) {
+        val designMah = AccStateManager.readChargeFullDesign()
+        if (designMah == null) {
             context.getString(R.string.tools_health_unavailable)
         } else {
-            context.getString(R.string.tools_health_result, health)
+            val health = AccStateManager.readBatteryHealth(designMah)
+            if (health == "!") {
+                context.getString(R.string.tools_health_unavailable)
+            } else {
+                context.getString(R.string.tools_health_result, health)
+            }
         }
     }
 }
@@ -397,7 +375,11 @@ private fun ToolsSnapshot.toUiState(
                     description = context.getString(R.string.tools_action_export_logs_desc)
                 )
             ),
-            statusMessage = if (lastAction == ToolAction.RESET_BATTERY_STATS || lastAction == ToolAction.EXPORT_LOGS) previousMessage else null
+            statusMessage = if (
+                lastAction == ToolAction.RESET_BATTERY_STATS ||
+                lastAction == ToolAction.EXPORT_LOGS ||
+                lastAction == ToolAction.ESTIMATE_HEALTH
+            ) previousMessage else null
         ),
         isBusy = false,
         pendingConfirmation = pendingConfirmation

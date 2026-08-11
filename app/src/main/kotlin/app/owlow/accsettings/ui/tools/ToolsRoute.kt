@@ -19,16 +19,11 @@ fun ToolsRoute(
         onAction = { action ->
             if (action == ToolAction.REFRESH) {
                 toolsViewModel.refresh()
-            } else if (action == ToolAction.ESTIMATE_HEALTH) {
-                toolsViewModel.showHealthDialog()
             } else {
                 toolsViewModel.requestAction(action)
             }
         },
         onConfirmAction = { toolsViewModel.confirmPendingAction() },
-        onDismissConfirmation = { toolsViewModel.dismissConfirmation() },
-        onHealthInputChange = { toolsViewModel.updateHealthInput(it) },
-        onConfirmHealth = { toolsViewModel.estimateHealth() },
-        onDismissHealth = { toolsViewModel.dismissHealthDialog() }
+        onDismissConfirmation = { toolsViewModel.dismissConfirmation() }
     )
 }

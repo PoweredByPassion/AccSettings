@@ -232,7 +232,7 @@
     <string name="tools_section_battery_title">电池工具</string>
     <string name="tools_section_battery_summary">电池诊断和维护。</string>
     <string name="tools_action_estimate_health">估算电池健康度</string>
-    <string name="tools_action_estimate_health_desc">根据设计容量 (mAh) 计算健康百分比。</string>
+    <string name="tools_action_estimate_health_desc">自动读取电池设计容量并估算健康度。</string>
     <string name="tools_action_reset_stats">重置电池统计</string>
     <string name="tools_action_reset_stats_desc">通过 ACC 清除 Android 电池统计。</string>
     <string name="tools_action_export_logs">导出日志</string>
@@ -242,9 +242,6 @@
     <string name="tools_export_logs_empty">没有可导出的 ACC 日志</string>
     <string name="tools_health_result">估算健康度：%1$s</string>
     <string name="tools_health_unavailable">无法估算：电池数据不可用</string>
-    <string name="tools_health_dialog_title">估算电池健康度</string>
-    <string name="tools_health_dialog_hint">输入电池上标注的设计（额定）容量，单位 mAh。</string>
-    <string name="tools_health_design_capacity_label">设计容量 (mAh)</string>
     <string name="tools_confirm_reset_stats_title">重置电池统计？</string>
     <string name="tools_confirm_reset_stats_message">这将清除 Android 电池使用历史记录。</string>
     <string name="tools_confirm_export_logs_title">导出 ACC 日志？</string>
