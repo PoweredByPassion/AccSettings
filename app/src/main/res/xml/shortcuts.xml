@@ -1,0 +1,62 @@
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="pause_30m"
+        android:enabled="true"
+        android:icon="@drawable/ic_launcher"
+        android:shortcutShortLabel="@string/quick_action_pause_30m"
+        android:shortcutLongLabel="@string/quick_action_pause_30m">
+        <intent
+            android:action="app.owlow.accsettings.action.QUICK_ACTION"
+            android:data="quickaction:pause/30m"
+            android:targetPackage="app.owlow.accsettings"
+            android:targetClass="app.owlow.accsettings.QuickActionReceiver" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="pause_1h"
+        android:enabled="true"
+        android:icon="@drawable/ic_launcher"
+        android:shortcutShortLabel="@string/quick_action_pause_1h"
+        android:shortcutLongLabel="@string/quick_action_pause_1h">
+        <intent
+            android:action="app.owlow.accsettings.action.QUICK_ACTION"
+            android:data="quickaction:pause/1h"
+            android:targetPackage="app.owlow.accsettings"
+            android:targetClass="app.owlow.accsettings.QuickActionReceiver" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="force_full"
+        android:enabled="true"
+        android:icon="@drawable/ic_launcher"
+        android:shortcutShortLabel="@string/quick_action_force_full"
+        android:shortcutLongLabel="@string/quick_action_force_full">
+        <intent
+            android:action="app.owlow.accsettings.action.QUICK_ACTION"
+            android:data="quickaction:force-full"
+            android:targetPackage="app.owlow.accsettings"
+            android:targetClass="app.owlow.accsettings.QuickActionReceiver" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="charge_to_85"
+        android:enabled="true"
+        android:icon="@drawable/ic_launcher"
+        android:shortcutShortLabel="@string/quick_action_charge_to_85"
+        android:shortcutLongLabel="@string/quick_action_charge_to_85">
+        <intent
+            android:action="app.owlow.accsettings.action.QUICK_ACTION"
+            android:data="quickaction:charge-to/85"
+            android:targetPackage="app.owlow.accsettings"
+            android:targetClass="app.owlow.accsettings.QuickActionReceiver" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="cancel"
+        android:enabled="true"
+        android:icon="@drawable/ic_launcher"
+        android:shortcutShortLabel="@string/quick_action_cancel"
+        android:shortcutLongLabel="@string/quick_action_cancel">
+        <intent
+            android:action="app.owlow.accsettings.action.QUICK_ACTION"
+            android:data="quickaction:cancel"
+            android:targetPackage="app.owlow.accsettings"
+            android:targetClass="app.owlow.accsettings.QuickActionReceiver" />
+    </shortcut>
+</shortcuts>
