@@ -11,7 +11,11 @@ import app.owlow.accsettings.data.ForceStopState
  * charging resumed past the grace period / started before last boot) and can be cleared.
  */
 object ForceStopReconciler {
-    /** Seconds after enabling before a `Charging` status is trusted as recovery. */
+    /**
+     * Seconds after enabling before a `Charging` status is trusted as recovery. The detached
+     * `acc -d <condition>` takes a moment to actually cut the charging switch; during that
+     * window the battery still reports `Charging` even though force-stop is in effect.
+     */
     const val RECOVERY_GRACE_SECONDS = 15L
 
     data class ReconcileResult(

@@ -307,7 +307,7 @@ class OverviewViewModel(
             forceStopStore.clear()
             return ForceStopUiState()
         }
-        if (isForceStopRecovered(current, status, elapsed)) {
+        if (isForceStopRecovered(current, status)) {
             forceStopStore.clear()
             return ForceStopUiState()
         }
@@ -315,7 +315,7 @@ class OverviewViewModel(
     }
 
     /** Whether ACC has already restored charging given [current]'s mode/condition and [status]. */
-    private fun isForceStopRecovered(current: ForceStopUiState, status: AccStatus?, elapsed: Long): Boolean {
+    private fun isForceStopRecovered(current: ForceStopUiState, status: AccStatus?): Boolean {
         val chargingStatus = status?.chargingInfo?.status
         val level = status?.chargingInfo?.level
         return ForceStopReconciler.reconcile(

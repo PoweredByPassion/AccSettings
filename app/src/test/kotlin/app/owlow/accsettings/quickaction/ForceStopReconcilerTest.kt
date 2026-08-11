@@ -84,6 +84,17 @@ class ForceStopReconcilerTest {
     }
 
     @Test
+    fun activeForceFull_clears_whenChargingStoppedPastGrace() {
+        val state = ForceStopState(
+            active = true, mode = ChargingControlMode.FORCE_FULL,
+            condition = "95", startedAt = now - 20_000L
+        )
+        val result = ForceStopReconciler.reconcile(state, "not_charging", null, bootTimestampMs, now)
+        assertFalse(result.active)
+        assertTrue(result.recovered)
+    }
+
+    @Test
     fun startedBeforeReboot_clearsRegardless() {
         val bootTime = now - 10 * 60 * 1000L // booted 10 min ago
         val startedAt = bootTime - 60_000L // started 1 minute BEFORE boot
