@@ -275,6 +275,46 @@ class ChargingControlCoordinatorTest {
         assertTrue(serviceCtrl.stopCalled)
     }
 
+    @Test
+    fun execute_startDaemonAndStopDaemon_callSetDaemonRunning() = runTest {
+        val repo = FakeOverviewRepository()
+        val store = testStore()
+        val coordinator = ChargingControlCoordinator(repo, store, FakeServiceController())
+        val initial = coordinator.state.value
+
+        coordinator.execute(QuickAction.StartDaemon)
+        assertEquals(true, repo.lastDaemonEnabled)
+
+        coordinator.execute(QuickAction.StopDaemon)
+        assertEquals(false, repo.lastDaemonEnabled)
+
+        // Daemon toggles must not alter the charging-control state flow.
+        assertEquals(initial, coordinator.state.value)
+    }
+
+    @Test
+    fun execute_whenAutoCancelFails_doesNotStartNewOp() = runTest {
+        val repo = FakeOverviewRepository().apply { failCancelNext = true }
+        val store = testStore()
+        val coordinator = ChargingControlCoordinator(repo, store, FakeServiceController())
+
+        // Seed an active STOP so auto-cancel triggers.
+        coordinator.execute(QuickAction.Pause("1h"))
+        assertTrue(coordinator.state.value.active)
+
+        // Now auto-cancel will throw; the new op must NOT start.
+        val error = runCatching {
+            coordinator.execute(QuickAction.ForceFull(100))
+        }.exceptionOrNull()
+
+        assertNotNull(error)
+        // forceFullCharge must never have been called.
+        assertEquals(null, repo.lastForceFullCapacity)
+        // The old operation must still be active (no rollback on cancel failure).
+        assertTrue(coordinator.state.value.active)
+        assertEquals(ChargingControlMode.STOP, coordinator.state.value.mode)
+    }
+
     // --- helpers ---
 
     private fun testStore(): ForceStopChargingStore {
@@ -287,12 +327,14 @@ class ChargingControlCoordinatorTest {
 
     private class FakeOverviewRepository : OverviewRepository {
         var failNext = false
+        var failCancelNext = false
 
         var lastForceStopEnabled: Boolean? = null
         var lastForceStopCondition: String? = null
         var lastChargeToTarget: String? = null
         var lastForceFullCapacity: Int? = null
         var lastCancelledMode: ChargingControlMode? = null
+        var lastDaemonEnabled: Boolean? = null
 
         override suspend fun loadStatus(): AccStatus? = null
 
@@ -303,6 +345,7 @@ class ChargingControlCoordinatorTest {
 
         override suspend fun setDaemonRunning(enabled: Boolean): AccStatus? {
             if (failNext) throw RuntimeException("fail")
+            lastDaemonEnabled = enabled
             return null
         }
 
@@ -326,7 +369,7 @@ class ChargingControlCoordinatorTest {
         }
 
         override suspend fun cancelChargeAction(mode: ChargingControlMode): AccStatus? {
-            if (failNext) throw RuntimeException("fail")
+            if (failNext || failCancelNext) throw RuntimeException("fail")
             lastCancelledMode = mode
             return null
         }

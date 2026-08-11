@@ -8,7 +8,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-/** Owns start/stop of the foreground service that hosts the live notification. */
+/**
+ * Owns start/stop of the foreground service that hosts the live notification.
+ *
+ * Implementations must support idempotent [stop] — it is safe to call even when the service
+ * was never started (e.g. cancelling with no active operation).
+ */
 interface ServiceController {
     fun start()
     fun stop()
