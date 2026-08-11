@@ -1,0 +1,102 @@
+package app.owlow.accsettings.quickaction
+
+import app.owlow.accsettings.acc.ChargingControlMode
+import app.owlow.accsettings.data.ForceStopChargingStore
+import app.owlow.accsettings.data.ForceStopState
+import app.owlow.accsettings.data.OverviewRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+
+/** Owns start/stop of the foreground service that hosts the live notification. */
+interface ServiceController {
+    fun start()
+    fun stop()
+}
+
+class ChargingControlCoordinator(
+    private val repository: OverviewRepository,
+    private val store: ForceStopChargingStore,
+    private val serviceController: ServiceController,
+    private val bootTimestampMs: () -> Long = { 0L }
+) {
+    private val _state = MutableStateFlow(store.load())
+    val state: StateFlow<ForceStopState> = _state.asStateFlow()
+
+    /** Execute a quick action. Auto-cancels any active operation first. */
+    suspend fun execute(action: QuickAction, sink: FeedbackSink? = null): ForceStopState {
+        return when (action) {
+            is QuickAction.Pause -> runStart({ repository.setForceStopCharging(true, action.condition) }, ChargingControlMode.STOP, action.condition, sink)
+            is QuickAction.ChargeTo -> runStart({ repository.enableCharging(action.target) }, ChargingControlMode.CHARGE_TO, action.target, sink)
+            is QuickAction.ForceFull -> runStart({ repository.forceFullCharge(action.capacity) }, ChargingControlMode.FORCE_FULL, action.capacity.toString(), sink)
+            QuickAction.Cancel -> cancelAny(sink)
+            is QuickAction.StartDaemon -> runDaemon({ repository.setDaemonRunning(true) }, sink)
+            is QuickAction.StopDaemon -> runDaemon({ repository.setDaemonRunning(false) }, sink)
+        }
+    }
+
+    /** Cancel the active operation (if any) and restore normal charging. */
+    suspend fun cancelAny(sink: FeedbackSink? = null): ForceStopState {
+        val active = store.load()
+        if (active.active) {
+            repository.cancelChargeAction(active.mode)
+        }
+        val cleared = ForceStopState(active = false)
+        store.clear()
+        _state.value = cleared
+        serviceController.stop()
+        sink?.show("Charging restored")
+        return cleared
+    }
+
+    private suspend fun runStart(
+        call: suspend () -> Unit,
+        mode: ChargingControlMode,
+        condition: String?,
+        sink: FeedbackSink?
+    ): ForceStopState {
+        val current = store.load()
+        if (current.active) {
+            // Auto-cancel first. If cancelling the active op fails, do NOT start the new one —
+            // two blocking acc commands must never fight for ACC's lock.
+            repository.cancelChargeAction(current.mode)
+        }
+        call()
+        val active = ForceStopState(
+            active = true,
+            mode = mode,
+            condition = condition,
+            startedAt = System.currentTimeMillis()
+        )
+        store.save(active)
+        _state.value = active
+        serviceController.start()
+        sink?.show("Done")
+        return active
+    }
+
+    private suspend fun runDaemon(call: suspend () -> Unit, sink: FeedbackSink?): ForceStopState {
+        call()
+        sink?.show("Done")
+        return store.load()
+    }
+
+    /** Reconcile the persisted state against fresh ACC status; returns the reconciled state. */
+    suspend fun reconcile(
+        status: app.owlow.accsettings.acc.AccStatus?,
+        now: Long = System.currentTimeMillis()
+    ): ForceStopState {
+        val current = store.load()
+        val chargingStatus = status?.chargingInfo?.status
+        val level = status?.chargingInfo?.level
+        val result = ForceStopReconciler.reconcile(current, chargingStatus, level, bootTimestampMs(), now)
+        if (result.recovered) {
+            store.clear()
+            _state.value = ForceStopState(active = false)
+            serviceController.stop()
+        } else {
+            _state.value = current
+        }
+        return _state.value
+    }
+}

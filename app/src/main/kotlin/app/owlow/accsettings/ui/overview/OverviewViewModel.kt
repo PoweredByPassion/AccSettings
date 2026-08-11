@@ -7,12 +7,14 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import app.owlow.accsettings.R
 import app.owlow.accsettings.acc.AccInstallState
-import app.owlow.accsettings.acc.AccStateManager
 import app.owlow.accsettings.acc.AccStatus
-import app.owlow.accsettings.acc.ChargingControlMode
 import app.owlow.accsettings.data.ForceStopChargingStore
 import app.owlow.accsettings.data.ForceStopState
-import app.owlow.accsettings.quickaction.ForceStopReconciler
+import app.owlow.accsettings.data.LiveOverviewRepository
+import app.owlow.accsettings.data.OverviewRepository
+import app.owlow.accsettings.quickaction.ChargingControlCoordinator
+import app.owlow.accsettings.quickaction.QuickAction
+import app.owlow.accsettings.quickaction.ServiceController
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -21,16 +23,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.util.Locale
-
-interface OverviewRepository {
-    suspend fun loadStatus(): AccStatus?
-    suspend fun startService(): AccStatus?
-    suspend fun setDaemonRunning(enabled: Boolean): AccStatus?
-    suspend fun setForceStopCharging(enabled: Boolean, condition: String?): AccStatus?
-    suspend fun enableCharging(condition: String?): AccStatus?
-    suspend fun forceFullCharge(capacity: Int): AccStatus?
-    suspend fun cancelChargeAction(mode: ChargingControlMode): AccStatus?
-}
 
 class OverviewViewModel(
     private val context: Context,
@@ -44,19 +36,19 @@ class OverviewViewModel(
     private val _uiState = MutableStateFlow(OverviewUiState())
     val uiState: StateFlow<OverviewUiState> = _uiState.asStateFlow()
 
+    private val coordinator: ChargingControlCoordinator = ChargingControlCoordinator(
+        repository = overviewRepository,
+        store = forceStopStore,
+        serviceController = NoOpServiceController,
+        bootTimestampMs = bootTimestampMs
+    )
+
     init {
         // Restore the persisted force-stop state so the UI shows the correct toggle/card after
         // a process restart.
-        val persisted = forceStopStore.load()
+        val persisted = coordinator.state.value
         if (persisted.active) {
-            _uiState.value = _uiState.value.copy(
-                forceStop = ForceStopUiState(
-                    active = true,
-                    mode = persisted.mode,
-                    condition = persisted.condition,
-                    startedAt = persisted.startedAt
-                )
-            )
+            _uiState.value = _uiState.value.copy(forceStop = persisted.toUi())
         }
     }
 
@@ -104,76 +96,39 @@ class OverviewViewModel(
     /** Enables force-stop charging (`acc -d`) with the chosen recovery [condition]. */
     fun enableForceStopCharging(condition: String?): Job = viewModelScope.launch {
         _uiState.value = _uiState.value.copy(daemonBusy = true, showForceStopDialog = false)
-        // Mutually exclusive: cancel any other in-effect charging control first.
-        cancelIfActive()
-        runCatching { overviewRepository.setForceStopCharging(true, condition) }
-            .onSuccess { status ->
-                val forceStop = ForceStopUiState(
-                    active = true,
-                    mode = ChargingControlMode.STOP,
-                    condition = condition,
-                    startedAt = System.currentTimeMillis(),
-                    elapsedSeconds = 0L
-                )
-                persistForceStop(forceStop)
-                _uiState.value = status.toUiState(context).copy(daemonBusy = false, forceStop = forceStop)
+        runCatching { coordinator.execute(QuickAction.Pause(condition)) }
+            .onSuccess { state ->
+                _uiState.value = _uiState.value.copy(daemonBusy = false, forceStop = state.toUi())
             }
             .onFailure { error ->
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    daemonBusy = false,
-                    warnings = _uiState.value.warnings + (error.localizedMessage ?: "Failed to force stop charging")
-                )
+                _uiState.value = _uiState.value.copy(isLoading = false, daemonBusy = false,
+                    warnings = _uiState.value.warnings + (error.localizedMessage ?: "Failed to force stop charging"))
             }
     }
 
     /** Resumes charging to a target condition (`acc -e`). */
     fun resumeChargingTo(condition: String?): Job = viewModelScope.launch {
         _uiState.value = _uiState.value.copy(daemonBusy = true, showChargeToDialog = false)
-        cancelIfActive()
-        runCatching { overviewRepository.enableCharging(condition) }
-            .onSuccess { status ->
-                val forceStop = ForceStopUiState(
-                    active = true,
-                    mode = ChargingControlMode.CHARGE_TO,
-                    condition = condition,
-                    startedAt = System.currentTimeMillis(),
-                    elapsedSeconds = 0L
-                )
-                persistForceStop(forceStop)
-                _uiState.value = status.toUiState(context).copy(daemonBusy = false, forceStop = forceStop)
+        runCatching { coordinator.execute(QuickAction.ChargeTo(condition)) }
+            .onSuccess { state ->
+                _uiState.value = _uiState.value.copy(daemonBusy = false, forceStop = state.toUi())
             }
             .onFailure { error ->
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    daemonBusy = false,
-                    warnings = _uiState.value.warnings + (error.localizedMessage ?: "Failed to resume charging")
-                )
+                _uiState.value = _uiState.value.copy(isLoading = false, daemonBusy = false,
+                    warnings = _uiState.value.warnings + (error.localizedMessage ?: "Failed to resume charging"))
             }
     }
 
     /** One-shot force-full charge (`acc -f <capacity>`). */
     fun forceFullCharge(capacity: Int): Job = viewModelScope.launch {
         _uiState.value = _uiState.value.copy(daemonBusy = true, showForceFullDialog = false)
-        cancelIfActive()
-        runCatching { overviewRepository.forceFullCharge(capacity) }
-            .onSuccess { status ->
-                val forceStop = ForceStopUiState(
-                    active = true,
-                    mode = ChargingControlMode.FORCE_FULL,
-                    condition = capacity.toString(),
-                    startedAt = System.currentTimeMillis(),
-                    elapsedSeconds = 0L
-                )
-                persistForceStop(forceStop)
-                _uiState.value = status.toUiState(context).copy(daemonBusy = false, forceStop = forceStop)
+        runCatching { coordinator.execute(QuickAction.ForceFull(capacity)) }
+            .onSuccess { state ->
+                _uiState.value = _uiState.value.copy(daemonBusy = false, forceStop = state.toUi())
             }
             .onFailure { error ->
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    daemonBusy = false,
-                    warnings = _uiState.value.warnings + (error.localizedMessage ?: "Failed to force full charge")
-                )
+                _uiState.value = _uiState.value.copy(isLoading = false, daemonBusy = false,
+                    warnings = _uiState.value.warnings + (error.localizedMessage ?: "Failed to force full charge"))
             }
     }
 
@@ -182,41 +137,14 @@ class OverviewViewModel(
         val active = _uiState.value.forceStop
         if (!active.active) return@launch
         _uiState.value = _uiState.value.copy(daemonBusy = true)
-        runCatching { overviewRepository.cancelChargeAction(active.mode) }
-            .onSuccess { status ->
-                forceStopStore.clear()
-                _uiState.value = status.toUiState(context).copy(daemonBusy = false, forceStop = ForceStopUiState())
+        runCatching { coordinator.cancelAny() }
+            .onSuccess { state ->
+                _uiState.value = _uiState.value.copy(daemonBusy = false, forceStop = state.toUi())
             }
             .onFailure { error ->
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    daemonBusy = false,
-                    warnings = _uiState.value.warnings + (error.localizedMessage ?: "Failed to restore charging")
-                )
+                _uiState.value = _uiState.value.copy(isLoading = false, daemonBusy = false,
+                    warnings = _uiState.value.warnings + (error.localizedMessage ?: "Failed to restore charging"))
             }
-    }
-
-    /**
-     * Cancels any currently active charging-control operation before a new one is started.
-     * Guarantees the operations stay mutually exclusive on the ACC side (no two blocking commands
-     * fighting for the lock).
-     */
-    private suspend fun cancelIfActive() {
-        val active = _uiState.value.forceStop
-        if (!active.active) return
-        runCatching { overviewRepository.cancelChargeAction(active.mode) }
-    }
-
-    /** Persists a newly-activated charging-control state. */
-    private fun persistForceStop(forceStop: ForceStopUiState) {
-        forceStopStore.save(
-            ForceStopState(
-                active = true,
-                mode = forceStop.mode,
-                condition = forceStop.condition,
-                startedAt = forceStop.startedAt
-            )
-        )
     }
 
     fun showChargeToDialog() {
@@ -258,7 +186,8 @@ class OverviewViewModel(
             _uiState.value = _uiState.value.copy(isLoading = true)
         }
         val status = overviewRepository.loadStatus()
-        val forceStop = reconcileForceStop(_uiState.value.forceStop, status)
+        val now = System.currentTimeMillis()
+        val forceStop = coordinator.reconcile(status, now).toUi()
         _uiState.value = status.toUiState(context, daemonBusy = _uiState.value.daemonBusy)
             .copy(
                 forceStop = forceStop,
@@ -268,71 +197,17 @@ class OverviewViewModel(
             )
     }
 
-    /**
-     * Keeps the persisted force-stop state aligned with reality on each status refresh.
-     *
-     * While force-stop is active the app cannot see ACC's own timer, so we derive the true state
-     * from the freshly loaded [status] every poll:
-     *  - A force-stop whose [ForceStopUiState.startedAt] predates the last boot is cleared
-     *    immediately: ACC's detached timer and the sysfs charging switch both die on reboot, and
-     *    ACC's boot service restarts the daemon with the normal config.
-     *  - [ForceStopUiState.elapsedSeconds] is recomputed from [ForceStopUiState.startedAt] to
-     *    drive the live remaining-time countdown.
-     *  - Recovery is detected for every condition type ACC supports:
-     *    - duration (`"30m"`, `"1h"`, `"2h"`): ACC sleeps on the wall clock, so once
-     *      `elapsed >= duration` the condition has been met — charging is re-enabled.
-     *    - capacity (`"50%"`, `"60%"`, `"70%"`): once the reported level is `<= threshold` ACC's
-     *      `until` loop has ended and charging is re-enabled.
-     *    - any condition: when the charging status is `Charging` again, ACC has flipped the
-     *      charging switch back on (it always calls `enable_charging` when a condition is met,
-     *      and also for an unconditional restore via `acc -e`). A short grace period avoids
-     *      clearing the card in the brief window right after enabling, before the detached
-     *      `acc -d` command has actually cut the switch.
-     *
-     * Note the daemon state is intentionally NOT used here: `acc -d <condition>` keeps holding
-     * ACC's lock (and thus reports "daemon running") for the whole force-stop, so it cannot tell
-     * force-stopped apart from recovered.
-     */
-    private fun reconcileForceStop(current: ForceStopUiState, status: AccStatus?): ForceStopUiState {
-        if (!current.active) {
-            return current
-        }
+    private fun ForceStopState.toUi(): ForceStopUiState {
         val now = System.currentTimeMillis()
-        val elapsed = current.startedAt?.let { ((now - it) / 1000L).coerceAtLeast(0L) } ?: 0L
-        // A force-stop started before the last boot can no longer be in effect: ACC's detached
-        // timer and the sysfs charging switch it toggled both die on reboot, and ACC's boot
-        // service restarts the daemon with the normal charging config. Clear the stale state so
-        // the card doesn't keep claiming "charging stopped" after a reboot.
-        if (current.startedAt != null && current.startedAt < bootTimestampMs()) {
-            forceStopStore.clear()
-            return ForceStopUiState()
-        }
-        if (isForceStopRecovered(current, status)) {
-            forceStopStore.clear()
-            return ForceStopUiState()
-        }
-        return current.copy(elapsedSeconds = elapsed)
+        val elapsed = startedAt?.let { ((now - it) / 1000L).coerceAtLeast(0L) } ?: 0L
+        return ForceStopUiState(
+            active = active,
+            mode = mode,
+            condition = condition,
+            startedAt = startedAt,
+            elapsedSeconds = elapsed
+        )
     }
-
-    /** Whether ACC has already restored charging given [current]'s mode/condition and [status]. */
-    private fun isForceStopRecovered(current: ForceStopUiState, status: AccStatus?): Boolean {
-        val chargingStatus = status?.chargingInfo?.status
-        val level = status?.chargingInfo?.level
-        return ForceStopReconciler.reconcile(
-            current = current.toPersisted(),
-            chargingStatus = chargingStatus,
-            level = level,
-            bootTimestampMs = bootTimestampMs(),
-            now = System.currentTimeMillis()
-        ).recovered
-    }
-
-    private fun ForceStopUiState.toPersisted(): ForceStopState = ForceStopState(
-        active = active,
-        mode = mode,
-        condition = condition,
-        startedAt = startedAt
-    )
 
     override fun onCleared() {
         stopAutoRefresh()
@@ -341,6 +216,11 @@ class OverviewViewModel(
 
     companion object {
         private const val CHARGING_REFRESH_INTERVAL_MS = 3_000L
+
+        private object NoOpServiceController : ServiceController {
+            override fun start() {}
+            override fun stop() {}
+        }
 
         fun factory(
             context: Context,
@@ -355,40 +235,6 @@ class OverviewViewModel(
                 ) as T
             }
         }
-    }
-}
-
-private object LiveOverviewRepository : OverviewRepository {
-    override suspend fun loadStatus(): AccStatus? = AccStateManager.refreshStatus()
-
-    override suspend fun startService(): AccStatus? {
-        AccStateManager.setDaemonRunning(true)
-        return AccStateManager.refreshStatus()
-    }
-
-    override suspend fun setDaemonRunning(enabled: Boolean): AccStatus? {
-        AccStateManager.setDaemonRunning(enabled)
-        return AccStateManager.refreshStatus()
-    }
-
-    override suspend fun setForceStopCharging(enabled: Boolean, condition: String?): AccStatus? {
-        AccStateManager.setForceStopCharging(enabled, condition)
-        return AccStateManager.refreshStatus()
-    }
-
-    override suspend fun enableCharging(condition: String?): AccStatus? {
-        AccStateManager.enableCharging(condition)
-        return AccStateManager.refreshStatus()
-    }
-
-    override suspend fun forceFullCharge(capacity: Int): AccStatus? {
-        AccStateManager.forceFullCharge(capacity)
-        return AccStateManager.refreshStatus()
-    }
-
-    override suspend fun cancelChargeAction(mode: ChargingControlMode): AccStatus? {
-        AccStateManager.cancelChargeAction(mode)
-        return AccStateManager.refreshStatus()
     }
 }
 

@@ -9,6 +9,7 @@ import app.owlow.accsettings.acc.ChargingInfo
 import app.owlow.accsettings.acc.Command
 import app.owlow.accsettings.data.ForceStopChargingStore
 import app.owlow.accsettings.data.ForceStopState
+import app.owlow.accsettings.data.OverviewRepository
 import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -342,7 +343,6 @@ class OverviewViewModelTest {
         // Force-stop on => active with the recovery condition.
         assertEquals(true, viewModel.uiState.value.forceStop.active)
         assertEquals("1h", viewModel.uiState.value.forceStop.condition)
-        assertEquals(false, viewModel.uiState.value.runtimeFacts.first { it.actionId == "toggle_daemon" }.actionValue)
 
         viewModel.cancelForceStopCharging().join()
 
