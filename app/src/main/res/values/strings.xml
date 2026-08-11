@@ -351,4 +351,8 @@
     <!-- Home screen widget -->
     <string name="quick_action_widget_title">Quick actions</string>
     <string name="quick_action_widget_desc">Quick charging controls</string>
+
+    <!-- Quick settings tile -->
+    <string name="quick_action_tile_label">Charge control</string>
+    <string name="quick_action_tile_desc">Quick charging controls</string>
 </resources>

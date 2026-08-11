@@ -350,4 +350,8 @@
     <!-- Home screen widget -->
     <string name="quick_action_widget_title">快捷操作</string>
     <string name="quick_action_widget_desc">快速充电控制</string>
+
+    <!-- Quick settings tile -->
+    <string name="quick_action_tile_label">充电控制</string>
+    <string name="quick_action_tile_desc">快速充电控制</string>
     </resources>

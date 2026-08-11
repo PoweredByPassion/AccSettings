@@ -54,5 +54,15 @@
             android:name=".quickaction.QuickActionService"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
+        <service
+            android:name=".quickaction.QuickActionTileService"
+            android:label="@string/quick_action_tile_label"
+            android:icon="@drawable/ic_quick_action"
+            android:exported="true"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
     </application>
 </manifest>
