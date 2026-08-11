@@ -6,6 +6,7 @@ import android.service.quicksettings.TileService
 import android.widget.Toast
 import app.owlow.accsettings.R
 import app.owlow.accsettings.SettingsActivity
+import app.owlow.accsettings.data.ForceStopChargingStore
 import app.owlow.accsettings.data.ForceStopState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -25,16 +26,21 @@ import kotlinx.coroutines.withContext
 class QuickActionTileService : TileService() {
 
     private val tileScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private lateinit var store: ForceStopChargingStore
     private lateinit var coordinator: ChargingControlCoordinator
     private var stateJob: Job? = null
 
     override fun onCreate() {
         super.onCreate()
+        store = ForceStopChargingStore.from(applicationContext)
         coordinator = ChargingControlCoordinator.forContext(applicationContext)
     }
 
     override fun onStartListening() {
         super.onStartListening()
+        // Another coordinator (app, widget, receiver) may have changed the persisted state
+        // since this tile's own coordinator was created — re-read the authoritative store first.
+        updateTile(store.load())
         stateJob?.cancel()
         stateJob = tileScope.launch {
             coordinator.state.collect { state ->
