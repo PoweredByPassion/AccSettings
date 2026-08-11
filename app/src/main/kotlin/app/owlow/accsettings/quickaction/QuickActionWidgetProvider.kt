@@ -77,7 +77,7 @@ class QuickActionWidgetProvider : AppWidgetProvider() {
         val pct = if (level >= 0 && scale > 0) (level * 100 / scale) else -1
 
         if (pct >= 0) {
-            views.setTextViewText(R.id.widget_status, "$pct%%")
+            views.setTextViewText(R.id.widget_status, "$pct%")
         } else {
             views.setTextViewText(R.id.widget_status, "")
         }
