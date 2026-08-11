@@ -12,6 +12,7 @@ import app.owlow.accsettings.acc.AccStatus
 import app.owlow.accsettings.acc.ChargingControlMode
 import app.owlow.accsettings.data.ForceStopChargingStore
 import app.owlow.accsettings.data.ForceStopState
+import app.owlow.accsettings.quickaction.ForceStopReconciler
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -315,75 +316,23 @@ class OverviewViewModel(
 
     /** Whether ACC has already restored charging given [current]'s mode/condition and [status]. */
     private fun isForceStopRecovered(current: ForceStopUiState, status: AccStatus?, elapsed: Long): Boolean {
-        val chargingStatus = status?.chargingInfo?.status?.trim()
-        val charging = chargingStatus?.equals("charging", ignoreCase = true) == true
-        val level = status?.chargingInfo?.level?.trim()?.toIntOrNull()
-
-        return when (current.mode) {
-            ChargingControlMode.STOP -> {
-                val durationSeconds = when (current.condition) {
-                    "30m" -> 30 * 60L
-                    "1h" -> 60 * 60L
-                    "2h" -> 2 * 60 * 60L
-                    else -> null
-                }
-                val capacityThreshold = when (current.condition) {
-                    "50%" -> 50
-                    "60%" -> 60
-                    "70%" -> 70
-                    else -> null
-                }
-                when {
-                    // Status reads Charging again only after ACC's enable_charging ran (recovery
-                    // for any condition, including the unconditional manual restore). The grace
-                    // period keeps the card from vanishing in the second or two before the
-                    // detached acc -d cuts the switch.
-                    charging && elapsed >= RECOVERY_GRACE_SECONDS -> true
-                    // Duration conditions: ACC sleeps on the wall clock, so elapsed >= duration
-                    // means the recovery point has been reached even if this poll caught the
-                    // status mid-flip.
-                    durationSeconds != null && elapsed >= durationSeconds -> true
-                    // Capacity conditions: ACC's until-loop ends once the level drops to the
-                    // threshold.
-                    capacityThreshold != null && level != null && level <= capacityThreshold -> true
-                    else -> false
-                }
-            }
-            ChargingControlMode.CHARGE_TO -> {
-                val durationSeconds = when (current.condition) {
-                    "30m" -> 30 * 60L
-                    "1h" -> 60 * 60L
-                    else -> null
-                }
-                val targetLevel = when (current.condition) {
-                    "75%" -> 75
-                    "80%" -> 80
-                    "85%" -> 85
-                    "90%" -> 90
-                    "95%" -> 95
-                    else -> null
-                }
-                when {
-                    // A duration condition elapsed means ACC's until-loop ended and it restored
-                    // the daemon.
-                    durationSeconds != null && elapsed >= durationSeconds -> true
-                    // The level reached the target, ACC re-enabled normal control.
-                    targetLevel != null && level != null && level >= targetLevel -> true
-                    else -> false
-                }
-            }
-            ChargingControlMode.FORCE_FULL -> {
-                val targetLevel = current.condition?.toIntOrNull()
-                when {
-                    // The level reached the target capacity — the one-shot full charge is done.
-                    targetLevel != null && level != null && level >= targetLevel -> true
-                    // ACC stopped charging entirely (not_charging / Idle), so it is done.
-                    !charging && chargingStatus != null && elapsed >= RECOVERY_GRACE_SECONDS -> true
-                    else -> false
-                }
-            }
-        }
+        val chargingStatus = status?.chargingInfo?.status
+        val level = status?.chargingInfo?.level
+        return ForceStopReconciler.reconcile(
+            current = current.toPersisted(),
+            chargingStatus = chargingStatus,
+            level = level,
+            bootTimestampMs = bootTimestampMs(),
+            now = System.currentTimeMillis()
+        ).recovered
     }
+
+    private fun ForceStopUiState.toPersisted(): ForceStopState = ForceStopState(
+        active = active,
+        mode = mode,
+        condition = condition,
+        startedAt = startedAt
+    )
 
     override fun onCleared() {
         stopAutoRefresh()
@@ -392,13 +341,6 @@ class OverviewViewModel(
 
     companion object {
         private const val CHARGING_REFRESH_INTERVAL_MS = 3_000L
-
-        /**
-         * Seconds after enabling before a `Charging` status is trusted as recovery. The detached
-         * `acc -d <condition>` takes a moment to actually cut the charging switch; during that
-         * window the battery still reports `Charging` even though force-stop is in effect.
-         */
-        private const val RECOVERY_GRACE_SECONDS = 15L
 
         fun factory(
             context: Context,
