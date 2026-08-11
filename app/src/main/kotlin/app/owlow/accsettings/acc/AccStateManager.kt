@@ -29,6 +29,7 @@ data class AccSettingState(
 
 object AccStateManager {
     private const val TAG = "AccStateManager"
+    private const val APP_PKG = "app.owlow.accsettings"
 
     private val _accStatus = MutableStateFlow<AccStatus?>(null)
     val accStatus: StateFlow<AccStatus?> = _accStatus.asStateFlow()
@@ -93,6 +94,12 @@ object AccStateManager {
 
     suspend fun setDaemonRunning(daemonRunning: Boolean): Boolean {
         val result = bridge().setDaemonRunning(daemonRunning)
+        refreshNow()
+        return result.success
+    }
+
+    suspend fun setForceStopCharging(enabled: Boolean, condition: String? = null): Boolean {
+        val result = bridge().setForceStopCharging(enabled, condition)
         refreshNow()
         return result.success
     }
@@ -193,7 +200,7 @@ object AccStateManager {
             daemonReader = { Command.isDaemonRunning() },
             currentConfigReader = { Command.getCurrentConfig() },
             defaultConfigReader = { Command.getDefaultConfig() },
-            batteryInfoReader = { fetchBatteryInfo() },
+            chargingInfoReader = { fetchChargingInfo() },
             installAction = { handler.install(context) },
             upgradeAction = { handler.upgrade(context) },
             repairAction = { handler.repair() },
@@ -202,16 +209,41 @@ object AccStateManager {
                 handler.setDaemonRunning(enabled)
                 true
             },
+            forceStopChargingAction = { enabled, condition ->
+                if (enabled) {
+                    handler.disableCharging(condition)
+                } else {
+                    handler.startDaemon()
+                }
+                true
+            },
             reinitializeAction = { handler.reinitialize() },
             lifecycleCapabilityRefresh = { capabilityProbe.refresh(ProbeRefreshReason.RECHECK) },
             bundledVersionCodeProvider = { context.resources.getInteger(R.integer.acc_version_code) }
         )
     }
 
-    private suspend fun fetchBatteryInfo(): BatteryInfo? =
-        appContext
-            ?.let(::readSystemBatteryInfo)
-            ?.toBatteryInfo()
+    private suspend fun fetchChargingInfo(): ChargingInfo? {
+        val context = appContext ?: return null
+        val root = try {
+            Shell.rootAccess()
+        } catch (_: Exception) {
+            false
+        }
+        if (root) {
+            val accInfo = runCatching { Command.getInfoRaw() }.getOrNull()
+            val base = accInfo?.takeIf { it.isNotBlank() }?.let { ChargingInfoParser.parseAccInfo(it) }
+            if (base != null) {
+                val handshake = SysfsChargingReader.read(::readSysfsNode)
+                return ChargingInfoParser.mergeChargingInfo(base, handshake)
+            }
+        }
+        // Fallback: system API for base fields, handshake stays null.
+        return readSystemBatteryInfo(context)?.toChargingInfo()
+    }
+
+    private suspend fun readSysfsNode(path: String): String? =
+        runCatching { Command.exec("cat \"$path\"").ifBlank { "" } }.getOrNull()
 
     private suspend fun collectProbeFacts(): AccProbeFacts {
         val hasRoot = try {
@@ -306,12 +338,15 @@ object AccStateManager {
     }
 
     private fun logDebug(message: String) {
-        runCatching { Log.d(TAG, message) }
+        runCatching { Log.d(TAG, fmt(message)) }
     }
 
     private fun logError(message: String, throwable: Throwable) {
-        runCatching { Log.e(TAG, message, throwable) }
+        runCatching { Log.e(TAG, fmt(message), throwable) }
     }
+
+    /** Standard `[pkg] tag:` prefix so every line is identifiable in logcat. */
+    private fun fmt(message: String): String = "[$APP_PKG] $TAG: $message"
 
     private data class SystemBatteryInfo(
         val level: String?,
@@ -373,21 +408,21 @@ object AccStateManager {
         )
     }
 
-    private fun SystemBatteryInfo.toBatteryInfo(): BatteryInfo? = BatteryInfo(
+    private fun SystemBatteryInfo.toChargingInfo(): ChargingInfo? = ChargingInfo(
         level = level,
         status = status,
         temp = temperature,
         current = current,
         voltage = voltage,
         power = power
-    ).takeIf { batteryInfo ->
+    ).takeIf { chargingInfo ->
         listOf(
-            batteryInfo.level,
-            batteryInfo.status,
-            batteryInfo.temp,
-            batteryInfo.current,
-            batteryInfo.voltage,
-            batteryInfo.power
+            chargingInfo.level,
+            chargingInfo.status,
+            chargingInfo.temp,
+            chargingInfo.current,
+            chargingInfo.voltage,
+            chargingInfo.power
         ).any { !it.isNullOrBlank() }
     }
 }

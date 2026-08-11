@@ -8,6 +8,10 @@ import java.util.*
 
 object Command {
     private const val TAG = "Command"
+    private const val APP_PKG = "app.owlow.accsettings"
+
+    /** Prepends a stable, standard `[pkg] tag:` prefix so log lines are identifiable in logcat. */
+    private fun fmt(msg: String): String = "[$APP_PKG] $TAG: $msg"
 
     open class AccException : Exception {
         constructor()
@@ -43,7 +47,7 @@ object Command {
     internal var execTestOverride: ((String) -> Boolean)? = null
 
     suspend fun exec(command: String): String = withContext(Dispatchers.IO) {
-        runCatching { Log.v(TAG, "exec: $command") }
+        runCatching { Log.d(TAG, fmt("exec: $command")) }
         execOverride?.let { return@withContext it(command) }
         val shell = Shell.getShell()
         if (!shell.isRoot) {
@@ -51,14 +55,18 @@ object Command {
         }
         val stdout = mutableListOf<String>()
         val stderr = mutableListOf<String>()
+        val startNanos = System.nanoTime()
         val result = shell.newJob().add(command).to(stdout, stderr).exec()
+        val elapsedMs = (System.nanoTime() - startNanos) / 1_000_000
         if (result.isSuccess) {
-            return@withContext stdout.joinToString("\n").trim()
+            val out = stdout.joinToString("\n").trim()
+            runCatching { Log.d(TAG, fmt("exec OK (${elapsedMs}ms): $command => ${out.take(200)}")) }
+            return@withContext out
         } else {
             val outputMsg = stdout.joinToString("\n").trim()
             val errorMsg = stderr.joinToString("\n").trim()
             val details = listOf(outputMsg, errorMsg).filter { it.isNotBlank() }.joinToString("\n")
-            Log.e(TAG, "Command failed: $command. Exit code: ${result.code}, Output: $details")
+            Log.e(TAG, fmt("exec FAILED (${elapsedMs}ms): $command. Exit code: ${result.code}, Output: ${details.take(500)}"))
             if (result.code == 127) {
                 cachedAccPath = null
             }
@@ -187,6 +195,9 @@ object Command {
         return properties
     }
 
+    /** Raw `acc --info` output, used by the charging-info reader. */
+    suspend fun getInfoRaw(): String = execAcc("info")
+
     internal fun parseVersionOutput(version: String): Pair<Int, String?> {
         val match = VERSION_REGEX.find(version.trim()) ?: return Pair(0, null)
         val versionName = match.groupValues[1]
@@ -204,9 +215,9 @@ object Command {
     private suspend fun setDaemon(option: String) = try {
         execAcc("daemon $option")
     } catch (e: DaemonExistsException) {
-        Log.i(TAG, "daemon exists")
+        Log.i(TAG, fmt("daemon exists"))
     } catch (e: DaemonNotExistsException) {
-        Log.i(TAG, "daemon not exists")
+        Log.i(TAG, fmt("daemon not exists"))
     }
 
     suspend fun setDaemonRunning(daemonRunning: Boolean) =
@@ -222,6 +233,47 @@ object Command {
     }
 
     suspend fun restartDaemon() = setDaemon("restart")
+
+    /**
+     * Force-disables charging on demand via `acc -d`.
+     *
+     * @param condition Optional recovery condition, passed straight through to ACC:
+     *   - `null` → unconditional (`acc -d`), restore with [startDaemon]
+     *   - a duration (`"30m"`, `"1h"`) or capacity threshold (`"50%"`) → runs ACC's
+     *     recommended chained form `acc -d <condition>; accd`, so when the condition is met
+     *     ACC re-enables charging AND restarts the daemon (regular settings return) —
+     *     all automatically, no app-side timer needed.
+     */
+    suspend fun disableCharging(condition: String? = null) {
+        val accPath = withContext(Dispatchers.IO) {
+            requireAccExecutable { path -> execTest(path) }
+        }
+        if (condition == null) {
+            exec("$accPath -d")
+        } else {
+            // The chained `acc -d <condition>; accd` blocks until the recovery condition is met
+            // (e.g. acc -d 1h sleeps for an hour). Run it via `nohup ... &` so it is detached
+            // from the shared libsu root shell — otherwise the blocking command would stall every
+            // subsequent root command (the 3s overview polling) until the condition is met.
+            val daemon = withContext(Dispatchers.IO) {
+                findAccDaemon { path -> execTest(path) } ?: accPath
+            }
+            exec("nohup sh -c \"$accPath -d $condition; $daemon\" > /dev/null 2>&1 &")
+        }
+    }
+
+    /**
+     * Starts/restarts the ACC daemon via the `accd` command, which is ACC's documented way to
+     * restore the regular pause/resume charging settings after a forced disable.
+     */
+    suspend fun startDaemon() {
+        val daemonPath = withContext(Dispatchers.IO) {
+            findAccDaemon { path -> execTest(path) }
+                ?: findAccExecutable { path -> execTest(path) }
+                ?: throw NotInstalledException()
+        }
+        exec(daemonPath)
+    }
 
     suspend fun reinitialize() = exec(withContext(Dispatchers.IO) {
         buildReinitializeCommand { path -> execTest(path) }

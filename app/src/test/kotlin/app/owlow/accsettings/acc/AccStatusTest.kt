@@ -47,4 +47,20 @@ class AccStatusTest {
         assertEquals(true, status.showUninstallAction)
         assertEquals(false, status.daemonRunning)
     }
+
+    @Test
+    fun chargingInfo_carries_all_fields() {
+        val info = ChargingInfo(
+            level = "34%", status = "Charging", temp = "34℃",
+            current = "0.02A", voltage = "3.81V", power = "0.08W",
+            chargeType = "pc_port",
+            protocol = "USB_PD", realProtocol = "USB", pdActive = false,
+            negotiatedCurrent = "500 mA", negotiatedVoltage = "5 V",
+            negotiatedPower = "2.5 W", ccMode = "0"
+        )
+        assertEquals("USB_PD", info.protocol)
+        assertEquals("500 mA", info.negotiatedCurrent)
+        assertEquals("2.5 W", info.negotiatedPower)
+        assertEquals(false, info.pdActive)
+    }
 }

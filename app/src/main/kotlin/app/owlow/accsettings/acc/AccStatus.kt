@@ -7,13 +7,22 @@ enum class AccInstallState {
     UP_TO_DATE
 }
 
-data class BatteryInfo(
-    val level: String?,
-    val status: String?,
-    val temp: String?,
-    val current: String?,
-    val voltage: String?,
-    val power: String?
+data class ChargingInfo(
+    val level: String? = null,
+    val status: String? = null,
+    val temp: String? = null,
+    val current: String? = null,
+    val voltage: String? = null,
+    val power: String? = null,
+    val chargeType: String? = null,
+    val powerConnected: Boolean? = null,
+    val protocol: String? = null,
+    val realProtocol: String? = null,
+    val pdActive: Boolean? = null,
+    val negotiatedCurrent: String? = null,
+    val negotiatedVoltage: String? = null,
+    val negotiatedPower: String? = null,
+    val ccMode: String? = null
 )
 
 data class AccStatus(
@@ -23,7 +32,7 @@ data class AccStatus(
     val canManageDaemon: Boolean,
     val showInstallAction: Boolean,
     val showUninstallAction: Boolean,
-    val batteryInfo: BatteryInfo? = null,
+    val chargingInfo: ChargingInfo? = null,
     val lastError: String? = null
 )
 
@@ -33,7 +42,7 @@ object AccStatusResolver {
         installedVersionName: String?,
         bundledVersionCode: Int,
         daemonRunning: Boolean,
-        batteryInfo: BatteryInfo? = null
+        chargingInfo: ChargingInfo? = null
     ): AccStatus {
         val installState = when {
             installedVersionCode <= 0 -> AccInstallState.NOT_INSTALLED
@@ -49,7 +58,7 @@ object AccStatusResolver {
             canManageDaemon = canManageDaemon,
             showInstallAction = installState != AccInstallState.UP_TO_DATE,
             showUninstallAction = installState != AccInstallState.NOT_INSTALLED,
-            batteryInfo = batteryInfo
+            chargingInfo = chargingInfo
         )
     }
 }

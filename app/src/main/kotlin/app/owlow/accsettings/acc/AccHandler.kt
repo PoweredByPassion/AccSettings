@@ -30,7 +30,7 @@ class AccHandler {
         val accVersionCode = resources.getInteger(R.integer.acc_version_code)
         val accVersionName = resources.getString(R.string.acc_version_name)
         try {
-            Log.d(TAG, "Starting install...")
+            Log.d(TAG, fmt("Starting install..."))
             Command.exec(buildCacheCleanupCommand(context.cacheDir))
             context.cacheDir.listFiles()?.forEach { it.deleteRecursively() }
             val installerArchiveName = buildInstallerArchiveName(accVersionName)
@@ -45,9 +45,9 @@ class AccHandler {
             Command.exec(command)
             serve()
             awaitInstalledVersion(accVersionCode) { Command.getVersion().first }
-            Log.d(TAG, "Install command finished.")
+            Log.d(TAG, fmt("Install command finished."))
         } catch (e: Exception) {
-            Log.e(TAG, "Install failed", e)
+            Log.e(TAG, fmt("Install failed"), e)
             val diagnostics = readInstallDiagnostics(context)
             val baseMessage = e.localizedMessage ?: "Install failed"
             val detailedMessage = if (diagnostics.isBlank()) {
@@ -75,7 +75,7 @@ class AccHandler {
         }
 
         if (!accInstalled) {
-            Log.w(TAG, "ACC is not installed, nothing to uninstall")
+            Log.w(TAG, fmt("ACC is not installed, nothing to uninstall"))
             return
         }
 
@@ -89,15 +89,15 @@ class AccHandler {
 
         if (scriptExists) {
             // Use official uninstall script
-            Log.d(TAG, "Using official uninstall script")
+            Log.d(TAG, fmt("Using official uninstall script"))
             Command.exec(buildUninstallCommand(File("/data/adb/vr25/acc/uninstall.sh")))
         } else {
             // Fallback: manually remove ACC directories
-            Log.w(TAG, "Uninstall script not found, removing directories manually")
+            Log.w(TAG, fmt("Uninstall script not found, removing directories manually"))
             Command.exec("rm -rf /data/adb/vr25/acc /dev/.vr25/acc")
         }
         Command.exec(buildPostUninstallCleanupCommand())
-        Log.d(TAG, "uninstall end")
+        Log.d(TAG, fmt("uninstall end"))
     }
 
     @Throws(Command.AccException::class)
@@ -113,6 +113,16 @@ class AccHandler {
     @Throws(Command.AccException::class)
     suspend fun setDaemonRunning(daemonRunning: Boolean) {
         Command.setDaemonRunning(daemonRunning)
+    }
+
+    @Throws(Command.AccException::class)
+    suspend fun disableCharging(condition: String? = null) {
+        Command.disableCharging(condition)
+    }
+
+    @Throws(Command.AccException::class)
+    suspend fun startDaemon() {
+        Command.startDaemon()
     }
 
     @Throws(Command.AccException::class)
@@ -143,6 +153,10 @@ class AccHandler {
 
     companion object {
         const val TAG = "AccHandler"
+        private const val APP_PKG = "app.owlow.accsettings"
+
+        /** Standard `[pkg] tag:` prefix so every line is identifiable in logcat. */
+        private fun fmt(message: String): String = "[$APP_PKG] $TAG: $message"
 
         private fun shellQuote(value: String): String = "'${value.replace("'", "'\"'\"'")}'"
 

@@ -421,11 +421,17 @@ open class ConfigDataStore internal constructor(
                 try {
                     when (group) {
                         PatchGroup.CAPACITY -> target.currentCapacity?.let {
-                            Command.setConfig("sc", it.shutdown.toString())
-                            Command.setConfig("cc", it.cooldown.toString())
-                            Command.setConfig("rc", it.resume.toString())
-                            Command.setConfig("pc", it.pause.toString())
-                            Command.setConfig("cm", it.maskAsFull.toString())
+                            // Atomic write: merge all 5 capacity fields into a single
+                            // `--set sc=.. cc=.. rc=.. pc=.. cm=..`, so accd's write-config.sh
+                            // linkage fallback cannot rewrite intermediate states between per-field
+                            // writes and cause frontend/backend config divergence.
+                            Command.setConfig(
+                                "sc", it.shutdown.toString(),
+                                "cc", it.cooldown.toString(),
+                                "rc", it.resume.toString(),
+                                "pc", it.pause.toString(),
+                                "cm", it.maskAsFull.toString()
+                            )
                         }
                         PatchGroup.TEMPERATURE -> target.currentTemperature?.let {
                             Command.setConfig("ct", it.cooldown.toString())

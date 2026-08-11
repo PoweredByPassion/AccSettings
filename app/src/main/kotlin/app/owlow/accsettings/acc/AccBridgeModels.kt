@@ -11,17 +11,18 @@ data class GroupedConfigRead(
     val defaultTemperature: TemperatureConfig? = null
 ) {
     /**
-     * 对比两个配置在逻辑上是否等价，忽略 Properties 对象内部的存储格式差异（如单个字段 vs 括号组）。
+     * Compares two configs for logical equivalence, ignoring storage-format differences inside the
+     * Properties objects (e.g. individual fields vs. parenthesized groups).
      */
     fun isSameAs(other: GroupedConfigRead): Boolean {
         if (this === other) return true
-        
-        // 核心结构化数据必须一致
+
+        // Core structured data must match
         if (currentCapacity != other.currentCapacity) return false
         if (currentTemperature != other.currentTemperature) return false
-        
-        // 对于 Properties 中的其他杂项字段，我们也需要对比
-        // 排除掉已经结构化的 capacity 和 temperature 相关字段
+
+        // Remaining misc Properties fields are compared too,
+        // excluding the keys already captured by the structured capacity/temperature groups.
         val keysToIgnore = setOf(
             "capacity", "temperature",
             "shutdown_capacity", "cooldown_capacity", "resume_capacity", "pause_capacity", "capacity_mask",

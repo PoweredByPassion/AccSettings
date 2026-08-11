@@ -1,5 +1,30 @@
 # Changelog
 
+## 2026-08-11
+
+**New**
+
+- **Force-stop charging now shows a live countdown**: while charging is paused, the Overview card shows the remaining time (e.g. "Charging resumes in 23m 41s") for duration-based recovery conditions instead of a static label.
+
+**Fixes**
+
+- **Force-stop charging state now reconciles with the real ACC state**: the card no longer stays stuck on "Charging resumes in 30 minutes" after ACC has already restored charging. On every status refresh the app derives the true device state from ACC's charging status/level — a duration condition that has elapsed, a capacity threshold that has been reached, or the battery reporting `Charging` again all clear the card automatically. This covers all three recovery condition types (duration, capacity, unconditional).
+- **Reboot no longer leaves a stale force-stop card**: a force-stop started before the last boot is detected (via `SystemClock.elapsedRealtime()`) and cleared immediately, since ACC's detached timer and the sysfs charging switch both die on reboot and ACC's boot service restarts the daemon with the normal config.
+
+## 2026-08-10
+
+**New**
+
+- **Charging Information section**: the home screen now reads live charging data from ACC (`acc --info`) instead of the Android system API, so it reflects the same root-side values AccSetting manages. When ACC/root is unavailable it falls back to the system battery API. Refresh interval dropped from 15s to 3s.
+- **Fast-charging handshake details**: new rows show the negotiated USB protocol (`usb/type`, e.g. USB_PD), PD negotiation state, negotiated voltage/current and computed power (`voltage_max × current_max`), and CC mode — read from sysfs under `/sys/class/power_supply/` with automatic port discovery (`usb` / `main`).
+- **Friendly charge-type labels**: `pc_port`/`usb`/`dc` are localized (e.g. "PC port", "USB", "Wireless") instead of shown raw.
+- Section title renamed from "Battery Information" to "Charging Information" (en + zh).
+
+**Fixes**
+
+- **Config writes are now atomic**: the five capacity fields (sc/cc/rc/pc/cm) are merged into a single `acc --set sc=.. cc=.. rc=.. pc=.. cm=..` command instead of five separate writes, so ACC's `write-config.sh` linkage fallback can no longer rewrite intermediate states and cause frontend/backend config divergence (the "config changed on device" error).
+- English-only code comments (all Chinese comments translated).
+
 ## 2026-08-04
 
 **New**

@@ -1,137 +1,137 @@
 #!/bin/bash
 
-# Debug APK 构建和安装脚本
-# 用途：打包 debug 包并安装到连接的 Android 设备
+# Debug APK build and install script
+# Builds the debug package and installs it to a connected Android device
 
-set -e  # 遇到错误立即退出
+set -e  # Exit immediately on error
 
 echo "================================================"
-echo "  ACC Settings - Debug APK 构建和安装"
+echo "  ACC Settings - Debug APK build and install"
 echo "================================================"
 echo ""
 
-# 颜色定义
+# Color definitions
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-# 检查 adb 是否可用
+# Check that adb is available
 if ! command -v adb &> /dev/null; then
-    echo -e "${RED}错误: adb 未找到，请确保 Android SDK platform-tools 在 PATH 中${NC}"
+    echo -e "${RED}Error: adb not found. Ensure Android SDK platform-tools is on PATH${NC}"
     exit 1
 fi
 
-# 检查是否有设备连接
-echo "检查设备连接状态..."
+# Check for a connected device
+echo "Checking device connection..."
 DEVICE_COUNT=$(adb devices | grep -v "List of devices" | grep "device$" | wc -l)
 
 if [ "$DEVICE_COUNT" -eq 0 ]; then
-    echo -e "${YELLOW}警告: 没有检测到已连接的设备${NC}"
-    echo "请确保:"
-    echo "  1. 设备已通过 USB 连接"
-    echo "  2. 设备已开启 USB 调试模式"
-    echo "  3. 已授权此电脑进行调试"
+    echo -e "${YELLOW}Warning: no connected device detected${NC}"
+    echo "Please ensure:"
+    echo "  1. The device is connected via USB"
+    echo "  2. USB debugging is enabled on the device"
+    echo "  3. This computer is authorized for debugging"
     echo ""
-    read -p "是否继续构建 APK (不安装)? (y/n): " CONTINUE_BUILD
+    read -p "Continue building APK (without installing)? (y/n): " CONTINUE_BUILD
     if [[ ! "$CONTINUE_BUILD" =~ ^[Yy]$ ]]; then
-        echo "已取消操作"
+        echo "Operation cancelled"
         exit 0
     fi
     INSTALL_FLAG=false
 else
-    echo -e "${GREEN}检测到 $DEVICE_COUNT 个设备已连接${NC}"
+    echo -e "${GREEN}Detected $DEVICE_COUNT connected device(s)${NC}"
     adb devices -l
     echo ""
     INSTALL_FLAG=true
 fi
 
-# 清理之前的构建
-echo "清理之前的构建文件..."
+# Clean previous build
+echo "Cleaning previous build files..."
 ./gradlew clean
 
-# 构建 Debug APK
+# Build Debug APK
 echo ""
-echo "开始构建 Debug APK..."
+echo "Building Debug APK..."
 echo "================================================"
 ./gradlew assembleDebug
 
-# 检查构建是否成功
+# Check whether the build succeeded
 if [ $? -eq 0 ]; then
     echo ""
-    echo -e "${GREEN}✓ Debug APK 构建成功!${NC}"
+    echo -e "${GREEN}✓ Debug APK built successfully!${NC}"
     echo ""
 else
     echo ""
-    echo -e "${RED}✗ Debug APK 构建失败${NC}"
+    echo -e "${RED}✗ Debug APK build failed${NC}"
     exit 1
 fi
 
-# APK 文件路径
+# APK file path
 APK_PATH="app/build/outputs/apk/debug/app-debug.apk"
 
-# 检查 APK 是否存在
+# Check that the APK exists
 if [ ! -f "$APK_PATH" ]; then
-    echo -e "${RED}错误: 找不到 APK 文件: $APK_PATH${NC}"
+    echo -e "${RED}Error: APK file not found: $APK_PATH${NC}"
     exit 1
 fi
 
-# 显示 APK 信息
-echo "APK 信息:"
-echo "  路径: $(pwd)/$APK_PATH"
-echo "  大小: $(du -h "$APK_PATH" | cut -f1)"
-echo "  修改时间: $(stat -c %y "$APK_PATH" 2>/dev/null || stat -f "%Sm" "$APK_PATH")"
+# Display APK info
+echo "APK info:"
+echo "  Path: $(pwd)/$APK_PATH"
+echo "  Size: $(du -h "$APK_PATH" | cut -f1)"
+echo "  Modified: $(stat -c %y "$APK_PATH" 2>/dev/null || stat -f "%Sm" "$APK_PATH")"
 echo ""
 
-# 安装到设备
+# Install to device
 if [ "$INSTALL_FLAG" = true ]; then
     echo "================================================"
-    echo "开始安装到设备..."
+    echo "Installing to device..."
     echo "================================================"
 
-    # 卸载旧版本（如果存在）
+    # Uninstall the old version if present
     PACKAGE_NAME="app.owlow.accsettings"
-    echo "检查旧版本..."
+    echo "Checking for an old version..."
     if adb shell pm list packages | grep -q "$PACKAGE_NAME"; then
-        echo "检测到旧版本，正在卸载..."
+        echo "Old version detected, uninstalling..."
         adb uninstall "$PACKAGE_NAME"
-        echo -e "${GREEN}✓ 旧版本已卸载${NC}"
+        echo -e "${GREEN}✓ Old version uninstalled${NC}"
     else
-        echo "未检测到旧版本"
+        echo "No old version detected"
     fi
 
-    # 安装新版本
+    # Install the new version
     echo ""
-    echo "安装新版本..."
+    echo "Installing new version..."
     adb install "$APK_PATH"
 
     if [ $? -eq 0 ]; then
         echo ""
-        echo -e "${GREEN}✓ APK 安装成功!${NC}"
+        echo -e "${GREEN}✓ APK installed successfully!${NC}"
         echo ""
-        echo "启动应用..."
+        echo "Launching app..."
         adb shell am start -n "$PACKAGE_NAME/.SettingsActivity"
         echo ""
         echo -e "${GREEN}================================================${NC}"
 
-        echo -e "${GREEN}✓ 全部完成!${NC}"
+        echo -e "${GREEN}✓ All done!${NC}"
         echo -e "${GREEN}================================================${NC}"
     else
         echo ""
-        echo -e "${RED}✗ APK 安装失败${NC}"
-        echo "可能的原因:"
-        echo "  - 设备存储空间不足"
-        echo "  - 设备权限问题"
-        echo "  - APK 签名问题"
+        echo -e "${RED}✗ APK installation failed${NC}"
+        echo "Possible causes:"
+        echo "  - Not enough device storage"
+        echo "  - Device permission issues"
+        echo "  - APK signature mismatch"
         exit 1
     fi
 else
     echo -e "${GREEN}================================================${NC}"
-    echo -e "${GREEN}✓ APK 构建完成!${NC}"
+    echo -e "${GREEN}✓ APK build complete!${NC}"
     echo -e "${GREEN}================================================${NC}"
     echo ""
-    echo "APK 位于: $(pwd)/$APK_PATH"
+    echo "APK located at: $(pwd)/$APK_PATH"
     echo ""
-    echo "手动安装命令:"
+    echo "Manual install command:"
     echo "  adb install $APK_PATH"
 fi

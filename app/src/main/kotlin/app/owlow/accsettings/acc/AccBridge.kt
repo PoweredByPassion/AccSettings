@@ -22,6 +22,7 @@ class AccBridge(
     private val repairAction: suspend () -> Unit = {},
     private val uninstallAction: suspend () -> Unit = {},
     private val daemonToggleAction: suspend (Boolean) -> Boolean = { it },
+    private val forceStopChargingAction: suspend (Boolean, String?) -> Boolean = { _, _ -> false },
     private val reinitializeAction: suspend () -> Unit = {},
     private val lifecycleCapabilityRefresh: suspend () -> AccCapability = {
         capabilityProbe()
@@ -30,7 +31,7 @@ class AccBridge(
         GroupedConfigRead(current = current, defaults = defaults)
     },
     private val bundledVersionCodeProvider: () -> Int = { 0 },
-    private val batteryInfoReader: (suspend () -> BatteryInfo?)? = null,
+    private val chargingInfoReader: (suspend () -> ChargingInfo?)? = null,
     private val taskRunner: AccTaskRunner = AccTaskRunner()
 ) {
     suspend fun probeCapabilities(): AccCapability = capabilityProbe()
@@ -38,13 +39,13 @@ class AccBridge(
     suspend fun readStatus(): AccStatus {
         val (installedVersionCode, installedVersionName) = versionReader()
         val daemonRunning = daemonReader()
-        val batteryInfo = batteryInfoReader?.invoke()
+        val chargingInfo = chargingInfoReader?.invoke()
         return AccStatusResolver.resolve(
             installedVersionCode = installedVersionCode,
             installedVersionName = installedVersionName,
             bundledVersionCode = bundledVersionCodeProvider(),
             daemonRunning = daemonRunning,
-            batteryInfo = batteryInfo
+            chargingInfo = chargingInfo
         )
     }
 
@@ -182,5 +183,10 @@ class AccBridge(
     suspend fun setDaemonRunning(daemonRunning: Boolean): DaemonActionResult = taskRunner.runSerialized {
         val success = daemonToggleAction(daemonRunning)
         DaemonActionResult(success = success, daemonRunning = if (success) daemonRunning else daemonReader())
+    }
+
+    suspend fun setForceStopCharging(enabled: Boolean, condition: String?): DaemonActionResult = taskRunner.runSerialized {
+        val success = forceStopChargingAction(enabled, condition)
+        DaemonActionResult(success = success, daemonRunning = if (success) !enabled else daemonReader())
     }
 }

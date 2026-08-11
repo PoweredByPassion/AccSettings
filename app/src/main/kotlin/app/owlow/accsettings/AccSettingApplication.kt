@@ -14,7 +14,7 @@ class AccSettingApplication : Application() {
         Log.d(TAG, "Application starting")
         AppShell.configureDefaultShell()
 
-        // 启动 ACC 状态监控
+        // Start ACC status monitoring
         AccStateManager.startMonitoring(applicationContext)
     }
 
@@ -22,7 +22,7 @@ class AccSettingApplication : Application() {
         super.onTerminate()
         Log.d(TAG, "Application terminating")
 
-        // 停止监控并清理资源
+        // Stop monitoring and clean up resources
         AccStateManager.cleanup()
     }
 }

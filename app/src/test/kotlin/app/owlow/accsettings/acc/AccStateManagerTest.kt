@@ -152,6 +152,55 @@ class AccStateManagerTest {
         assertNull(AccStateManager.getCurrentStatus()?.lastError)
     }
 
+    @Test
+    fun charging_info_wires_through_bridge() = runBlocking {
+        val info = ChargingInfo(
+            level = "34", status = "Charging", chargeType = "pc_port",
+            protocol = "USB_PD", negotiatedPower = "2.5 W"
+        )
+        AccStateManager.resetForTesting(
+            bridgeFactory = {
+                testBridge(
+                    version = 202505180,
+                    versionName = "2025.5.18-dev",
+                    daemonRunning = { true },
+                    bundledVersionCode = 202505180,
+                    chargingInfo = info
+                )
+            }
+        )
+
+        AccStateManager.refreshNow()
+
+        assertEquals(info, AccStateManager.getCurrentStatus()?.chargingInfo)
+    }
+
+    @Test
+    fun force_stop_charging_wires_through_bridge() = runBlocking {
+        var forceStopCalls = mutableListOf<Boolean>()
+        var running = true
+        AccStateManager.resetForTesting(
+            bridgeFactory = {
+                testBridge(
+                    version = 202505180,
+                    versionName = "2025.5.18-dev",
+                    daemonRunning = { running },
+                    bundledVersionCode = 202505180,
+                    onForceStopCharging = { enabled, _ ->
+                        forceStopCalls += enabled
+                        running = !enabled
+                        true
+                    }
+                )
+            }
+        )
+
+        AccStateManager.setForceStopCharging(true)
+
+        assertEquals(listOf(true), forceStopCalls)
+        assertFalse(AccStateManager.isDaemonRunning())
+    }
+
     private fun testBridge(
         version: Int = 0,
         versionName: String? = null,
@@ -159,7 +208,9 @@ class AccStateManagerTest {
         bundledVersionCode: Int = 0,
         onSetDaemonRunning: suspend (Boolean) -> DaemonActionResult = {
             DaemonActionResult(success = true, daemonRunning = it)
-        }
+        },
+        chargingInfo: ChargingInfo? = null,
+        onForceStopCharging: suspend (Boolean, String?) -> Boolean = { it, _ -> it }
     ): AccBridge = AccBridge(
         capabilityProbe = { unsupportedCapability() },
         versionReader = { version to versionName },
@@ -167,7 +218,9 @@ class AccStateManagerTest {
         currentConfigReader = { java.util.Properties() },
         defaultConfigReader = { java.util.Properties() },
         daemonToggleAction = { enabled -> onSetDaemonRunning(enabled).success },
-        bundledVersionCodeProvider = { bundledVersionCode }
+        bundledVersionCodeProvider = { bundledVersionCode },
+        chargingInfoReader = { chargingInfo },
+        forceStopChargingAction = onForceStopCharging
     )
 
     private fun unsupportedCapability(): AccCapability = AccCapability.from(

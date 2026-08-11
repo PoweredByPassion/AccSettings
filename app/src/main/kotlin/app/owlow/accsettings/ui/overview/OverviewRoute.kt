@@ -41,6 +41,16 @@ fun OverviewRoute(
                 "toggle_daemon" -> overviewViewModel.toggleDaemon(enabled)
             }
         },
+        onForceStopAction = { action ->
+            when (action) {
+                ForceStopAction.REQUEST_ENABLE -> overviewViewModel.showForceStopDialog()
+                ForceStopAction.DISMISS_DIALOG -> overviewViewModel.dismissForceStopDialog()
+                ForceStopAction.CANCEL -> overviewViewModel.cancelForceStopCharging()
+            }
+        },
+        onForceStopCondition = { condition ->
+            overviewViewModel.enableForceStopCharging(condition)
+        },
         modifier = modifier
     )
 }
