@@ -95,6 +95,7 @@ fun ToolsScreen(
             item { ToolSectionCard(colors = colors, section = state.installSection, isBusy = state.isBusy, onAction = onAction) }
             item { ToolSectionCard(colors = colors, section = state.serviceSection, isBusy = state.isBusy, onAction = onAction) }
             item { ToolSectionCard(colors = colors, section = state.batterySection, isBusy = state.isBusy, onAction = onAction) }
+            item { ToolSectionCard(colors = colors, section = state.quickActionsSection, isBusy = state.isBusy, onAction = onAction) }
             item { ToolSectionCard(colors = colors, section = state.diagnosticsSection, isBusy = state.isBusy, onAction = onAction) }
             item { ToolLogCard(colors = colors, section = state.logsSection) }
             item { ToolSectionCard(colors = colors, section = state.appInfoSection, isBusy = state.isBusy, onAction = onAction) }
@@ -255,6 +256,7 @@ private fun confirmationTitle(action: ToolAction): String = when (action) {
     ToolAction.RESET_BATTERY_STATS -> stringResource(R.string.tools_confirm_reset_stats_title)
     ToolAction.EXPORT_LOGS -> stringResource(R.string.tools_confirm_export_logs_title)
     ToolAction.ESTIMATE_HEALTH -> stringResource(R.string.tools_confirm_health_title)
+    ToolAction.OPEN_QUICK_ACTIONS -> stringResource(R.string.quick_actions_config_title)
 }
 
 @Composable
@@ -267,4 +269,5 @@ private fun confirmationMessage(action: ToolAction): String = when (action) {
     ToolAction.RESET_BATTERY_STATS -> stringResource(R.string.tools_confirm_reset_stats_message)
     ToolAction.EXPORT_LOGS -> stringResource(R.string.tools_confirm_export_logs_message)
     ToolAction.ESTIMATE_HEALTH -> stringResource(R.string.tools_confirm_health_message)
+    ToolAction.OPEN_QUICK_ACTIONS -> stringResource(R.string.tools_section_quick_actions_summary)
 }

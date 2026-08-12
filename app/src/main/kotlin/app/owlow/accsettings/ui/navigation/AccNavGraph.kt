@@ -8,6 +8,7 @@ import androidx.navigation.compose.composable
 import app.owlow.accsettings.ui.about.AboutRoute
 import app.owlow.accsettings.ui.config.ConfigRoute
 import app.owlow.accsettings.ui.overview.OverviewRoute
+import app.owlow.accsettings.ui.quickactions.QuickActionConfigRoute
 import app.owlow.accsettings.ui.tools.ToolsRoute
 
 @Composable
@@ -47,7 +48,18 @@ fun AccNavGraph(
             ConfigRoute()
         }
         composable(AccDestination.Tools.route) {
-            ToolsRoute()
+            ToolsRoute(
+                onOpenQuickActions = {
+                    navController.navigate(AccDestination.QuickActions.route) {
+                        launchSingleTop = true
+                    }
+                }
+            )
+        }
+        composable(AccDestination.QuickActions.route) {
+            QuickActionConfigRoute(
+                onBack = { navController.popBackStack() }
+            )
         }
         composable(AccDestination.About.route) {
             AboutRoute()

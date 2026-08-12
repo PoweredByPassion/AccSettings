@@ -108,6 +108,7 @@ class ToolsViewModel(
                 ToolAction.RESET_BATTERY_STATS -> toolsRepository.resetBatteryStats()
                 ToolAction.EXPORT_LOGS -> toolsRepository.exportLogs()
                 ToolAction.ESTIMATE_HEALTH -> toolsRepository.estimateHealth()
+                ToolAction.OPEN_QUICK_ACTIONS -> null // handled by the Route (navigation)
             }
         }.getOrElse { error ->
             val message = ToolStatusMessage(
@@ -380,6 +381,17 @@ private fun ToolsSnapshot.toUiState(
                 lastAction == ToolAction.EXPORT_LOGS ||
                 lastAction == ToolAction.ESTIMATE_HEALTH
             ) previousMessage else null
+        ),
+        quickActionsSection = ToolSection(
+            title = context.getString(R.string.tools_section_quick_actions_title),
+            summary = context.getString(R.string.tools_section_quick_actions_summary),
+            actions = listOf(
+                ToolActionState(
+                    action = ToolAction.OPEN_QUICK_ACTIONS,
+                    label = context.getString(R.string.tools_action_configure_quick_actions),
+                    description = context.getString(R.string.tools_action_configure_quick_actions_desc)
+                )
+            )
         ),
         isBusy = false,
         pendingConfirmation = pendingConfirmation
