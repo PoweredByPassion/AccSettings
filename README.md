@@ -40,9 +40,9 @@ It provides a modern Compose-based interface for checking ACC status, editing co
 ### Full pages
 
 <div align="center">
-  <img src="ScreenShots/Overview-long.jpg" alt="Overview full" width="300"/>
-  <img src="ScreenShots/Tools-long.jpg" alt="Tools full" width="300"/>
-  <img src="ScreenShots/QuickActions-long.jpg" alt="Quick Actions full" width="300"/>
+  <img src="ScreenShots/Overview-long.jpg" alt="Overview full" width="32%"/>
+  <img src="ScreenShots/Tools-long.jpg" alt="Tools full" width="32%"/>
+  <img src="ScreenShots/QuickActions-long.jpg" alt="Quick Actions full" width="32%"/>
 </div>
 
 ## Requirements
