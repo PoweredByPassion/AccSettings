@@ -36,6 +36,19 @@ data class AccStatus(
     val lastError: String? = null
 )
 
+/**
+ * The kind of charging-control operation in effect. The three operations are mutually exclusive:
+ * only one can be active at a time, because each one stops the ACC daemon and holds its lock.
+ */
+enum class ChargingControlMode {
+    /** `acc -d` — charging is force-disabled until the recovery condition is met. */
+    STOP,
+    /** `acc -e` — charging is force-enabled until a target condition is reached. */
+    CHARGE_TO,
+    /** `acc -f` — charging runs unrestricted until a target capacity is reached. */
+    FORCE_FULL
+}
+
 object AccStatusResolver {
     fun resolve(
         installedVersionCode: Int,

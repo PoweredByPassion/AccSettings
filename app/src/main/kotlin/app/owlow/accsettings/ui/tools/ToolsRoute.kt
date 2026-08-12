@@ -8,6 +8,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
 fun ToolsRoute(
+    onOpenQuickActions: () -> Unit = {},
     toolsViewModel: ToolsViewModel = viewModel(
         factory = ToolsViewModel.factory(LocalContext.current)
     )
@@ -17,10 +18,10 @@ fun ToolsRoute(
     ToolsScreen(
         state = uiState,
         onAction = { action ->
-            if (action == ToolAction.REFRESH) {
-                toolsViewModel.refresh()
-            } else {
-                toolsViewModel.requestAction(action)
+            when (action) {
+                ToolAction.REFRESH -> toolsViewModel.refresh()
+                ToolAction.OPEN_QUICK_ACTIONS -> onOpenQuickActions()
+                else -> toolsViewModel.requestAction(action)
             }
         },
         onConfirmAction = { toolsViewModel.confirmPendingAction() },

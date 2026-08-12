@@ -121,6 +121,33 @@ class AccHandler {
     }
 
     @Throws(Command.AccException::class)
+    suspend fun enableCharging(condition: String? = null) {
+        Command.enableCharging(condition)
+    }
+
+    @Throws(Command.AccException::class)
+    suspend fun forceFullCharge(capacity: Int = 100) {
+        Command.forceFullCharge(capacity)
+    }
+
+    @Throws(Command.AccException::class)
+    suspend fun readBatteryHealth(designCapacityMah: Int): String =
+        Command.readBatteryHealth(designCapacityMah)
+
+    @Throws(Command.AccException::class)
+    suspend fun resetBatteryStats() {
+        Command.resetBatteryStats()
+    }
+
+    @Throws(Command.AccException::class)
+    suspend fun exportLogs(): String = Command.exportLogs()
+
+    @Throws(Command.AccException::class)
+    suspend fun cancelChargeAction(mode: ChargingControlMode) {
+        Command.cancelChargeAction(mode)
+    }
+
+    @Throws(Command.AccException::class)
     suspend fun startDaemon() {
         Command.startDaemon()
     }

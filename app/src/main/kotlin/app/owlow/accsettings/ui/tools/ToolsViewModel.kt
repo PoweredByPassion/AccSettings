@@ -35,6 +35,9 @@ interface ToolsRepository {
     suspend fun repair(): String
     suspend fun restartService(): String
     suspend fun forceRedetect(): String
+    suspend fun resetBatteryStats(): String
+    suspend fun exportLogs(): String
+    suspend fun estimateHealth(): String
 }
 
 class ToolsViewModel(
@@ -102,6 +105,10 @@ class ToolsViewModel(
                 ToolAction.RESTART_SERVICE -> toolsRepository.restartService()
                 ToolAction.FORCE_REDETECT -> toolsRepository.forceRedetect()
                 ToolAction.REFRESH -> null
+                ToolAction.RESET_BATTERY_STATS -> toolsRepository.resetBatteryStats()
+                ToolAction.EXPORT_LOGS -> toolsRepository.exportLogs()
+                ToolAction.ESTIMATE_HEALTH -> toolsRepository.estimateHealth()
+                ToolAction.OPEN_QUICK_ACTIONS -> null // handled by the Route (navigation)
             }
         }.getOrElse { error ->
             val message = ToolStatusMessage(
@@ -145,6 +152,7 @@ class ToolsViewModel(
         addAll(_uiState.value.installSection.actions)
         addAll(_uiState.value.serviceSection.actions)
         addAll(_uiState.value.diagnosticsSection.actions)
+        addAll(_uiState.value.batterySection.actions)
     }
 
     companion object {
@@ -205,6 +213,34 @@ private class LiveToolsRepository(
     override suspend fun forceRedetect(): String = withContext(Dispatchers.IO) {
         AccStateManager.reinitialize()
         context.getString(R.string.tools_redetect_success)
+    }
+
+    override suspend fun resetBatteryStats(): String = withContext(Dispatchers.IO) {
+        AccStateManager.resetBatteryStats()
+        context.getString(R.string.tools_reset_stats_success)
+    }
+
+    override suspend fun exportLogs(): String = withContext(Dispatchers.IO) {
+        val path = AccStateManager.exportLogs()
+        if (path.isNotBlank()) {
+            context.getString(R.string.tools_export_logs_success, path)
+        } else {
+            context.getString(R.string.tools_export_logs_empty)
+        }
+    }
+
+    override suspend fun estimateHealth(): String = withContext(Dispatchers.IO) {
+        val designMah = AccStateManager.readChargeFullDesign()
+        if (designMah == null) {
+            context.getString(R.string.tools_health_unavailable)
+        } else {
+            val health = AccStateManager.readBatteryHealth(designMah)
+            if (health == "!") {
+                context.getString(R.string.tools_health_unavailable)
+            } else {
+                context.getString(R.string.tools_health_result, health)
+            }
+        }
     }
 }
 
@@ -317,6 +353,44 @@ private fun ToolsSnapshot.toUiState(
                 ToolDetail(context.getString(R.string.tools_detail_bundled_acc), bundledAccVersion),
                 ToolDetail(context.getString(R.string.tools_detail_installed_acc), status?.installedVersionName ?: context.getString(R.string.tools_value_not_installed)),
                 ToolDetail(context.getString(R.string.tools_detail_package), packageName)
+            )
+        ),
+        batterySection = ToolSection(
+            title = context.getString(R.string.tools_section_battery_title),
+            summary = context.getString(R.string.tools_section_battery_summary),
+            actions = listOf(
+                ToolActionState(
+                    action = ToolAction.ESTIMATE_HEALTH,
+                    label = context.getString(R.string.tools_action_estimate_health),
+                    description = context.getString(R.string.tools_action_estimate_health_desc)
+                ),
+                ToolActionState(
+                    action = ToolAction.RESET_BATTERY_STATS,
+                    label = context.getString(R.string.tools_action_reset_stats),
+                    description = context.getString(R.string.tools_action_reset_stats_desc),
+                    requiresConfirmation = true
+                ),
+                ToolActionState(
+                    action = ToolAction.EXPORT_LOGS,
+                    label = context.getString(R.string.tools_action_export_logs),
+                    description = context.getString(R.string.tools_action_export_logs_desc)
+                )
+            ),
+            statusMessage = if (
+                lastAction == ToolAction.RESET_BATTERY_STATS ||
+                lastAction == ToolAction.EXPORT_LOGS ||
+                lastAction == ToolAction.ESTIMATE_HEALTH
+            ) previousMessage else null
+        ),
+        quickActionsSection = ToolSection(
+            title = context.getString(R.string.tools_section_quick_actions_title),
+            summary = context.getString(R.string.tools_section_quick_actions_summary),
+            actions = listOf(
+                ToolActionState(
+                    action = ToolAction.OPEN_QUICK_ACTIONS,
+                    label = context.getString(R.string.tools_action_configure_quick_actions),
+                    description = context.getString(R.string.tools_action_configure_quick_actions_desc)
+                )
             )
         ),
         isBusy = false,

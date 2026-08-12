@@ -4,10 +4,12 @@ import android.content.Context
 import app.owlow.accsettings.MainDispatcherRule
 import app.owlow.accsettings.acc.AccInstallState
 import app.owlow.accsettings.acc.AccStatus
+import app.owlow.accsettings.acc.ChargingControlMode
 import app.owlow.accsettings.acc.ChargingInfo
 import app.owlow.accsettings.acc.Command
 import app.owlow.accsettings.data.ForceStopChargingStore
 import app.owlow.accsettings.data.ForceStopState
+import app.owlow.accsettings.data.OverviewRepository
 import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -16,6 +18,7 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -340,13 +343,134 @@ class OverviewViewModelTest {
         // Force-stop on => active with the recovery condition.
         assertEquals(true, viewModel.uiState.value.forceStop.active)
         assertEquals("1h", viewModel.uiState.value.forceStop.condition)
-        assertEquals(false, viewModel.uiState.value.runtimeFacts.first { it.actionId == "toggle_daemon" }.actionValue)
 
         viewModel.cancelForceStopCharging().join()
 
         // Cancel => restored.
         assertEquals(false, viewModel.uiState.value.forceStop.active)
         assertNull(viewModel.uiState.value.forceStop.condition)
+    }
+
+    @Test
+    fun startingNewOperation_replacesActiveForceStop() = runTest {
+        val viewModel = OverviewViewModel(
+            context = ApplicationProvider.getApplicationContext(),
+            overviewRepository = FakeOverviewRepository(
+                status = AccStatus(
+                    installState = AccInstallState.UP_TO_DATE,
+                    installedVersionName = "2025.5.18-dev",
+                    daemonRunning = true,
+                    canManageDaemon = true,
+                    showInstallAction = false,
+                    showUninstallAction = true
+                )
+            )
+        )
+
+        // Force-stop first.
+        viewModel.enableForceStopCharging(condition = "1h").join()
+        assertEquals(ChargingControlMode.STOP, viewModel.uiState.value.forceStop.mode)
+
+        // Starting force-full replaces it (mutually exclusive).
+        viewModel.forceFullCharge(capacity = 95).join()
+
+        assertEquals(ChargingControlMode.FORCE_FULL, viewModel.uiState.value.forceStop.mode)
+        assertEquals("95", viewModel.uiState.value.forceStop.condition)
+
+        // Starting charge-to replaces it again.
+        viewModel.resumeChargingTo(condition = "80%").join()
+
+        assertEquals(ChargingControlMode.CHARGE_TO, viewModel.uiState.value.forceStop.mode)
+        assertEquals("80%", viewModel.uiState.value.forceStop.condition)
+    }
+
+    @Test
+    fun refresh_clearsChargeTo_whenTargetReached() = runTest {
+        val startedAt = System.currentTimeMillis() - 5_000L
+        val viewModel = OverviewViewModel(
+            context = ApplicationProvider.getApplicationContext(),
+            overviewRepository = FakeOverviewRepository(
+                status = AccStatus(
+                    installState = AccInstallState.UP_TO_DATE,
+                    installedVersionName = "2025.5.18-dev",
+                    daemonRunning = true,
+                    canManageDaemon = true,
+                    showInstallAction = false,
+                    showUninstallAction = true,
+                    chargingInfo = ChargingInfo(
+                        level = "80", status = "charging", temp = null,
+                        current = null, voltage = null, power = null
+                    )
+                )
+            ),
+            forceStopStore = prefsStore(
+                ForceStopState(active = true, mode = ChargingControlMode.CHARGE_TO, condition = "75%", startedAt = startedAt)
+            ),
+            bootTimestampMs = { 0L }
+        )
+
+        viewModel.refresh().join()
+
+        // Level reached the 75% target => charge-to done, state cleared.
+        assertFalse(viewModel.uiState.value.forceStop.active)
+    }
+
+    @Test
+    fun refresh_clearsForceFull_whenTargetCapacityReached() = runTest {
+        val startedAt = System.currentTimeMillis() - 5_000L
+        val viewModel = OverviewViewModel(
+            context = ApplicationProvider.getApplicationContext(),
+            overviewRepository = FakeOverviewRepository(
+                status = AccStatus(
+                    installState = AccInstallState.UP_TO_DATE,
+                    installedVersionName = "2025.5.18-dev",
+                    daemonRunning = true,
+                    canManageDaemon = true,
+                    showInstallAction = false,
+                    showUninstallAction = true,
+                    chargingInfo = ChargingInfo(
+                        level = "95", status = "charging", temp = null,
+                        current = null, voltage = null, power = null
+                    )
+                )
+            ),
+            forceStopStore = prefsStore(
+                ForceStopState(active = true, mode = ChargingControlMode.FORCE_FULL, condition = "90", startedAt = startedAt)
+            ),
+            bootTimestampMs = { 0L }
+        )
+
+        viewModel.refresh().join()
+
+        // Level reached the 90% target => force-full done, state cleared.
+        assertFalse(viewModel.uiState.value.forceStop.active)
+    }
+
+    @Test
+    fun cancelForceStopCharging_cancelsByMode() = runTest {
+        val repository = CancelingOverviewRepository(
+            status = AccStatus(
+                installState = AccInstallState.UP_TO_DATE,
+                installedVersionName = "2025.5.18-dev",
+                daemonRunning = true,
+                canManageDaemon = true,
+                showInstallAction = false,
+                showUninstallAction = true
+            )
+        )
+        val viewModel = OverviewViewModel(
+            context = ApplicationProvider.getApplicationContext(),
+            overviewRepository = repository
+        )
+
+        viewModel.resumeChargingTo(condition = "80%").join()
+        assertEquals(ChargingControlMode.CHARGE_TO, viewModel.uiState.value.forceStop.mode)
+
+        viewModel.cancelForceStopCharging().join()
+
+        // The cancel must have been routed with the active mode.
+        assertEquals(ChargingControlMode.CHARGE_TO, repository.lastCancelledMode)
+        assertFalse(viewModel.uiState.value.forceStop.active)
     }
 
     @Test
@@ -609,6 +733,80 @@ class OverviewViewModelTest {
         assertEquals("1h", viewModel.uiState.value.forceStop.condition)
     }
 
+    @Test
+    fun resumeChargingTo_activatesChargeToState() = runTest {
+        val viewModel = OverviewViewModel(
+            context = ApplicationProvider.getApplicationContext(),
+            overviewRepository = FakeOverviewRepository(
+                status = AccStatus(
+                    installState = AccInstallState.UP_TO_DATE,
+                    installedVersionName = "2025.5.18-dev",
+                    daemonRunning = true,
+                    canManageDaemon = true,
+                    showInstallAction = false,
+                    showUninstallAction = true
+                )
+            )
+        )
+
+        viewModel.resumeChargingTo(condition = "75%").join()
+
+        // Charge-to activates with its own mode, distinct from force-stop.
+        assertTrue(viewModel.uiState.value.forceStop.active)
+        assertEquals(ChargingControlMode.CHARGE_TO, viewModel.uiState.value.forceStop.mode)
+        assertEquals("75%", viewModel.uiState.value.forceStop.condition)
+    }
+
+    @Test
+    fun forceFullCharge_activatesForceFullStateAndClosesDialog() = runTest {
+        val viewModel = OverviewViewModel(
+            context = ApplicationProvider.getApplicationContext(),
+            overviewRepository = FakeOverviewRepository(
+                status = AccStatus(
+                    installState = AccInstallState.UP_TO_DATE,
+                    installedVersionName = "2025.5.18-dev",
+                    daemonRunning = true,
+                    canManageDaemon = true,
+                    showInstallAction = false,
+                    showUninstallAction = true
+                )
+            )
+        )
+
+        viewModel.showForceFullDialog()
+        assertTrue(viewModel.uiState.value.showForceFullDialog)
+
+        viewModel.forceFullCharge(capacity = 95).join()
+
+        assertFalse(viewModel.uiState.value.showForceFullDialog)
+        assertTrue(viewModel.uiState.value.forceStop.active)
+        assertEquals(ChargingControlMode.FORCE_FULL, viewModel.uiState.value.forceStop.mode)
+        assertEquals("95", viewModel.uiState.value.forceStop.condition)
+    }
+
+    @Test
+    fun forceFullCharge_whenRepositoryFails_clearsBusyWithoutActivating() = runTest {
+        val viewModel = OverviewViewModel(
+            context = ApplicationProvider.getApplicationContext(),
+            overviewRepository = FakeOverviewRepository(
+                status = AccStatus(
+                    installState = AccInstallState.UP_TO_DATE,
+                    installedVersionName = "2025.5.18-dev",
+                    daemonRunning = true,
+                    canManageDaemon = true,
+                    showInstallAction = false,
+                    showUninstallAction = true
+                )
+            ).apply { failDaemonToggle = true }
+        )
+
+        viewModel.forceFullCharge(capacity = 100).join()
+
+        assertFalse(viewModel.uiState.value.forceStop.active)
+        assertFalse(viewModel.uiState.value.daemonBusy)
+        assertTrue(viewModel.uiState.value.warnings.isNotEmpty())
+    }
+
     private fun prefsStore(state: ForceStopState): ForceStopChargingStore {
         val name = "force_stop_test_${System.nanoTime()}"
         val context = ApplicationProvider.getApplicationContext<Context>()
@@ -778,6 +976,53 @@ class OverviewViewModelTest {
             }
             return status?.copy(daemonRunning = !enabled)
         }
+
+        override suspend fun enableCharging(condition: String?): AccStatus? {
+            if (failDaemonToggle) {
+                throw Command.NotRootException()
+            }
+            return status?.copy(daemonRunning = true)
+        }
+
+        override suspend fun forceFullCharge(capacity: Int): AccStatus? {
+            if (failDaemonToggle) {
+                throw Command.NotRootException()
+            }
+            return status?.copy(daemonRunning = true)
+        }
+
+        override suspend fun cancelChargeAction(mode: ChargingControlMode): AccStatus? {
+            if (failDaemonToggle) {
+                throw Command.NotRootException()
+            }
+            return status?.copy(daemonRunning = true)
+        }
+    }
+
+    private class CancelingOverviewRepository(
+        private val status: AccStatus
+    ) : OverviewRepository {
+        var lastCancelledMode: ChargingControlMode? = null
+
+        override suspend fun loadStatus(): AccStatus = status
+
+        override suspend fun startService(): AccStatus = status.copy(daemonRunning = true)
+
+        override suspend fun setDaemonRunning(enabled: Boolean): AccStatus = status.copy(daemonRunning = enabled)
+
+        override suspend fun setForceStopCharging(enabled: Boolean, condition: String?): AccStatus =
+            status.copy(daemonRunning = !enabled)
+
+        override suspend fun enableCharging(condition: String?): AccStatus =
+            status.copy(daemonRunning = true)
+
+        override suspend fun forceFullCharge(capacity: Int): AccStatus =
+            status.copy(daemonRunning = true)
+
+        override suspend fun cancelChargeAction(mode: ChargingControlMode): AccStatus {
+            lastCancelledMode = mode
+            return status.copy(daemonRunning = true)
+        }
     }
 
     private class CountingOverviewRepository : OverviewRepository {
@@ -808,6 +1053,12 @@ class OverviewViewModelTest {
         override suspend fun setDaemonRunning(enabled: Boolean): AccStatus = loadStatus().copy(daemonRunning = enabled)
 
         override suspend fun setForceStopCharging(enabled: Boolean, condition: String?): AccStatus = loadStatus().copy(daemonRunning = !enabled)
+
+        override suspend fun enableCharging(condition: String?): AccStatus = loadStatus().copy(daemonRunning = true)
+
+        override suspend fun forceFullCharge(capacity: Int): AccStatus = loadStatus().copy(daemonRunning = true)
+
+        override suspend fun cancelChargeAction(mode: ChargingControlMode): AccStatus = loadStatus().copy(daemonRunning = true)
     }
 
     private class GatedOverviewRepository(
@@ -838,5 +1089,14 @@ class OverviewViewModelTest {
 
         override suspend fun setForceStopCharging(enabled: Boolean, condition: String?): AccStatus =
             status.copy(daemonRunning = !enabled)
+
+        override suspend fun enableCharging(condition: String?): AccStatus =
+            status.copy(daemonRunning = true)
+
+        override suspend fun forceFullCharge(capacity: Int): AccStatus =
+            status.copy(daemonRunning = true)
+
+        override suspend fun cancelChargeAction(mode: ChargingControlMode): AccStatus =
+            status.copy(daemonRunning = true)
     }
 }

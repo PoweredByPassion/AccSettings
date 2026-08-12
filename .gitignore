@@ -16,3 +16,4 @@ docs/
 dist/
 tests/
 keystore/
+.worktrees/

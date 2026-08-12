@@ -1,5 +1,7 @@
 package app.owlow.accsettings.ui.overview
 
+import app.owlow.accsettings.acc.ChargingControlMode
+
 data class OverviewUiState(
     val isLoading: Boolean = true,
     val daemonBusy: Boolean = false,
@@ -9,12 +11,15 @@ data class OverviewUiState(
     val primaryActions: List<OverviewAction> = emptyList(),
     val warnings: List<String> = emptyList(),
     val forceStop: ForceStopUiState = ForceStopUiState(),
-    val showForceStopDialog: Boolean = false
+    val showForceStopDialog: Boolean = false,
+    val showChargeToDialog: Boolean = false,
+    val showForceFullDialog: Boolean = false
 )
 
-/** UI state of the force-stop-charging toggle. */
+/** UI state of the charging-control operation. */
 data class ForceStopUiState(
     val active: Boolean = false,
+    val mode: ChargingControlMode = ChargingControlMode.STOP,
     val condition: String? = null,
     val startedAt: Long? = null,
     /** Seconds since [startedAt], derived from the wall clock on each status refresh. */
@@ -33,9 +38,13 @@ data class OverviewAction(
     val label: String
 )
 
-/** User actions on the force-stop-charging card. */
+/** User actions on the charging-control card. */
 enum class ForceStopAction {
     REQUEST_ENABLE,
     DISMISS_DIALOG,
-    CANCEL
+    CANCEL,
+    REQUEST_CHARGE_TO,
+    DISMISS_CHARGE_TO_DIALOG,
+    REQUEST_FORCE_FULL,
+    DISMISS_FORCE_FULL_DIALOG
 }

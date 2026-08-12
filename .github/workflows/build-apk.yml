@@ -57,8 +57,22 @@ jobs:
           path: dist/*.apk
           if-no-files-found: error
 
+      # Build the release body: a changelog link for the tag's date (e.g. v2026.8.12 ->
+      # CHANGELOG.md#2026-08-12), so users can jump straight to the update notes.
+      - name: Compose release body
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        run: |
+          tag="${GITHUB_REF_NAME#v}"          # e.g. 2026.8.12
+          date="${tag//./-}"                   # e.g. 2026-08-12
+          {
+            echo "## $tag"
+            echo ""
+            echo "[View changelog for this release](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md#$date)"
+          } > release_body.md
+
       - name: Publish GitHub release
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v3
         with:
           files: dist/*.apk
+          body_path: release_body.md

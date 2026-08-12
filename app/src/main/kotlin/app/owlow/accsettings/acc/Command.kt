@@ -275,6 +275,109 @@ object Command {
         exec(daemonPath)
     }
 
+    /**
+     * Force-enables charging on demand via `acc -e`.
+     *
+     * @param condition Optional recovery condition, passed straight through to ACC:
+     *   - `null` → unconditional (`acc -e`), equivalent to restarting the daemon via [startDaemon]
+     *   - a capacity threshold (`"75%"`, `"80%"`) or duration (`"30m"`, `"1h"`) → runs ACC's
+     *     chained form `acc -e <condition>; accd`, so when the condition is met ACC restarts the
+     *     daemon (regular settings return) — all automatically, no app-side timer needed.
+     *
+     * The chained `acc -e <condition>` blocks until the condition is met (ACC's `until` loop),
+     * so it is detached via `nohup ... &` exactly like [disableCharging].
+     */
+    suspend fun enableCharging(condition: String? = null) {
+        val accPath = withContext(Dispatchers.IO) {
+            requireAccExecutable { path -> execTest(path) }
+        }
+        if (condition == null) {
+            startDaemon()
+        } else {
+            val daemon = withContext(Dispatchers.IO) {
+                findAccDaemon { path -> execTest(path) } ?: accPath
+            }
+            exec("nohup sh -c \"$accPath -e $condition; $daemon\" > /dev/null 2>&1 &")
+        }
+    }
+
+    /**
+     * One-shot force-full charge via `acc -f [capacity]`.
+     *
+     * ACC temporarily overrides the capacity config to [capacity] (default 100%), enables
+     * charging, and on completion restarts the daemon. The command ends by `exec`-ing the
+     * daemon, so it never returns on its own and MUST be detached via `nohup ... &` — otherwise
+     * it would stall every subsequent root command until charging completes.
+     *
+     * @param capacity Target capacity percentage (1-100), default 100 (full charge).
+     */
+    suspend fun forceFullCharge(capacity: Int = 100) {
+        val accPath = withContext(Dispatchers.IO) {
+            requireAccExecutable { path -> execTest(path) }
+        }
+        val cap = capacity.coerceIn(1, 100)
+        val daemon = withContext(Dispatchers.IO) {
+            findAccDaemon { path -> execTest(path) } ?: accPath
+        }
+        exec("nohup sh -c \"$accPath -f $cap; $daemon\" > /dev/null 2>&1 &")
+    }
+
+    /**
+     * Estimates battery health via `acc -H <mAh>`.
+     *
+     * @param designCapacityMah The battery's design (rated) capacity in mAh.
+     * @return A health percentage like `"87.3%"`, or `"!"` when ACC cannot calculate it (the
+     *   charge counter sysfs node is missing on many devices).
+     */
+    suspend fun readBatteryHealth(designCapacityMah: Int): String {
+        val accPath = withContext(Dispatchers.IO) {
+            requireAccExecutable { path -> execTest(path) }
+        }
+        return exec("$accPath -H $designCapacityMah").trim().ifBlank { "!" }
+    }
+
+    /** Resets battery statistics via `acc -R`. Fire-and-forget, non-blocking. */
+    suspend fun resetBatteryStats() {
+        val accPath = withContext(Dispatchers.IO) {
+            requireAccExecutable { path -> execTest(path) }
+        }
+        exec("$accPath -R")
+    }
+
+    /**
+     * Cancels a charging-control operation that is in effect.
+     *
+     * The operation was launched as a detached `nohup sh -c "$acc <flag> <cond>; $daemon" &` command
+     * that blocks (holding ACC's lock) until its condition is met. Cancelling therefore kills that
+     * blocking process first — otherwise the restarted daemon would fight it for the lock — and then
+     * restarts the daemon so the regular charging config applies again.
+     *
+     * @param mode Which operation to cancel; each maps to the exact flag in the launched command.
+     */
+    suspend fun cancelChargeAction(mode: ChargingControlMode) {
+        val accPath = withContext(Dispatchers.IO) {
+            requireAccExecutable { path -> execTest(path) }
+        }
+        val flag = when (mode) {
+            ChargingControlMode.STOP -> "-d"
+            ChargingControlMode.CHARGE_TO -> "-e"
+            ChargingControlMode.FORCE_FULL -> "-f"
+        }
+        exec("pkill -f \"$accPath $flag\" > /dev/null 2>&1; true")
+        startDaemon()
+    }
+
+    /**
+     * Exports ACC logs to `/sdcard/Download/acc-logs-*.tgz` via `acc -l -e`.
+     * Non-blocking; ACC prints the resulting file path to stdout.
+     */
+    suspend fun exportLogs(): String {
+        val accPath = withContext(Dispatchers.IO) {
+            requireAccExecutable { path -> execTest(path) }
+        }
+        return exec("$accPath -l -e").trim()
+    }
+
     suspend fun reinitialize() = exec(withContext(Dispatchers.IO) {
         buildReinitializeCommand { path -> execTest(path) }
     })

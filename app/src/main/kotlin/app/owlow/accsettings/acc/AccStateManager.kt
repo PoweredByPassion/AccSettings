@@ -104,6 +104,51 @@ object AccStateManager {
         return result.success
     }
 
+    suspend fun enableCharging(condition: String? = null): Boolean {
+        val result = bridge().enableCharging(condition)
+        refreshNow()
+        return result.success
+    }
+
+    suspend fun forceFullCharge(capacity: Int = 100): Boolean {
+        val result = bridge().forceFullCharge(capacity)
+        refreshNow()
+        return result.success
+    }
+
+    suspend fun readBatteryHealth(designCapacityMah: Int): String =
+        bridge().readBatteryHealth(designCapacityMah)
+
+    /**
+     * Reads the battery design capacity (µAh) from sysfs, converted to mAh, or null when no
+     * readable node exists. Battery node names vary by device, so common candidates are probed
+     * in order; the first with a positive `charge_full_design` wins.
+     */
+    suspend fun readChargeFullDesign(): Int? {
+        val candidates = listOf("battery", "main", "bms", "qcom_battery", "BAT0", "BAT1")
+        for (name in candidates) {
+            val path = "/sys/class/power_supply/$name/charge_full_design"
+            val raw = readSysfsNode(path) ?: continue
+            val uah = raw.trim().toLongOrNull() ?: continue
+            if (uah > 0) return (uah / 1000).toInt() // µAh -> mAh
+        }
+        return null
+    }
+
+    suspend fun resetBatteryStats(): Boolean {
+        val result = bridge().resetBatteryStats()
+        refreshNow()
+        return result
+    }
+
+    suspend fun exportLogs(): String = bridge().exportLogs()
+
+    suspend fun cancelChargeAction(mode: ChargingControlMode): Boolean {
+        val result = bridge().cancelChargeAction(mode)
+        refreshNow()
+        return result
+    }
+
     suspend fun ensureInstalled(): LifecycleActionResult {
         val result = bridge().ensureInstalled()
         refreshNow()
@@ -215,6 +260,24 @@ object AccStateManager {
                 } else {
                     handler.startDaemon()
                 }
+                true
+            },
+            enableChargingAction = { condition ->
+                handler.enableCharging(condition)
+                true
+            },
+            forceFullChargeAction = { capacity ->
+                handler.forceFullCharge(capacity)
+                true
+            },
+            batteryHealthReader = { mAh -> handler.readBatteryHealth(mAh) },
+            resetBatteryStatsAction = {
+                handler.resetBatteryStats()
+                true
+            },
+            exportLogsAction = { handler.exportLogs() },
+            cancelChargeActionImpl = { mode ->
+                handler.cancelChargeAction(mode)
                 true
             },
             reinitializeAction = { handler.reinitialize() },

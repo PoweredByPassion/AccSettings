@@ -37,7 +37,11 @@ enum class ToolAction {
     REPAIR,
     RESTART_SERVICE,
     FORCE_REDETECT,
-    REFRESH
+    REFRESH,
+    RESET_BATTERY_STATS,
+    EXPORT_LOGS,
+    ESTIMATE_HEALTH,
+    OPEN_QUICK_ACTIONS
 }
 
 data class ToolsUiState(
@@ -46,6 +50,8 @@ data class ToolsUiState(
     val diagnosticsSection: ToolSection = ToolSection(),
     val logsSection: ToolLogSection = ToolLogSection(),
     val appInfoSection: ToolSection = ToolSection(),
+    val batterySection: ToolSection = ToolSection(),
+    val quickActionsSection: ToolSection = ToolSection(),
     val isBusy: Boolean = false,
     val pendingConfirmation: ToolAction? = null
 )

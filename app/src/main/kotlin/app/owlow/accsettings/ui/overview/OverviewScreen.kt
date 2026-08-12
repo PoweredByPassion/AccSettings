@@ -16,10 +16,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.owlow.accsettings.R
+import app.owlow.accsettings.acc.ChargingControlMode
+import app.owlow.accsettings.quickaction.ChargeControlLabels
 import app.owlow.accsettings.ui.theme.*
 
 @Composable
@@ -29,6 +32,7 @@ fun OverviewScreen(
     onToggleAction: (String, Boolean) -> Unit,
     onForceStopAction: (ForceStopAction) -> Unit,
     onForceStopCondition: (String?) -> Unit,
+    onForceFullCapacity: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
@@ -92,6 +96,26 @@ fun OverviewScreen(
                     colors = colors,
                     onDismiss = { onForceStopAction(ForceStopAction.DISMISS_DIALOG) },
                     onCondition = onForceStopCondition
+                )
+            }
+        }
+
+        if (uiState.showChargeToDialog) {
+            item {
+                ChargeToConditionDialog(
+                    colors = colors,
+                    onDismiss = { onForceStopAction(ForceStopAction.DISMISS_CHARGE_TO_DIALOG) },
+                    onCondition = onForceStopCondition
+                )
+            }
+        }
+
+        if (uiState.showForceFullDialog) {
+            item {
+                ForceFullCapacityDialog(
+                    colors = colors,
+                    onDismiss = { onForceStopAction(ForceStopAction.DISMISS_FORCE_FULL_DIALOG) },
+                    onCapacity = onForceFullCapacity
                 )
             }
         }
@@ -245,8 +269,13 @@ private fun FactRow(
 }
 
 /**
- * Force-stop-charging card. When inactive it shows a switch that opens the condition dialog;
- * when active it shows a status card with the recovery target and a cancel button.
+ * Charging control card. When no operation is active it shows the three mutually-exclusive
+ * operations:
+ *  - Stop charging (`acc -d`, opens the condition dialog)
+ *  - Resume charging to a target (`acc -e`, opens the condition dialog)
+ *  - Force full charge (`acc -f`, opens the capacity dialog)
+ * When one is active it shows ONLY that operation's status plus a cancel button — the other two
+ * operations are hidden so the user cannot trigger a conflicting operation.
  */
 @Composable
 private fun ForceStopChargingCard(
@@ -263,56 +292,44 @@ private fun ForceStopChargingCard(
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
+        Text(
+            text = stringResource(R.string.overview_charge_control_title),
+            style = AccTypography.labelMedium,
+            color = colors.onSurfaceVariant,
+            fontWeight = FontWeight.Medium
+        )
         if (!forceStop.active) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = stringResource(R.string.overview_fact_force_stop),
-                        style = AccTypography.labelMedium,
-                        color = colors.onSurfaceVariant,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Text(
-                        text = stringResource(R.string.overview_force_stop_hint),
-                        style = AccTypography.bodySmall,
-                        color = colors.onSurfaceVariant
-                    )
-                }
-                if (daemonBusy) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        strokeWidth = 2.dp,
-                        color = colors.primary
-                    )
-                } else {
-                    Switch(
-                        checked = false,
-                        onCheckedChange = { onAction(ForceStopAction.REQUEST_ENABLE) },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = colors.onPrimary,
-                            checkedTrackColor = colors.primary,
-                            uncheckedThumbColor = colors.onSurfaceVariant,
-                            uncheckedTrackColor = colors.surfaceVariant,
-                            uncheckedBorderColor = Color.Transparent
-                        ),
-                        modifier = Modifier.scale(0.8f)
-                    )
-                }
-            }
+            ChargeActionButton(
+                label = stringResource(R.string.overview_action_stop_charge),
+                description = stringResource(R.string.overview_force_stop_hint),
+                daemonBusy = daemonBusy,
+                colors = colors,
+                onClick = { onAction(ForceStopAction.REQUEST_ENABLE) }
+            )
+            ChargeActionButton(
+                label = stringResource(R.string.overview_action_resume_charge),
+                description = stringResource(R.string.overview_action_resume_hint),
+                daemonBusy = daemonBusy,
+                colors = colors,
+                onClick = { onAction(ForceStopAction.REQUEST_CHARGE_TO) }
+            )
+            ChargeActionButton(
+                label = stringResource(R.string.overview_action_force_full),
+                description = stringResource(R.string.overview_action_force_full_hint),
+                daemonBusy = daemonBusy,
+                colors = colors,
+                onClick = { onAction(ForceStopAction.REQUEST_FORCE_FULL) }
+            )
         } else {
             val now = System.currentTimeMillis()
             Text(
-                text = stringResource(R.string.overview_force_stop_active),
+                text = chargeControlActiveTitle(forceStop),
                 style = AccTypography.titleMedium,
                 color = colors.onSurface,
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                text = forceStopRecoveryLabel(forceStop, now),
+                text = chargeControlActiveDescription(forceStop, now),
                 style = AccTypography.bodyMedium,
                 color = colors.onSurfaceVariant
             )
@@ -332,23 +349,101 @@ private fun ForceStopChargingCard(
     }
 }
 
+/** Active-state title for a charging-control operation, keyed by [ChargingControlMode]. */
+@Composable
+private fun chargeControlActiveTitle(forceStop: ForceStopUiState): String = when (forceStop.mode) {
+    ChargingControlMode.STOP -> stringResource(R.string.overview_force_stop_active)
+    ChargingControlMode.CHARGE_TO -> stringResource(
+        R.string.overview_charge_to_active,
+        chargeToConditionLabel(forceStop.condition)
+    )
+    ChargingControlMode.FORCE_FULL -> stringResource(
+        R.string.overview_force_full_active,
+        forceStop.condition ?: "100"
+    )
+}
+
+/** Active-state description: a countdown for duration conditions, target text otherwise. */
+@Composable
+private fun chargeControlActiveDescription(forceStop: ForceStopUiState, now: Long): String = when (forceStop.mode) {
+    ChargingControlMode.STOP -> forceStopRecoveryLabel(forceStop, now)
+    ChargingControlMode.CHARGE_TO -> {
+        val remainingSeconds = ChargeControlLabels.durationTotalSeconds(forceStop.condition)?.let { total ->
+            val startedAt = forceStop.startedAt ?: return@let null
+            (total - (now - startedAt) / 1000L).coerceAtLeast(0L)
+        }
+        if (remainingSeconds != null) {
+            stringResource(R.string.overview_charge_to_remaining, ChargeControlLabels.formatRemainingTime(remainingSeconds))
+        } else {
+            stringResource(R.string.overview_charge_to_target, chargeToConditionLabel(forceStop.condition))
+        }
+    }
+    ChargingControlMode.FORCE_FULL -> stringResource(R.string.overview_force_full_progress)
+}
+
+/** Human label for a charge-to (`acc -e`) condition arg. */
+@Composable
+private fun chargeToConditionLabel(condition: String?): String =
+    ChargeControlLabels.chargeToConditionLabel(condition, LocalContext.current)
+
+@Composable
+private fun ChargeActionButton(
+    label: String,
+    description: String,
+    daemonBusy: Boolean,
+    colors: ColorScheme,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(enabled = !daemonBusy, onClick = onClick)
+            .padding(vertical = 12.dp, horizontal = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                text = label,
+                style = AccTypography.bodyLarge,
+                color = colors.onSurface,
+                fontWeight = FontWeight.Medium
+            )
+            Text(
+                text = description,
+                style = AccTypography.bodySmall,
+                color = colors.onSurfaceVariant
+            )
+        }
+        if (daemonBusy) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(20.dp),
+                strokeWidth = 2.dp,
+                color = colors.primary
+            )
+        } else {
+            Text(
+                text = "›",
+                style = AccTypography.titleMedium,
+                color = colors.primary
+            )
+        }
+    }
+}
+
 @Composable
 private fun forceStopRecoveryLabel(forceStop: ForceStopUiState, now: Long): String {
     // Duration conditions show a live remaining-time countdown; capacity/manual conditions and
     // an unknown start time fall back to the static recovery description.
-    val remainingSeconds = when (forceStop.condition) {
-        "30m" -> 30 * 60L
-        "1h" -> 60 * 60L
-        "2h" -> 2 * 60 * 60L
-        else -> null
-    }?.let { total ->
+    val remainingSeconds = ChargeControlLabels.durationTotalSeconds(forceStop.condition)?.let { total ->
         val startedAt = forceStop.startedAt ?: return@let null
         (total - (now - startedAt) / 1000L).coerceAtLeast(0L)
     }
     if (remainingSeconds != null) {
         return stringResource(
             R.string.overview_force_stop_remaining,
-            formatRemainingTime(remainingSeconds)
+            ChargeControlLabels.formatRemainingTime(remainingSeconds)
         )
     }
     val target = when (forceStop.condition) {
@@ -361,18 +456,6 @@ private fun forceStopRecoveryLabel(forceStop: ForceStopUiState, now: Long): Stri
         else -> R.string.overview_force_stop_recover_manual
     }
     return stringResource(target)
-}
-
-/** Formats a remaining countdown as `Hh Mm Ss`, `Mm Ss`, or `Ss`. */
-private fun formatRemainingTime(remainingSeconds: Long): String {
-    val hours = remainingSeconds / 3600
-    val minutes = (remainingSeconds % 3600) / 60
-    val seconds = remainingSeconds % 60
-    return when {
-        hours > 0 -> "%dh %dm %ds".format(hours, minutes, seconds)
-        minutes > 0 -> "%dm %ds".format(minutes, seconds)
-        else -> "%ds".format(seconds)
-    }
 }
 
 /** Dialog asking which recovery condition to use when enabling force-stop charging. */
@@ -405,6 +488,83 @@ private fun ForceStopConditionDialog(
                     ) {
                         Text(
                             text = stringResource(labelRes),
+                            modifier = Modifier.fillMaxWidth(),
+                            color = colors.onSurface
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {}
+    )
+}
+
+/** Dialog asking which target to resume charging to (`acc -e`). */
+@Composable
+private fun ChargeToConditionDialog(
+    colors: ColorScheme,
+    onDismiss: () -> Unit,
+    onCondition: (String?) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = colors.surface,
+        titleContentColor = colors.onSurface,
+        textContentColor = colors.onSurfaceVariant,
+        title = { Text(stringResource(R.string.overview_charge_to_dialog_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                listOf(
+                    null to R.string.overview_charge_to_cond_now,
+                    "75%" to R.string.overview_charge_to_cond_75,
+                    "80%" to R.string.overview_charge_to_cond_80,
+                    "85%" to R.string.overview_charge_to_cond_85,
+                    "90%" to R.string.overview_charge_to_cond_90,
+                    "95%" to R.string.overview_charge_to_cond_95,
+                    "30m" to R.string.overview_charge_to_cond_30m,
+                    "1h" to R.string.overview_charge_to_cond_1h
+                ).forEach { (condition, labelRes) ->
+                    TextButton(
+                        onClick = { onCondition(condition) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = stringResource(labelRes),
+                            modifier = Modifier.fillMaxWidth(),
+                            color = colors.onSurface
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {}
+    )
+}
+
+/** Dialog asking which capacity to force-full charge to (`acc -f`). */
+@Composable
+private fun ForceFullCapacityDialog(
+    colors: ColorScheme,
+    onDismiss: () -> Unit,
+    onCapacity: (Int) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = colors.surface,
+        titleContentColor = colors.onSurface,
+        textContentColor = colors.onSurfaceVariant,
+        title = { Text(stringResource(R.string.overview_force_full_dialog_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                listOf(100, 95, 90, 85, 80).forEach { capacity ->
+                    TextButton(
+                        onClick = { onCapacity(capacity) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = stringResource(R.string.overview_force_full_capacity, capacity),
                             modifier = Modifier.fillMaxWidth(),
                             color = colors.onSurface
                         )

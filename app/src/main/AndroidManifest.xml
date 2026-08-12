@@ -4,6 +4,8 @@
     >
 
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <application
         android:name=".AccSettingApplication"
         android:enableOnBackInvokedCallback="true"
@@ -21,6 +23,26 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- Transparent, no-UI target for app shortcuts (shortcuts are launched via startActivity,
+             which cannot start a BroadcastReceiver). Exported with no intent-filter so it never
+             appears in the launcher. -->
+        <activity
+            android:name=".QuickActionActivity"
+            android:exported="true"
+            android:theme="@style/Theme.AccSettings.Transparent" />
+        <receiver
+            android:name=".QuickActionReceiver"
+            android:exported="false" />
+        <receiver
+            android:name=".quickaction.QuickActionWidgetProvider"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/quick_action_widget_info" />
+        </receiver>
         <receiver
             android:name=".WorkerReceiver"
             android:directBootAware="true"
@@ -32,5 +54,19 @@
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
+        <service
+            android:name=".quickaction.QuickActionService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+        <service
+            android:name=".quickaction.QuickActionTileService"
+            android:label="@string/quick_action_tile_label"
+            android:icon="@drawable/ic_quick_action"
+            android:exported="true"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
     </application>
 </manifest>
