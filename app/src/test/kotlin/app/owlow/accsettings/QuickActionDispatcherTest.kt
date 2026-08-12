@@ -13,6 +13,7 @@ import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -41,6 +42,20 @@ class QuickActionDispatcherTest {
     }
 
     @Test
+    fun mapUriToAction_arbitraryParams_parseCorrectly() {
+        assertEquals(QuickAction.Pause("45m"), QuickActionDispatcher.mapUriToAction("quickaction:pause/45m"))
+        assertEquals(QuickAction.Pause("60%"), QuickActionDispatcher.mapUriToAction("quickaction:pause/60%25"))
+        assertEquals(QuickAction.ChargeTo("88%"), QuickActionDispatcher.mapUriToAction("quickaction:charge-to/88%25"))
+        assertEquals(QuickAction.ForceFull(90), QuickActionDispatcher.mapUriToAction("quickaction:force-full/90"))
+    }
+
+    @Test
+    fun mapUriToAction_noParam_pauseIsUnconditional() {
+        assertEquals(QuickAction.Pause(null), QuickActionDispatcher.mapUriToAction("quickaction:pause"))
+        assertEquals(QuickAction.ChargeTo(null), QuickActionDispatcher.mapUriToAction("quickaction:charge-to"))
+    }
+
+    @Test
     fun mapUriToAction_unknownUri_returnsNull() {
         assertNull(QuickActionDispatcher.mapUriToAction("quickaction:unknown/thing"))
     }
@@ -53,6 +68,35 @@ class QuickActionDispatcherTest {
     @Test
     fun mapUriToAction_malformedUri_returnsNull() {
         assertNull(QuickActionDispatcher.mapUriToAction("not a uri"))
+    }
+
+    @Test
+    fun slotToUri_roundTripsThroughMapUriToAction() {
+        val slots = listOf(
+            app.owlow.accsettings.quickaction.QuickActionSlot(app.owlow.accsettings.quickaction.QuickActionSlotType.PAUSE, "45m"),
+            app.owlow.accsettings.quickaction.QuickActionSlot(app.owlow.accsettings.quickaction.QuickActionSlotType.PAUSE, null),
+            app.owlow.accsettings.quickaction.QuickActionSlot(app.owlow.accsettings.quickaction.QuickActionSlotType.CHARGE_TO, "88%"),
+            app.owlow.accsettings.quickaction.QuickActionSlot(app.owlow.accsettings.quickaction.QuickActionSlotType.FORCE_FULL, "90"),
+            app.owlow.accsettings.quickaction.QuickActionSlot(app.owlow.accsettings.quickaction.QuickActionSlotType.FORCE_FULL, null),
+            app.owlow.accsettings.quickaction.QuickActionSlot(app.owlow.accsettings.quickaction.QuickActionSlotType.CANCEL, null)
+        )
+        slots.forEach { slot ->
+            val uri = slot.toUri()
+            val action = QuickActionDispatcher.mapUriToAction(uri)
+            assertNotNull("uri should parse: $uri", action)
+            val parsed = action!!
+            // Force-full with null param round-trips to the 100 default; everything else matches.
+            val expectedParam = if (slot.type == app.owlow.accsettings.quickaction.QuickActionSlotType.FORCE_FULL && slot.param == null) "100" else slot.param
+            assertEquals(expectedParam, slotParam(parsed))
+        }
+    }
+
+    /** Extracts the param/condition/capacity from a [QuickAction] for round-trip comparison. */
+    private fun slotParam(action: QuickAction): String? = when (action) {
+        is QuickAction.Pause -> action.condition
+        is QuickAction.ChargeTo -> action.target
+        is QuickAction.ForceFull -> action.capacity.toString()
+        else -> null
     }
 
     // --- dispatchAndAwait ---

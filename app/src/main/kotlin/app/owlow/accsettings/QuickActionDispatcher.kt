@@ -72,23 +72,36 @@ object QuickActionDispatcher {
     /**
      * Maps a `quickaction:` URI to a [QuickAction].
      *
+     * The URI is `quickaction:<type>/<param>`; `<param>` is optional. Handles arbitrary params
+     * for user-customized quick actions while remaining backward-compatible with the original
+     * fixed URIs (`quickaction:pause/30m`, `quickaction:force-full`, `quickaction:cancel`, …).
+     *
      * | URI | QuickAction |
      * |---|---|
-     * | `quickaction:pause/30m` | `Pause("30m")` |
-     * | `quickaction:pause/1h`  | `Pause("1h")`  |
+     * | `quickaction:pause/<param>` | `Pause(param)` (param nullable) |
+     * | `quickaction:charge-to/<param>` | `ChargeTo(param)` |
      * | `quickaction:force-full` | `ForceFull(100)` |
-     * | `quickaction:charge-to/85` | `ChargeTo("85%")` |
-     * | `quickaction:cancel`     | `Cancel` |
+     * | `quickaction:force-full/<n>` | `ForceFull(n)` |
+     * | `quickaction:cancel` | `Cancel` |
      */
     fun mapUriToAction(uriString: String): QuickAction? {
         val parsed = Uri.parse(uriString)
+        if (parsed.scheme != "quickaction") return null
         val ssp = parsed.schemeSpecificPart ?: return null
-        return when (ssp) {
+        val slashIndex = ssp.indexOf('/')
+        val type = if (slashIndex == -1) ssp else ssp.substring(0, slashIndex)
+        // Uri.parse already percent-decodes the scheme-specific part, so `%25` arrives as `%`.
+        val param = if (slashIndex == -1) null else ssp.substring(slashIndex + 1).takeIf { it.isNotEmpty() }
+
+        return when (type) {
             "cancel" -> QuickAction.Cancel
-            "force-full" -> QuickAction.ForceFull(100)
-            "pause/30m" -> QuickAction.Pause("30m")
-            "pause/1h" -> QuickAction.Pause("1h")
-            "charge-to/85" -> QuickAction.ChargeTo("85%")
+            "pause" -> QuickAction.Pause(param)
+            // Backward compat: the original `charge-to/85` URI meant "charge to 85%" (bare number
+            // = percentage). New URIs may carry the `%` explicitly (`charge-to/88%`).
+            "charge-to" -> QuickAction.ChargeTo(param?.let { if (it.all(Char::isDigit)) "${it}%" else it })
+            "force-full" -> QuickAction.ForceFull(param?.toIntOrNull() ?: 100)
+            "start-daemon" -> QuickAction.StartDaemon
+            "stop-daemon" -> QuickAction.StopDaemon
             else -> null
         }
     }
