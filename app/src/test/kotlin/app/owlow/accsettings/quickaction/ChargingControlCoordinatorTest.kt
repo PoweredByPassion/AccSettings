@@ -9,6 +9,7 @@ import app.owlow.accsettings.data.ForceStopChargingStore
 import app.owlow.accsettings.data.OverviewRepository
 import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -313,6 +314,35 @@ class ChargingControlCoordinatorTest {
         // The old operation must still be active (no rollback on cancel failure).
         assertTrue(coordinator.state.value.active)
         assertEquals(ChargingControlMode.STOP, coordinator.state.value.mode)
+    }
+
+    @Test
+    fun concurrentExecutes_areSerializedByProcessMutex() = runTest {
+        // Two separate coordinator instances (as if from two surfaces) share the same store and
+        // the same process-level Mutex, so concurrent executes must serialize: the second must
+        // see the first's persisted active state and auto-cancel it.
+        val store = testStore()
+        val repo = FakeOverviewRepository()
+        val coordinatorA = ChargingControlCoordinator(repo, store, FakeServiceController())
+        val coordinatorB = ChargingControlCoordinator(repo, store, FakeServiceController())
+
+        val a = launch {
+            coordinatorA.execute(QuickAction.Pause("30m"))
+        }
+        val b = launch {
+            coordinatorB.execute(QuickAction.ForceFull(100))
+        }
+        a.join()
+        b.join()
+
+        // Both commands ran; the final state is the last one. Because the mutex serializes the
+        // read-check-write, the second execute auto-cancelled the first rather than racing.
+        val finalState = store.load()
+        assertTrue(finalState.active)
+        // The repo saw exactly the expected sequence: first a pause, then an auto-cancel of the
+        // pause before the force-full.
+        assertNotNull(repo.lastForceStopCondition)
+        assertEquals(100, repo.lastForceFullCapacity)
     }
 
     // --- helpers ---

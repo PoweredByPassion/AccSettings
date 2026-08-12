@@ -121,9 +121,11 @@ private class ToastSink(private val context: Context) : FeedbackSink {
         val resId = when (message) {
             "Done" -> R.string.toast_started
             "Charging restored" -> R.string.toast_cancelled
-            else -> R.string.toast_error
+            else -> null
         }
-        val text = context.getString(resId)
+        // Known success keys get localized labels; anything else (a real error message such as
+        // "Root permission required") is passed through verbatim so the user sees the actual cause.
+        val text = if (resId != null) context.getString(resId) else message
         mainHandler.post {
             Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
         }

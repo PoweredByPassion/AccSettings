@@ -10,6 +10,8 @@ import app.owlow.accsettings.data.OverviewRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * Owns start/stop of the foreground service that hosts the live notification.
@@ -31,20 +33,34 @@ class ChargingControlCoordinator(
     private val _state = MutableStateFlow(store.load())
     val state: StateFlow<ForceStopState> = _state.asStateFlow()
 
-    /** Execute a quick action. Auto-cancels any active operation first. */
-    suspend fun execute(action: QuickAction, sink: FeedbackSink? = null): ForceStopState {
-        return when (action) {
-            is QuickAction.Pause -> runStart({ repository.setForceStopCharging(true, action.condition) }, ChargingControlMode.STOP, action.condition, sink)
-            is QuickAction.ChargeTo -> runStart({ repository.enableCharging(action.target) }, ChargingControlMode.CHARGE_TO, action.target, sink)
-            is QuickAction.ForceFull -> runStart({ repository.forceFullCharge(action.capacity) }, ChargingControlMode.FORCE_FULL, action.capacity.toString(), sink)
-            QuickAction.Cancel -> cancelAny(sink)
-            is QuickAction.StartDaemon -> runDaemon({ repository.setDaemonRunning(true) }, sink)
-            is QuickAction.StopDaemon -> runDaemon({ repository.setDaemonRunning(false) }, sink)
+    /**
+     * Execute a quick action. Auto-cancels any active operation first.
+     *
+     * The whole read-check-write sequence is guarded by a process-level [Mutex] so that
+     * concurrent executions from different surfaces (each creates its own coordinator) cannot
+     * both see an inactive store and both start ACC commands. All instances share the same
+     * lock via [executionMutex].
+     */
+    suspend fun execute(action: QuickAction, sink: FeedbackSink? = null): ForceStopState =
+        executionMutex.withLock {
+            when (action) {
+                is QuickAction.Pause -> runStart({ repository.setForceStopCharging(true, action.condition) }, ChargingControlMode.STOP, action.condition, sink)
+                is QuickAction.ChargeTo -> runStart({ repository.enableCharging(action.target) }, ChargingControlMode.CHARGE_TO, action.target, sink)
+                is QuickAction.ForceFull -> runStart({ repository.forceFullCharge(action.capacity) }, ChargingControlMode.FORCE_FULL, action.capacity.toString(), sink)
+                // cancelAnyLocked, not cancelAny — the lock is already held here (Mutex is non-reentrant).
+                QuickAction.Cancel -> cancelAnyLocked(sink)
+                is QuickAction.StartDaemon -> runDaemon({ repository.setDaemonRunning(true) }, sink)
+                is QuickAction.StopDaemon -> runDaemon({ repository.setDaemonRunning(false) }, sink)
+            }
         }
+
+    /** Cancel the active operation (if any) and restore normal charging. Mutex-guarded like [execute]. */
+    suspend fun cancelAny(sink: FeedbackSink? = null): ForceStopState = executionMutex.withLock {
+        cancelAnyLocked(sink)
     }
 
-    /** Cancel the active operation (if any) and restore normal charging. */
-    suspend fun cancelAny(sink: FeedbackSink? = null): ForceStopState {
+    /** Cancel body, to be called only while [executionMutex] is held. */
+    private suspend fun cancelAnyLocked(sink: FeedbackSink?): ForceStopState {
         val active = store.load()
         if (active.active) {
             repository.cancelChargeAction(active.mode)
@@ -109,6 +125,14 @@ class ChargingControlCoordinator(
     }
 
     companion object {
+        /**
+         * Process-level lock serializing charging-control mutations across ALL coordinator
+         * instances (each surface creates its own via [forContext], but they share this lock).
+         * Without it, two surfaces dispatching concurrently could both read an inactive store
+         * and both start ACC commands that fight for the daemon lock.
+         */
+        private val executionMutex = Mutex()
+
         /** Standard surface wiring: live repository + SharedPreferences store + real service controller. */
         fun forContext(context: Context) = ChargingControlCoordinator(
             repository = LiveOverviewRepository,

@@ -27,6 +27,7 @@ fun QuickActionConfigScreen(
     onRemoveSlot: (Int) -> Unit,
     onMoveSlotUp: (Int) -> Unit,
     onMoveSlotDown: (Int) -> Unit,
+    onEditSlot: (Int) -> Unit,
     onSetSlotParam: (Int, String?) -> Unit,
     onToggleBatteryRow: () -> Unit,
     onShowTypePicker: () -> Unit,
@@ -100,7 +101,7 @@ fun QuickActionConfigScreen(
                     onMoveUp = { onMoveSlotUp(slot.index) },
                     onMoveDown = { onMoveSlotDown(slot.index) },
                     onRemove = { onRemoveSlot(slot.index) },
-                    onTap = { /* param edit handled via dialog below */ }
+                    onTap = { onEditSlot(slot.index) }
                 )
             }
         }
@@ -176,6 +177,7 @@ private fun SlotRow(
             .clip(RoundedCornerShape(24.dp))
             .background(colors.surface)
             .border(1.dp, colors.outlineVariant, RoundedCornerShape(24.dp))
+            .clickable(onClick = onTap)
             .padding(horizontal = 20.dp, vertical = 16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
@@ -258,24 +260,42 @@ private fun paramOptions(type: QuickActionSlotType): List<String?> = when (type)
     QuickActionSlotType.CANCEL -> emptyList()
 }
 
-/** Human label for a param option in the picker. */
-private fun paramLabel(type: QuickActionSlotType, param: String?): String = when (type) {
+/**
+ * String-resource ID for a param option, reusing the existing localized overview_* condition
+ * strings so the picker stays localized. Returns null for params without a known resource
+ * (e.g. a custom "45m"), in which case the raw param is shown as-is.
+ */
+@androidx.annotation.StringRes
+private fun paramLabelRes(type: QuickActionSlotType, param: String?): Int? = when (type) {
     QuickActionSlotType.PAUSE -> when (param) {
-        null -> "…"
-        "30m" -> "30 minutes"
-        "1h" -> "1 hour"
-        "2h" -> "2 hours"
-        "50%" -> "below 50%"
-        "60%" -> "below 60%"
-        "70%" -> "below 70%"
-        else -> param
+        null -> R.string.overview_force_stop_cond_none
+        "30m" -> R.string.overview_force_stop_cond_30m
+        "1h" -> R.string.overview_force_stop_cond_1h
+        "2h" -> R.string.overview_force_stop_cond_2h
+        "50%" -> R.string.overview_force_stop_cond_50
+        "60%" -> R.string.overview_force_stop_cond_60
+        "70%" -> R.string.overview_force_stop_cond_70
+        else -> null
     }
     QuickActionSlotType.CHARGE_TO -> when (param) {
-        null -> "now"
-        "30m" -> "for 30 minutes"
-        "1h" -> "for 1 hour"
-        else -> "at ${param?.removeSuffix("%")}%"
+        null -> R.string.overview_charge_to_cond_now
+        "75%" -> R.string.overview_charge_to_cond_75
+        "80%" -> R.string.overview_charge_to_cond_80
+        "85%" -> R.string.overview_charge_to_cond_85
+        "90%" -> R.string.overview_charge_to_cond_90
+        "95%" -> R.string.overview_charge_to_cond_95
+        "30m" -> R.string.overview_charge_to_cond_30m
+        "1h" -> R.string.overview_charge_to_cond_1h
+        else -> null
     }
+    QuickActionSlotType.FORCE_FULL -> param?.toIntOrNull()?.let { R.string.overview_force_full_capacity }
+    QuickActionSlotType.CANCEL -> null
+}
+
+/** Fallback label for a param with no known resource: show the raw value (e.g. a custom "45m"). */
+private fun paramDisplayFallback(type: QuickActionSlotType, param: String?): String = when (type) {
+    QuickActionSlotType.PAUSE -> param ?: "…"
+    QuickActionSlotType.CHARGE_TO -> param?.removeSuffix("%")?.let { "at $it%" } ?: "now"
     QuickActionSlotType.FORCE_FULL -> param?.let { "to ${it}%" } ?: "to 100%"
     QuickActionSlotType.CANCEL -> ""
 }
@@ -300,8 +320,10 @@ private fun SlotParamPickerDialog(
                         onClick = { onParam(param) },
                         modifier = Modifier.fillMaxWidth()
                     ) {
+                        val label = paramLabelRes(slotType, param)?.let { stringResource(it) }
+                            ?: paramDisplayFallback(slotType, param)
                         Text(
-                            text = paramLabel(slotType, param),
+                            text = label,
                             modifier = Modifier.fillMaxWidth(),
                             color = colors.onSurface
                         )

@@ -22,6 +22,7 @@ fun QuickActionConfigRoute(
         onRemoveSlot = { viewModel.removeSlot(it) },
         onMoveSlotUp = { viewModel.moveSlotUp(it) },
         onMoveSlotDown = { viewModel.moveSlotDown(it) },
+        onEditSlot = { viewModel.editSlotParam(it) },
         onSetSlotParam = { index, param -> viewModel.setSlotParam(index, param) },
         onToggleBatteryRow = { viewModel.toggleBatteryRow() },
         onShowTypePicker = { viewModel.showTypePicker() },

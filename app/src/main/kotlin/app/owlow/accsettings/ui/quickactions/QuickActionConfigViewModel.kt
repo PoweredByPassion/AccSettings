@@ -56,24 +56,20 @@ class QuickActionConfigViewModel(
 
     fun moveSlotUp(index: Int) {
         if (index <= 0) return
-        val slots = store.load().slots.toMutableList()
-        val temp = slots[index]
-        slots[index] = slots[index - 1]
-        slots[index - 1] = temp
-        val config = store.load().copy(slots = slots)
-        persistAndSync(config)
-        _uiState.value = config.toUiState()
+        val config = store.load()
+        val slots = config.slots.toMutableList()
+        java.util.Collections.swap(slots, index, index - 1)
+        persistAndSync(config.copy(slots = slots))
+        _uiState.value = config.copy(slots = slots).toUiState()
     }
 
     fun moveSlotDown(index: Int) {
-        val slots = store.load().slots.toMutableList()
-        if (index >= slots.lastIndex) return
-        val temp = slots[index]
-        slots[index] = slots[index + 1]
-        slots[index + 1] = temp
-        val config = store.load().copy(slots = slots)
-        persistAndSync(config)
-        _uiState.value = config.toUiState()
+        val config = store.load()
+        if (index >= config.slots.lastIndex) return
+        val slots = config.slots.toMutableList()
+        java.util.Collections.swap(slots, index, index + 1)
+        persistAndSync(config.copy(slots = slots))
+        _uiState.value = config.copy(slots = slots).toUiState()
     }
 
     fun setSlotParam(index: Int, param: String?) {
@@ -98,6 +94,12 @@ class QuickActionConfigViewModel(
 
     fun showTypePicker() {
         _uiState.value = _uiState.value.copy(pickingType = true)
+    }
+
+    /** Re-opens the param picker for an existing slot so its parameter can be changed. */
+    fun editSlotParam(index: Int) {
+        if (index !in store.load().slots.indices) return
+        _uiState.value = _uiState.value.copy(editingSlotIndex = index)
     }
 
     /** Persists a config and pushes it to every surface (widget, shortcuts). */
