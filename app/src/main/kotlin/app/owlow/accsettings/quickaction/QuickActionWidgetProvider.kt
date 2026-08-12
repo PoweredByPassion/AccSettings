@@ -35,7 +35,8 @@ class QuickActionWidgetProvider : AppWidgetProvider() {
                 views.setViewVisibility(R.id.widget_battery_row, View.GONE)
             }
 
-            // Rebuild the button list (the container is empty in the layout).
+            // Rebuild the button list (the container is empty in the layout). All configured
+            // slots are shown; the widget grows to fit their height.
             views.removeAllViews(R.id.widget_buttons_container)
             config.slots.forEachIndexed { index, slot ->
                 val button = RemoteViews(context.packageName, R.layout.widget_action_button)
