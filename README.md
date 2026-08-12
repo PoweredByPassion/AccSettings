@@ -9,6 +9,12 @@ It provides a modern Compose-based interface for checking ACC status, editing co
 - Shows ACC install state, daemon status, version information, warnings, and next actions on the Overview page
 - Displays live battery information on the home screen, including level, charging status, temperature, current, voltage, and power
 - Refreshes battery information automatically every 3 seconds while the Overview page is visible
+- Provides one-shot charging-control operations: pause charging, resume to a target, and force-full charge — mutually exclusive, with live countdowns while active
+- Shows an ongoing notification with countdown, battery level, and action buttons while a charging operation is active
+- Adds a home-screen widget (4x2) and Quick Settings tile for one-tap access to your configured quick actions
+- Lets you customize quick actions: add, remove, reorder, and parameterize up to five actions, and toggle the widget battery row
+- Runs quick actions from launcher app shortcuts (dynamic, follow your config)
+- Estimates battery health automatically by reading the design capacity from sysfs
 - Uses draft-based configuration editing so changes can be reviewed before applying them to the device
 - Provides install, update, repair, restart, refresh, and re-detect tools for ACC
 - Includes anchored inline feedback for important actions instead of forcing users to scroll to the top
@@ -16,7 +22,8 @@ It provides a modern Compose-based interface for checking ACC status, editing co
 
 ## Screens
 
-- `Overview`: ACC status, runtime facts, battery information, and quick actions
+- `Overview`: ACC status, runtime facts, battery information, and charging-control quick actions
+- `Quick Actions`: configure which quick actions appear on the widget, notification, and shortcuts (up to 5, reorderable, parameterized)
 - `Configuration`: draft editing for ACC config values before apply
 - `Tools`: install, repair, service control, diagnostics, and runtime logs
 - `About`: app details and clickable project repository link
@@ -25,11 +32,17 @@ It provides a modern Compose-based interface for checking ACC status, editing co
 
 <div align="center">
   <img src="ScreenShots/Overview.jpg" alt="Overview" width="200"/>
-  <img src="ScreenShots/Configrations.jpg" alt="Configurations" width="200"/>
-  <img src="ScreenShots/Tools-1.jpg" alt="Tools 1" width="200"/>
-  <img src="ScreenShots/Tools-2.jpg" alt="Tools 2" width="200"/>
-  <img src="ScreenShots/Tools-3.jpg" alt="Tools 3" width="200"/>
+  <img src="ScreenShots/Widget.jpg" alt="Widget" width="200"/>
+  <img src="ScreenShots/QuickActions.jpg" alt="Quick Actions" width="200"/>
   <img src="ScreenShots/About.jpg" alt="About" width="200"/>
+</div>
+
+### Full pages
+
+<div align="center">
+  <img src="ScreenShots/Overview-long.jpg" alt="Overview full" width="300"/>
+  <img src="ScreenShots/Tools-long.jpg" alt="Tools full" width="300"/>
+  <img src="ScreenShots/QuickActions-long.jpg" alt="Quick Actions full" width="300"/>
 </div>
 
 ## Requirements
@@ -63,9 +76,9 @@ It provides a modern Compose-based interface for checking ACC status, editing co
 
 ## Notes
 
-- Battery information on the Overview page comes from Android system battery APIs, not from ACC runtime info
+- Battery information on the Overview page comes from ACC runtime info (via `acc --info`) with a fallback to Android system battery APIs when ACC/root is unavailable
 - Some battery values depend on device support, so current or power may be unavailable on certain devices
-- Real ACC operations such as install, repair, and daemon control require root and a compatible rooted environment
+- Real ACC operations such as install, repair, daemon control, and charging control require root and a compatible rooted environment
 
 ## Documentation
 
