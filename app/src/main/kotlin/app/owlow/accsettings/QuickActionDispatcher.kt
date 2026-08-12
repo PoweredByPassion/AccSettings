@@ -13,6 +13,15 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
+/** Result of a quick-action dispatch, returned by [QuickActionDispatcher.dispatchAndAwait]. */
+sealed class DispatchResult {
+    /** The action completed successfully (includes Cancel, which is a success). */
+    data object Success : DispatchResult()
+
+    /** The action failed; [message] is the error text. */
+    data class Failure(val message: String) : DispatchResult()
+}
+
 /**
  * Shared logic for handling a `quickaction:` URI from any entry point (broadcast receiver,
  * transparent activity). Maps the URI to a [QuickAction] and dispatches it through a
@@ -36,6 +45,27 @@ object QuickActionDispatcher {
             } finally {
                 onFinished()
             }
+        }
+    }
+
+    /**
+     * Dispatches [uriString] and suspends until the operation completes, returning a result.
+     *
+     * Returns `null` for unknown URIs. Does NOT show toasts — the caller owns feedback.
+     * [coordinatorFactory] is injectable for tests; callers use the default.
+     */
+    suspend fun dispatchAndAwait(
+        context: Context,
+        uriString: String,
+        coordinatorFactory: (Context) -> ChargingControlCoordinator = { ChargingControlCoordinator.forContext(it) }
+    ): DispatchResult? {
+        val action = mapUriToAction(uriString) ?: return null
+        val coordinator = coordinatorFactory(context.applicationContext)
+        return try {
+            coordinator.execute(action, sink = null)
+            DispatchResult.Success
+        } catch (e: Exception) {
+            DispatchResult.Failure(e.localizedMessage ?: "Action failed")
         }
     }
 

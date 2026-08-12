@@ -8,14 +8,15 @@ import android.content.Intent
 import android.net.Uri
 import android.os.BatteryManager
 import android.widget.RemoteViews
-import app.owlow.accsettings.QuickActionReceiver
+import app.owlow.accsettings.QuickActionActivity
 import app.owlow.accsettings.R
 
 /**
  * Home-screen widget with buttons for the five canonical quick actions.
  *
- * Each button fires a [PendingIntent] that targets the shared [QuickActionReceiver]
- * using the same `quickaction:` URI scheme used by notifications and app shortcuts.
+ * Each button launches the transparent [QuickActionActivity] (via `getActivity`) with a
+ * `quickaction:` URI, so tapping a button shows the same loading/result feedback card as app
+ * shortcuts.
  */
 class QuickActionWidgetProvider : AppWidgetProvider() {
 
@@ -40,9 +41,9 @@ class QuickActionWidgetProvider : AppWidgetProvider() {
         )
 
         buttons.forEachIndexed { requestCode, (viewId, uri) ->
-            val intent = Intent(context, QuickActionReceiver::class.java)
+            val intent = Intent(context, QuickActionActivity::class.java)
                 .setData(Uri.parse(uri))
-            val pendingIntent = PendingIntent.getBroadcast(
+            val pendingIntent = PendingIntent.getActivity(
                 context,
                 requestCode,
                 intent,

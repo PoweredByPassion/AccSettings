@@ -343,6 +343,9 @@
     <string name="toast_started">完成</string>
     <string name="toast_cancelled">已恢复充电</string>
     <string name="toast_error">操作失败</string>
+    <string name="quick_action_loading">正在执行…</string>
+    <string name="quick_action_success">已执行</string>
+    <string name="quick_action_failed">操作失败</string>
 
     <!-- Home screen widget -->
     <string name="quick_action_widget_title">快捷操作</string>

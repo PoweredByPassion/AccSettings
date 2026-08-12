@@ -344,6 +344,9 @@
     <string name="toast_started">Done</string>
     <string name="toast_cancelled">Charging restored</string>
     <string name="toast_error">Action failed</string>
+    <string name="quick_action_loading">Executing…</string>
+    <string name="quick_action_success">Done</string>
+    <string name="quick_action_failed">Action failed</string>
 
     <!-- Home screen widget -->
     <string name="quick_action_widget_title">Quick actions</string>
