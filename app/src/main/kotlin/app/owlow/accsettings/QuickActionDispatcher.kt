@@ -2,6 +2,8 @@ package app.owlow.accsettings
 
 import android.content.Context
 import android.net.Uri
+import android.os.Handler
+import android.os.Looper
 import android.widget.Toast
 import app.owlow.accsettings.R
 import app.owlow.accsettings.quickaction.ChargingControlCoordinator
@@ -62,14 +64,25 @@ object QuickActionDispatcher {
     }
 }
 
-/** A [FeedbackSink] that shows the result as a short [Toast] using localized strings. */
+/**
+ * A [FeedbackSink] that shows the result as a short [Toast] using localized strings.
+ *
+ * [show] may be called from a background coroutine (the dispatcher runs on `Dispatchers.IO`),
+ * but [Toast] must be shown on a thread with a Looper. Post to the main looper so the toast is
+ * always safe.
+ */
 private class ToastSink(private val context: Context) : FeedbackSink {
+    private val mainHandler = Handler(Looper.getMainLooper())
+
     override fun show(message: String) {
         val resId = when (message) {
             "Done" -> R.string.toast_started
             "Charging restored" -> R.string.toast_cancelled
             else -> R.string.toast_error
         }
-        Toast.makeText(context, context.getString(resId), Toast.LENGTH_SHORT).show()
+        val text = context.getString(resId)
+        mainHandler.post {
+            Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
+        }
     }
 }
