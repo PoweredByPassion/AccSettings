@@ -26,6 +26,13 @@
                 android:name="android.app.shortcuts"
                 android:resource="@xml/shortcuts" />
         </activity>
+        <!-- Transparent, no-UI target for app shortcuts (shortcuts are launched via startActivity,
+             which cannot start a BroadcastReceiver). Exported with no intent-filter so it never
+             appears in the launcher. -->
+        <activity
+            android:name=".QuickActionActivity"
+            android:exported="true"
+            android:theme="@style/Theme.AccSettings.Transparent" />
         <receiver
             android:name=".QuickActionReceiver"
             android:exported="false" />
