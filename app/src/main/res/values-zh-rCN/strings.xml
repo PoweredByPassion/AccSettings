@@ -263,10 +263,10 @@
     <string name="overview_force_stop_hint">忽略设置暂停充电</string>
     <string name="overview_charge_control_title">充电控制</string>
     <string name="overview_action_stop_charge">停止充电</string>
-    <string name="overview_action_resume_charge">恢复到目标充电</string>
-    <string name="overview_action_resume_hint">通过 acc -e 充到目标条件</string>
-    <string name="overview_action_force_full">强制充满</string>
-    <string name="overview_action_force_full_hint">通过 acc -f 一次性充到目标容量</string>
+    <string name="overview_action_resume_charge">恢复充电</string>
+    <string name="overview_action_resume_hint">忽略设置恢复充电</string>
+    <string name="overview_action_force_full">一次性充满</string>
+    <string name="overview_action_force_full_hint">一次性充到指定目标容量</string>
     <string name="overview_charge_to_active">充电至 %1$s</string>
     <string name="overview_charge_to_remaining">%1$s 后达到目标</string>
     <string name="overview_charge_to_target">充电直到 %1$s</string>

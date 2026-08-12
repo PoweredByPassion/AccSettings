@@ -264,10 +264,10 @@
     <string name="overview_force_stop_hint">Pause charging regardless of settings</string>
     <string name="overview_charge_control_title">Charge control</string>
     <string name="overview_action_stop_charge">Stop charging</string>
-    <string name="overview_action_resume_charge">Resume charging to target</string>
-    <string name="overview_action_resume_hint">Charge to a target condition via acc -e</string>
-    <string name="overview_action_force_full">Force full charge</string>
-    <string name="overview_action_force_full_hint">Charge once to a target capacity via acc -f</string>
+    <string name="overview_action_resume_charge">Resume charging</string>
+    <string name="overview_action_resume_hint">Resume charging, ignoring the configured limits</string>
+    <string name="overview_action_force_full">Charge to full</string>
+    <string name="overview_action_force_full_hint">Charge once to a set capacity</string>
     <string name="overview_charge_to_active">Charging to %1$s</string>
     <string name="overview_charge_to_remaining">Target reached in %1$s</string>
     <string name="overview_charge_to_target">Charging until %1$s</string>
