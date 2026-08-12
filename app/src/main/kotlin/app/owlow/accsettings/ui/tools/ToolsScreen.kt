@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -15,7 +14,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.owlow.accsettings.R
@@ -27,9 +25,6 @@ fun ToolsScreen(
     onAction: (ToolAction) -> Unit,
     onConfirmAction: () -> Unit,
     onDismissConfirmation: () -> Unit,
-    onHealthInputChange: (String) -> Unit = {},
-    onConfirmHealth: () -> Unit = {},
-    onDismissHealth: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
@@ -100,20 +95,11 @@ fun ToolsScreen(
             item { ToolSectionCard(colors = colors, section = state.installSection, isBusy = state.isBusy, onAction = onAction) }
             item { ToolSectionCard(colors = colors, section = state.serviceSection, isBusy = state.isBusy, onAction = onAction) }
             item { ToolSectionCard(colors = colors, section = state.batterySection, isBusy = state.isBusy, onAction = onAction) }
+            item { ToolSectionCard(colors = colors, section = state.quickActionsSection, isBusy = state.isBusy, onAction = onAction) }
             item { ToolSectionCard(colors = colors, section = state.diagnosticsSection, isBusy = state.isBusy, onAction = onAction) }
             item { ToolLogCard(colors = colors, section = state.logsSection) }
             item { ToolSectionCard(colors = colors, section = state.appInfoSection, isBusy = state.isBusy, onAction = onAction) }
         }
-    }
-
-    if (state.showHealthDialog) {
-        HealthInputDialog(
-            currentInput = state.healthInputMah,
-            colors = colors,
-            onDismiss = onDismissHealth,
-            onInputChange = onHealthInputChange,
-            onConfirm = onConfirmHealth
-        )
     }
 }
 
@@ -270,6 +256,7 @@ private fun confirmationTitle(action: ToolAction): String = when (action) {
     ToolAction.RESET_BATTERY_STATS -> stringResource(R.string.tools_confirm_reset_stats_title)
     ToolAction.EXPORT_LOGS -> stringResource(R.string.tools_confirm_export_logs_title)
     ToolAction.ESTIMATE_HEALTH -> stringResource(R.string.tools_confirm_health_title)
+    ToolAction.OPEN_QUICK_ACTIONS -> stringResource(R.string.quick_actions_config_title)
 }
 
 @Composable
@@ -282,55 +269,5 @@ private fun confirmationMessage(action: ToolAction): String = when (action) {
     ToolAction.RESET_BATTERY_STATS -> stringResource(R.string.tools_confirm_reset_stats_message)
     ToolAction.EXPORT_LOGS -> stringResource(R.string.tools_confirm_export_logs_message)
     ToolAction.ESTIMATE_HEALTH -> stringResource(R.string.tools_confirm_health_message)
-}
-
-/** Dialog asking for the battery's design capacity (mAh) to estimate health (`acc -H`). */
-@Composable
-private fun HealthInputDialog(
-    currentInput: String,
-    colors: ColorScheme,
-    onDismiss: () -> Unit,
-    onInputChange: (String) -> Unit,
-    onConfirm: () -> Unit
-) {
-    val canConfirm = currentInput.toIntOrNull()?.let { it > 0 } == true
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = colors.surface,
-        titleContentColor = colors.onSurface,
-        textContentColor = colors.onSurfaceVariant,
-        title = { Text(stringResource(R.string.tools_health_dialog_title)) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(
-                    text = stringResource(R.string.tools_health_dialog_hint),
-                    style = AccTypography.bodyMedium,
-                    color = colors.onSurfaceVariant
-                )
-                OutlinedTextField(
-                    value = currentInput,
-                    onValueChange = onInputChange,
-                    label = { Text(stringResource(R.string.tools_health_design_capacity_label)) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = onConfirm,
-                enabled = canConfirm,
-                colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text(text = stringResource(R.string.continue_action))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(text = stringResource(R.string.cancel), color = colors.onSurfaceVariant)
-            }
-        }
-    )
+    ToolAction.OPEN_QUICK_ACTIONS -> stringResource(R.string.tools_section_quick_actions_summary)
 }

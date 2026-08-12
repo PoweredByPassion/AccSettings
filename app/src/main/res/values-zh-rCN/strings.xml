@@ -232,7 +232,7 @@
     <string name="tools_section_battery_title">电池工具</string>
     <string name="tools_section_battery_summary">电池诊断和维护。</string>
     <string name="tools_action_estimate_health">估算电池健康度</string>
-    <string name="tools_action_estimate_health_desc">根据设计容量 (mAh) 计算健康百分比。</string>
+    <string name="tools_action_estimate_health_desc">自动读取电池设计容量并估算健康度。</string>
     <string name="tools_action_reset_stats">重置电池统计</string>
     <string name="tools_action_reset_stats_desc">通过 ACC 清除 Android 电池统计。</string>
     <string name="tools_action_export_logs">导出日志</string>
@@ -242,9 +242,6 @@
     <string name="tools_export_logs_empty">没有可导出的 ACC 日志</string>
     <string name="tools_health_result">估算健康度：%1$s</string>
     <string name="tools_health_unavailable">无法估算：电池数据不可用</string>
-    <string name="tools_health_dialog_title">估算电池健康度</string>
-    <string name="tools_health_dialog_hint">输入电池上标注的设计（额定）容量，单位 mAh。</string>
-    <string name="tools_health_design_capacity_label">设计容量 (mAh)</string>
     <string name="tools_confirm_reset_stats_title">重置电池统计？</string>
     <string name="tools_confirm_reset_stats_message">这将清除 Android 电池使用历史记录。</string>
     <string name="tools_confirm_export_logs_title">导出 ACC 日志？</string>
@@ -266,10 +263,10 @@
     <string name="overview_force_stop_hint">忽略设置暂停充电</string>
     <string name="overview_charge_control_title">充电控制</string>
     <string name="overview_action_stop_charge">停止充电</string>
-    <string name="overview_action_resume_charge">恢复到目标充电</string>
-    <string name="overview_action_resume_hint">通过 acc -e 充到目标条件</string>
-    <string name="overview_action_force_full">强制充满</string>
-    <string name="overview_action_force_full_hint">通过 acc -f 一次性充到目标容量</string>
+    <string name="overview_action_resume_charge">恢复充电</string>
+    <string name="overview_action_resume_hint">忽略设置恢复充电</string>
+    <string name="overview_action_force_full">一次性充满</string>
+    <string name="overview_action_force_full_hint">一次性充到指定目标容量</string>
     <string name="overview_charge_to_active">充电至 %1$s</string>
     <string name="overview_charge_to_remaining">%1$s 后达到目标</string>
     <string name="overview_charge_to_target">充电直到 %1$s</string>
@@ -333,4 +330,48 @@
 
     <string name="config_error_capacity_ordering">电量阈值顺序无效：关机 &lt; 恢复 &lt;= 冷却 &lt;= 停止</string>
     <string name="config_error_temperature_ordering">温度阈值顺序无效：冷却 &lt; 恢复 &lt; 停止 &lt; 关机</string>
+
+    <!-- Quick action foreground service -->
+    <string name="quick_action_service_channel_name">充电控制</string>
+    <string name="quick_action_service_channel_desc">活跃充电操作的实时状态与控制</string>
+    <string name="quick_action_notif_title_active">充电已停止</string>
+    <string name="quick_action_cancel">取消</string>
+    <string name="quick_action_pause_30m">暂停 30 分钟</string>
+    <string name="quick_action_pause_1h">暂停 1 小时</string>
+    <string name="quick_action_force_full">强制充满</string>
+    <string name="quick_action_charge_to_85">充电至 85%</string>
+    <string name="toast_started">完成</string>
+    <string name="toast_cancelled">已恢复充电</string>
+    <string name="toast_error">操作失败</string>
+    <string name="quick_action_loading">正在执行…</string>
+    <string name="quick_action_success">已执行</string>
+    <string name="quick_action_failed">操作失败</string>
+
+    <!-- Quick-action config screen -->
+    <string name="quick_actions_config_title">快捷操作</string>
+    <string name="quick_actions_config_subtitle">自定义小组件、通知和快捷方式上显示的操作按钮</string>
+    <string name="quick_actions_battery_row">显示电池状态</string>
+    <string name="quick_actions_add">添加操作</string>
+    <string name="quick_actions_slot_pause">暂停 %1$s</string>
+    <string name="quick_actions_slot_charge_to">充电至 %1$s</string>
+    <string name="quick_actions_slot_force_full">充满 %1$s</string>
+    <string name="quick_actions_slot_cancel">恢复</string>
+    <string name="quick_actions_param_dialog_title">选择条件</string>
+    <string name="quick_actions_remove">删除</string>
+    <string name="quick_actions_move_up">上移</string>
+    <string name="quick_actions_move_down">下移</string>
+    <string name="quick_actions_empty">尚未配置操作。点击「添加」创建一个。</string>
+    <string name="quick_actions_max_reached">最多 5 个操作</string>
+    <string name="tools_section_quick_actions_title">快捷操作</string>
+    <string name="tools_section_quick_actions_summary">自定义小组件、通知和快捷方式按钮</string>
+    <string name="tools_action_configure_quick_actions">配置快捷操作</string>
+    <string name="tools_action_configure_quick_actions_desc">选择要显示的充电控制及顺序</string>
+
+    <!-- Home screen widget -->
+    <string name="quick_action_widget_title">快捷操作</string>
+    <string name="quick_action_widget_desc">快速充电控制</string>
+
+    <!-- Quick settings tile -->
+    <string name="quick_action_tile_label">充电控制</string>
+    <string name="quick_action_tile_desc">快速充电控制</string>
     </resources>

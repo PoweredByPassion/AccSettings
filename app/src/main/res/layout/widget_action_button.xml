@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One quick-action button, inflated at runtime per configured slot. -->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_button"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:minHeight="40dp"
+    android:gravity="center"
+    android:textColor="#FAFAFA"
+    android:textSize="13sp"
+    android:textStyle="bold"
+    android:background="@drawable/bg_widget_button"
+    android:paddingHorizontal="12dp"
+    android:paddingVertical="8dp"
+    android:layout_marginBottom="4dp" />

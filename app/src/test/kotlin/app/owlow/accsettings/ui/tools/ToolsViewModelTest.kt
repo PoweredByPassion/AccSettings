@@ -110,21 +110,20 @@ class ToolsViewModelTest {
     }
 
     @Test
-    fun estimateHealth_requiresInput_thenShowsResult() = runTest {
+    fun estimateHealth_showsResultOnBatterySection() = runTest {
         val viewModel = ToolsViewModel(
             context = ApplicationProvider.getApplicationContext(),
             toolsRepository = FakeToolsRepository(actionMessage = "Estimated health: 87.3%")
         )
 
-        // Opening the dialog does not perform the action.
-        viewModel.showHealthDialog()
-        assertTrue(viewModel.uiState.value.showHealthDialog)
+        // The action runs directly (no dialog) and reports through the battery section.
+        viewModel.requestAction(ToolAction.ESTIMATE_HEALTH)
+        runCurrent()
 
-        viewModel.updateHealthInput("4000")
-        viewModel.estimateHealth().join()
-
-        assertFalse(viewModel.uiState.value.showHealthDialog)
-        assertEquals("Estimated health: 87.3%", viewModel.uiState.value.healthResult)
+        assertEquals(
+            ToolStatusMessage("Estimated health: 87.3%", isError = false),
+            viewModel.uiState.value.batterySection.statusMessage
+        )
         assertFalse(viewModel.uiState.value.isBusy)
     }
 
@@ -154,7 +153,7 @@ class ToolsViewModelTest {
 
         override suspend fun exportLogs(): String = actionResult()
 
-        override suspend fun estimateHealth(designCapacityMah: Int): String = actionResult()
+        override suspend fun estimateHealth(): String = actionResult()
 
         private fun actionResult(): String {
             actionError?.let { throw it }

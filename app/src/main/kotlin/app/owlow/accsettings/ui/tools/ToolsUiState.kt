@@ -40,7 +40,8 @@ enum class ToolAction {
     REFRESH,
     RESET_BATTERY_STATS,
     EXPORT_LOGS,
-    ESTIMATE_HEALTH
+    ESTIMATE_HEALTH,
+    OPEN_QUICK_ACTIONS
 }
 
 data class ToolsUiState(
@@ -50,9 +51,7 @@ data class ToolsUiState(
     val logsSection: ToolLogSection = ToolLogSection(),
     val appInfoSection: ToolSection = ToolSection(),
     val batterySection: ToolSection = ToolSection(),
+    val quickActionsSection: ToolSection = ToolSection(),
     val isBusy: Boolean = false,
-    val pendingConfirmation: ToolAction? = null,
-    val showHealthDialog: Boolean = false,
-    val healthInputMah: String = "",
-    val healthResult: String? = null
+    val pendingConfirmation: ToolAction? = null
 )

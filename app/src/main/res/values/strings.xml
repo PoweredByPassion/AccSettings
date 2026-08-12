@@ -233,7 +233,7 @@
     <string name="tools_section_battery_title">Battery Tools</string>
     <string name="tools_section_battery_summary">Battery diagnostics and maintenance.</string>
     <string name="tools_action_estimate_health">Estimate battery health</string>
-    <string name="tools_action_estimate_health_desc">Calculate health percentage from design capacity in mAh.</string>
+    <string name="tools_action_estimate_health_desc">Reads the design capacity from the battery and estimates health.</string>
     <string name="tools_action_reset_stats">Reset battery stats</string>
     <string name="tools_action_reset_stats_desc">Clear Android battery statistics via ACC.</string>
     <string name="tools_action_export_logs">Export logs</string>
@@ -243,9 +243,6 @@
     <string name="tools_export_logs_empty">No ACC logs to export</string>
     <string name="tools_health_result">Estimated health: %1$s</string>
     <string name="tools_health_unavailable">Cannot estimate: battery data unavailable</string>
-    <string name="tools_health_dialog_title">Estimate Battery Health</string>
-    <string name="tools_health_dialog_hint">Enter the design (rated) capacity printed on your battery in mAh.</string>
-    <string name="tools_health_design_capacity_label">Design capacity (mAh)</string>
     <string name="tools_confirm_reset_stats_title">Reset battery statistics?</string>
     <string name="tools_confirm_reset_stats_message">This clears Android battery usage history.</string>
     <string name="tools_confirm_export_logs_title">Export ACC logs?</string>
@@ -267,10 +264,10 @@
     <string name="overview_force_stop_hint">Pause charging regardless of settings</string>
     <string name="overview_charge_control_title">Charge control</string>
     <string name="overview_action_stop_charge">Stop charging</string>
-    <string name="overview_action_resume_charge">Resume charging to target</string>
-    <string name="overview_action_resume_hint">Charge to a target condition via acc -e</string>
-    <string name="overview_action_force_full">Force full charge</string>
-    <string name="overview_action_force_full_hint">Charge once to a target capacity via acc -f</string>
+    <string name="overview_action_resume_charge">Resume charging</string>
+    <string name="overview_action_resume_hint">Resume charging, ignoring the configured limits</string>
+    <string name="overview_action_force_full">Charge to full</string>
+    <string name="overview_action_force_full_hint">Charge once to a set capacity</string>
     <string name="overview_charge_to_active">Charging to %1$s</string>
     <string name="overview_charge_to_remaining">Target reached in %1$s</string>
     <string name="overview_charge_to_target">Charging until %1$s</string>
@@ -334,4 +331,48 @@
 
     <string name="config_error_capacity_ordering">Capacity ordering is invalid: shutdown &lt; resume &lt;= cooldown &lt;= pause</string>
     <string name="config_error_temperature_ordering">Temperature ordering is invalid: cooldown &lt; resume &lt; pause &lt; shutdown</string>
+
+    <!-- Quick action foreground service -->
+    <string name="quick_action_service_channel_name">Charging control</string>
+    <string name="quick_action_service_channel_desc">Live status and controls for the active charging operation</string>
+    <string name="quick_action_notif_title_active">Charging stopped</string>
+    <string name="quick_action_cancel">Cancel</string>
+    <string name="quick_action_pause_30m">Pause 30m</string>
+    <string name="quick_action_pause_1h">Pause 1h</string>
+    <string name="quick_action_force_full">Force full</string>
+    <string name="quick_action_charge_to_85">Charge to 85%</string>
+    <string name="toast_started">Done</string>
+    <string name="toast_cancelled">Charging restored</string>
+    <string name="toast_error">Action failed</string>
+    <string name="quick_action_loading">Executing…</string>
+    <string name="quick_action_success">Done</string>
+    <string name="quick_action_failed">Action failed</string>
+
+    <!-- Quick-action config screen -->
+    <string name="quick_actions_config_title">Quick Actions</string>
+    <string name="quick_actions_config_subtitle">Customize the buttons shown on the widget, notification, and app shortcuts</string>
+    <string name="quick_actions_battery_row">Show battery status</string>
+    <string name="quick_actions_add">Add action</string>
+    <string name="quick_actions_slot_pause">Pause %1$s</string>
+    <string name="quick_actions_slot_charge_to">Charge to %1$s</string>
+    <string name="quick_actions_slot_force_full">Force full %1$s</string>
+    <string name="quick_actions_slot_cancel">Restore</string>
+    <string name="quick_actions_param_dialog_title">Choose condition</string>
+    <string name="quick_actions_remove">Remove</string>
+    <string name="quick_actions_move_up">Move up</string>
+    <string name="quick_actions_move_down">Move down</string>
+    <string name="quick_actions_empty">No actions configured. Tap Add to create one.</string>
+    <string name="quick_actions_max_reached">Maximum 5 actions</string>
+    <string name="tools_section_quick_actions_title">Quick Actions</string>
+    <string name="tools_section_quick_actions_summary">Customize widget, notification, and shortcut buttons</string>
+    <string name="tools_action_configure_quick_actions">Configure quick actions</string>
+    <string name="tools_action_configure_quick_actions_desc">Choose which charging controls to show and in what order</string>
+
+    <!-- Home screen widget -->
+    <string name="quick_action_widget_title">Quick actions</string>
+    <string name="quick_action_widget_desc">Quick charging controls</string>
+
+    <!-- Quick settings tile -->
+    <string name="quick_action_tile_label">Charge control</string>
+    <string name="quick_action_tile_desc">Quick charging controls</string>
 </resources>

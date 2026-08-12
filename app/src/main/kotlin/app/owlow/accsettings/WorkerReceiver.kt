@@ -10,12 +10,17 @@ import androidx.work.WorkerParameters
 import com.topjohnwu.superuser.Shell
 import app.owlow.accsettings.acc.AccStateManager
 import app.owlow.accsettings.acc.Command
+import app.owlow.accsettings.quickaction.QuickActionShortcutSyncer
 import kotlinx.coroutines.runBlocking
 
 class WorkerReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
         when (intent!!.action) {
-            Intent.ACTION_MY_PACKAGE_REPLACED -> run(context, InitialWorker::class.java)
+            Intent.ACTION_MY_PACKAGE_REPLACED -> {
+                // Re-sync dynamic shortcuts after an app update (package identity may be re-registered).
+                QuickActionShortcutSyncer.sync(context)
+                run(context, InitialWorker::class.java)
+            }
             Intent.ACTION_BOOT_COMPLETED, Intent.ACTION_LOCKED_BOOT_COMPLETED -> run(
                 context,
                 ServeWorker::class.java

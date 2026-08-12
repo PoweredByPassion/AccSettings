@@ -1,5 +1,27 @@
 # Changelog
 
+## 2026-08-12
+
+**New**
+
+- **Charging-control quick actions**: the Overview card can now pause charging (`acc -d`), resume charging to a target (`acc -e`), or force-full charge to a capacity (`acc -f`) — three mutually-exclusive one-shot operations. Starting one auto-cancels any other active operation, and each shows a live countdown / target while in effect.
+- **Live foreground notification**: while an operation is active, an ongoing notification shows the operation, a remaining-time countdown, the current battery level, and action buttons (including Cancel). It is started only while an operation runs and auto-dismisses when the operation finishes or is cancelled.
+- **Quick Settings tile**: a tile reflects the active operation and cancels it on tap (or opens the app when idle).
+- **Home-screen widget**: a rounded-card quick-action widget with the configured action buttons and an optional battery-status row. Default grid size is 4x2.
+- **App shortcuts**: long-press the launcher icon to run quick actions directly. Shortcuts are now dynamic and follow the configured action list.
+- **Customizable quick actions**: a new Quick Actions settings screen (from the Tools page) lets you add, remove, reorder, and parameterize up to five actions (pause duration/capacity, charge-to target, force-full capacity, restore), toggle the widget battery row, and edit any action's parameter. The widget, notification, and shortcuts all stay in sync.
+- **Auto-read battery health**: "Estimate battery health" now reads the design capacity from sysfs automatically (no manual mAh input) and shows the result inline.
+- **Loading + result feedback**: triggering a quick action from a shortcut or widget shows a brief loading card, then a success/failure result.
+
+**Fixes**
+
+- **Fixed "app not installed" on shortcut taps**: app shortcuts pointed at a broadcast receiver, which Android cannot start via `startActivity`. They now route through a transparent activity, so tapping a shortcut actually runs the action.
+- **Fixed crash on quick-action taps**: the result toast was shown on a background thread (`Can't toast on a thread that has not called Looper.prepare()`). Toasts now post to the main looper.
+- **Error toasts show the real cause**: a failed quick action now shows the actual error message (e.g. "Root permission required") instead of a generic "Error".
+- **Concurrent quick actions are serialized**: a process-level lock prevents two surfaces (widget, tile, notification, app) from starting conflicting ACC commands at the same time.
+- **Charging action labels are user-friendly**: removed `acc -e` / `acc -f` terminology from visible copy ("Resume charging, ignoring the configured limits", "Charge once to a set capacity").
+- **Quick Action config stays consistent**: fixed a double-read race when reordering slots; slots can now be re-edited after creation.
+
 ## 2026-08-11
 
 **New**
