@@ -49,6 +49,17 @@ object ChargeControlLabels {
     fun chargeToConditionLabel(condition: String?, context: Context): String =
         context.getString(chargeToConditionLabelRes(condition))
 
+    /** Concise display label for a configured quick-action slot (e.g. "Pause 45m", "Charge to 88%", "Force full", "Restore"). */
+    fun slotLabel(context: Context, slot: QuickActionSlot): String = when (slot.type) {
+        QuickActionSlotType.PAUSE -> context.getString(R.string.quick_actions_slot_pause, slotParamLabel(slot.param))
+        QuickActionSlotType.CHARGE_TO -> context.getString(R.string.quick_actions_slot_charge_to, slotParamLabel(slot.param))
+        QuickActionSlotType.FORCE_FULL -> context.getString(R.string.quick_actions_slot_force_full, slotParamLabel(slot.param))
+        QuickActionSlotType.CANCEL -> context.getString(R.string.quick_actions_slot_cancel)
+    }
+
+    /** Renders a slot param for display: `"30m"` → `"30m"`, `"85%"` → `"85%"`, null → "…" (unconditional). */
+    private fun slotParamLabel(param: String?): String = param ?: "…"
+
     // ---- Active-operation title / description -----------------------------------------
 
     /** Mode-specific title for the active charging-control operation. */

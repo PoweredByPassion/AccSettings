@@ -1,66 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
+    android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="4dp">
+    android:background="@drawable/bg_widget_card"
+    android:padding="10dp">
 
-    <TextView
-        android:id="@+id/widget_status"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:textAppearance="?android:attr/textAppearanceSmall"
-        android:textSize="12sp" />
-
+    <!-- Battery status row; visibility toggled by the config's showBatteryRow. -->
     <LinearLayout
+        android:id="@+id/widget_battery_row"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:layout_marginTop="2dp">
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="4dp"
+        android:paddingBottom="8dp"
+        android:visibility="gone">
 
-        <Button
-            android:id="@+id/widget_pause_30m"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="2dp"
-            android:minHeight="32dp"
-            android:text="@string/quick_action_pause_30m"
-            android:textSize="12sp" />
+        <ImageView
+            android:id="@+id/widget_battery_icon"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:layout_marginEnd="6dp"
+            android:src="@drawable/ic_widget_battery"
+            android:importantForAccessibility="no" />
 
-        <Button
-            android:id="@+id/widget_pause_1h"
-            android:layout_width="match_parent"
+        <TextView
+            android:id="@+id/widget_status"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="2dp"
-            android:minHeight="32dp"
-            android:text="@string/quick_action_pause_1h"
-            android:textSize="12sp" />
-
-        <Button
-            android:id="@+id/widget_force_full"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="2dp"
-            android:minHeight="32dp"
-            android:text="@string/quick_action_force_full"
-            android:textSize="12sp" />
-
-        <Button
-            android:id="@+id/widget_charge_to_85"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="2dp"
-            android:minHeight="32dp"
-            android:text="@string/quick_action_charge_to_85"
-            android:textSize="12sp" />
-
-        <Button
-            android:id="@+id/widget_cancel"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:minHeight="32dp"
-            android:text="@string/quick_action_cancel"
-            android:textSize="12sp" />
+            android:layout_weight="1"
+            android:textColor="#18181B"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:includeFontPadding="false" />
     </LinearLayout>
+
+    <!-- Dynamic quick-action buttons are added here at runtime, one per configured slot. -->
+    <LinearLayout
+        android:id="@+id/widget_buttons_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical" />
 </LinearLayout>

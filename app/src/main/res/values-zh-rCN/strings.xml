@@ -347,6 +347,26 @@
     <string name="quick_action_success">已执行</string>
     <string name="quick_action_failed">操作失败</string>
 
+    <!-- Quick-action config screen -->
+    <string name="quick_actions_config_title">快捷操作</string>
+    <string name="quick_actions_config_subtitle">自定义小组件、通知和快捷方式上显示的操作按钮</string>
+    <string name="quick_actions_battery_row">显示电池状态</string>
+    <string name="quick_actions_add">添加操作</string>
+    <string name="quick_actions_slot_pause">暂停 %1$s</string>
+    <string name="quick_actions_slot_charge_to">充电至 %1$s</string>
+    <string name="quick_actions_slot_force_full">充满 %1$s</string>
+    <string name="quick_actions_slot_cancel">恢复</string>
+    <string name="quick_actions_param_dialog_title">选择条件</string>
+    <string name="quick_actions_remove">删除</string>
+    <string name="quick_actions_move_up">上移</string>
+    <string name="quick_actions_move_down">下移</string>
+    <string name="quick_actions_empty">尚未配置操作。点击「添加」创建一个。</string>
+    <string name="quick_actions_max_reached">最多 5 个操作</string>
+    <string name="tools_section_quick_actions_title">快捷操作</string>
+    <string name="tools_section_quick_actions_summary">自定义小组件、通知和快捷方式按钮</string>
+    <string name="tools_action_configure_quick_actions">配置快捷操作</string>
+    <string name="tools_action_configure_quick_actions_desc">选择要显示的充电控制及顺序</string>
+
     <!-- Home screen widget -->
     <string name="quick_action_widget_title">快捷操作</string>
     <string name="quick_action_widget_desc">快速充电控制</string>

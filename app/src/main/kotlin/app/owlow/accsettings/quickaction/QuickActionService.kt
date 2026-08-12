@@ -18,6 +18,7 @@ import app.owlow.accsettings.acc.AccStateManager
 import app.owlow.accsettings.acc.ChargingControlMode
 import app.owlow.accsettings.data.ForceStopChargingStore
 import app.owlow.accsettings.data.ForceStopState
+import app.owlow.accsettings.data.QuickActionConfigStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -170,32 +171,38 @@ class QuickActionService : Service() {
 
     /**
      * Returns the list of (label, uri) pairs to show as notification action buttons.
-     * All canonical presets are included EXCEPT the currently-active operation; Cancel is always
-     * included.
+     * Uses the user's [QuickActionConfig]: each configured slot becomes a button, EXCEPT the one
+     * matching the currently-active operation. Cancel is always included as an escape hatch.
      */
     private fun buildActionButtons(state: ForceStopState): List<Pair<String, String>> {
+        val config = QuickActionConfigStore.from(this).load()
         val buttons = mutableListOf<Pair<String, String>>()
 
-        // Pause 30m — skip when it IS the active operation
-        if (!(state.mode == ChargingControlMode.STOP && state.condition == "30m")) {
-            buttons.add(getString(R.string.quick_action_pause_30m) to "quickaction:pause/30m")
+        config.slots.forEach { slot ->
+            if (!slot.matchesActiveState(state)) {
+                buttons.add(ChargeControlLabels.slotLabel(this, slot) to slot.toUri())
+            }
         }
-        // Pause 1h — skip when it IS the active operation
-        if (!(state.mode == ChargingControlMode.STOP && state.condition == "1h")) {
-            buttons.add(getString(R.string.quick_action_pause_1h) to "quickaction:pause/1h")
-        }
-        // Force full — skip when it IS the active operation
-        if (state.mode != ChargingControlMode.FORCE_FULL) {
-            buttons.add(getString(R.string.quick_action_force_full) to "quickaction:force-full")
-        }
-        // Charge to 85% — skip when it IS the active operation
-        if (!(state.mode == ChargingControlMode.CHARGE_TO && state.condition == "85%")) {
-            buttons.add(getString(R.string.quick_action_charge_to_85) to "quickaction:charge-to/85")
-        }
-        // Cancel — always included
-        buttons.add(getString(R.string.quick_action_cancel) to "quickaction:cancel")
 
+        // Cancel is always available so the user can restore charging regardless of config.
+        if (config.slots.none { it.type == QuickActionSlotType.CANCEL }) {
+            buttons.add(getString(R.string.quick_action_cancel) to "quickaction:cancel")
+        }
         return buttons
+    }
+
+    /** Whether a configured slot corresponds to the currently-active operation (hide that button). */
+    private fun QuickActionSlot.matchesActiveState(state: ForceStopState): Boolean {
+        if (!state.active) return false
+        return when (type) {
+            QuickActionSlotType.PAUSE ->
+                state.mode == ChargingControlMode.STOP && state.condition == param
+            QuickActionSlotType.CHARGE_TO ->
+                state.mode == ChargingControlMode.CHARGE_TO && state.condition == param
+            QuickActionSlotType.FORCE_FULL ->
+                state.mode == ChargingControlMode.FORCE_FULL && state.condition == param
+            QuickActionSlotType.CANCEL -> false
+        }
     }
 
     // ---- Utility ------------------------------------------------------------------------

@@ -348,6 +348,26 @@
     <string name="quick_action_success">Done</string>
     <string name="quick_action_failed">Action failed</string>
 
+    <!-- Quick-action config screen -->
+    <string name="quick_actions_config_title">Quick Actions</string>
+    <string name="quick_actions_config_subtitle">Customize the buttons shown on the widget, notification, and app shortcuts</string>
+    <string name="quick_actions_battery_row">Show battery status</string>
+    <string name="quick_actions_add">Add action</string>
+    <string name="quick_actions_slot_pause">Pause %1$s</string>
+    <string name="quick_actions_slot_charge_to">Charge to %1$s</string>
+    <string name="quick_actions_slot_force_full">Force full %1$s</string>
+    <string name="quick_actions_slot_cancel">Restore</string>
+    <string name="quick_actions_param_dialog_title">Choose condition</string>
+    <string name="quick_actions_remove">Remove</string>
+    <string name="quick_actions_move_up">Move up</string>
+    <string name="quick_actions_move_down">Move down</string>
+    <string name="quick_actions_empty">No actions configured. Tap Add to create one.</string>
+    <string name="quick_actions_max_reached">Maximum 5 actions</string>
+    <string name="tools_section_quick_actions_title">Quick Actions</string>
+    <string name="tools_section_quick_actions_summary">Customize widget, notification, and shortcut buttons</string>
+    <string name="tools_action_configure_quick_actions">Configure quick actions</string>
+    <string name="tools_action_configure_quick_actions_desc">Choose which charging controls to show and in what order</string>
+
     <!-- Home screen widget -->
     <string name="quick_action_widget_title">Quick actions</string>
     <string name="quick_action_widget_desc">Quick charging controls</string>

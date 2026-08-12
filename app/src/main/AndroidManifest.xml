@@ -22,9 +22,6 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <meta-data
-                android:name="android.app.shortcuts"
-                android:resource="@xml/shortcuts" />
         </activity>
         <!-- Transparent, no-UI target for app shortcuts (shortcuts are launched via startActivity,
              which cannot start a BroadcastReceiver). Exported with no intent-filter so it never
